@@ -1,0 +1,10 @@
+{
+  "start": "node_1",
+  "node_1": {
+    "text": "Hello. Want to browse my shop?",
+    "responses": [
+      {"text": "Shop", "next": "shop"},
+      {"text": "Leave", "next": "end"}
+    ]
+  }
+}
