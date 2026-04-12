@@ -1,6 +1,5 @@
 import os
 import math
-import time
 import pygame
 from core.utils import clamp
 from core.map import mobs_data
@@ -18,8 +17,7 @@ def _load_image(filename, size=None):
     if filename in _IMAGE_CACHE:
         return _IMAGE_CACHE[filename]
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    pictures_dir = os.path.join(base_dir, "Pictures")
-    path = os.path.join(pictures_dir, filename)
+    path = os.path.join(base_dir, filename)
     if not os.path.isfile(path):
         _IMAGE_CACHE[filename] = None
         return None
@@ -122,27 +120,6 @@ def draw_esc_menu(screen, selected, game=None):
     info_font = pygame.font.SysFont('consolas', 12)
     info_text = info_font.render("now", True, (200, 220, 220))
     screen.blit(info_text, (info_rect.x + 8, info_rect.y + 6))
-
-    # header right: player info
-    if game is not None:
-        name = getattr(game, "player_name", "player")
-        hp = f"HP {game.player.hp}/{game.player.max_hp}"
-        mp = f"MP {game.player.mp}/{game.player.max_mp}"
-        name_surf = font.render(name, True, (255, 255, 255))
-        hp_surf = font2.render(hp, True, (255, 200, 200))
-        mp_surf = font2.render(mp, True, (200, 200, 255))
-        right_x = header_rect.right - 12
-        screen.blit(name_surf, (right_x - name_surf.get_width(), header_rect.y + 10))
-        screen.blit(hp_surf, (right_x - hp_surf.get_width(), header_rect.y + 32))
-        screen.blit(mp_surf, (right_x - mp_surf.get_width(), header_rect.y + 48))
-
-    # left lower: currency box
-    if game is not None:
-        money_rect = pygame.Rect(left_rect.x + 8, left_rect.bottom - 72, left_rect.width - 16, 56)
-        pygame.draw.rect(screen, (10, 50, 90), money_rect)
-        pygame.draw.rect(screen, (200, 240, 255), money_rect, 2)
-        money_surf = font2.render(f"robux: {game.money}", True, (230, 230, 230))
-        screen.blit(money_surf, (money_rect.x + 8, money_rect.y + 18))
 
     if game.ui_mode in ("save", "equip", "equip_category", "item", "magic", "objective", "status", "leave_confirm"):
         draw_menu_detail(screen, content_rect, game)
@@ -328,35 +305,19 @@ def draw_messages(game, screen):
         return
     font = pygame.font.SysFont('consolas', 14)
     messages = list(game.message_queue)[-3:]
-    bar_h = 48
-    y = screen.get_height() - bar_h - 16
-    now = time.time()
+    y = screen.get_height() - 60
     for msg in reversed(messages):
-        created = msg.get("created", now)
-        age = now - created
-        alpha = 255
-        if age > game.message_show_time:
-            fade_age = min(age - game.message_show_time, game.message_fade_time)
-            alpha = int(255 * (1 - fade_age / game.message_fade_time))
-        lines = msg.get("lines")
-        if not lines:
-            lines = [msg.get("text", "")]
-        for line in reversed(lines):
-            surf = font.render(line, True, (255, 255, 255))
-            surf.set_alpha(alpha)
-            x = screen.get_width() - surf.get_width() - 16
-            y -= font.get_height() + 4
-            screen.blit(surf, (x, y))
-        y -= 6
+        surf = font.render(msg["text"], True, (255, 255, 255))
+        x = screen.get_width() - surf.get_width() - 16
+        screen.blit(surf, (x, y))
+        y -= font.get_height() + 4
 
 
 def draw_dialog(game, screen):
     if game.ui_mode != "dialog" or not game.dialog_data or not game.dialog_node:
         return
     panel_h = screen.get_height() // 3
-    bar_h = 48
-    panel_bottom = screen.get_height() - bar_h
-    panel = pygame.Rect(0, panel_bottom - panel_h, screen.get_width(), panel_h)
+    panel = pygame.Rect(0, screen.get_height() - panel_h - 12, screen.get_width(), panel_h)
     pygame.draw.rect(screen, (30, 30, 40), panel)
     pygame.draw.rect(screen, (200, 200, 200), panel, 2)
     font = pygame.font.SysFont('consolas', 16)

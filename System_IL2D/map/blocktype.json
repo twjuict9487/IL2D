@@ -1,0 +1,8 @@
+{
+  "grass": { "walkable": true },
+  "wall": { "walkable": false },
+  "exit": {
+    "walkable": true,
+    "on_step": "level_exit"
+  }
+}

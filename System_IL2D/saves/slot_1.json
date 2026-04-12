@@ -1,0 +1,28 @@
+{
+  "map": "map_1.json",
+  "player": {
+    "x": 7,
+    "y": 3,
+    "hp": 72,
+    "mp": 26,
+    "attack": 20,
+    "defence": 30,
+    "max_hp": 100,
+    "max_mp": 30
+  },
+  "money": 104,
+  "inventory": {
+    "health potion (small)": 1,
+    "magic potion (small)": 0,
+    "revive ring": 0,
+    "iron chestplate": 2
+  },
+  "equipment": {
+    "weapon": null,
+    "armor": "iron chestplate"
+  },
+  "objectives": [
+    "Find the dev",
+    "Try the shop"
+  ]
+}
