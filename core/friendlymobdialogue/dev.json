@@ -4,7 +4,9 @@
     "text": "Hello. Want to browse my shop?",
     "responses": [
       {"text": "Shop", "next": "shop"},
-      {"text": "Leave", "next": "end"}
+      {"text": "Leave", "next": "end"},
+      {"text": "haha", "next": "end"}
     ]
   }
 }
+
