@@ -1,6 +1,6 @@
 import pygame
-from core.game import Game
-from core.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, TILE_SIZE, VIEWPORT, FPS
+from temp.core.game import Game
+from temp.core.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, TILE_SIZE, VIEWPORT, FPS
 
 
 def _wrap_text(font, text, max_width):
