@@ -2,9 +2,10 @@ import os
 import random
 import time
 from collections import deque
-from .map import GameMap, blocktypes, mobs_data, player_data
+from .map import GameMap, blocktypes, mobs_data, player_data, npc_data
 from .entity import Entity
 from .utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, load_json, clamp
+from .i18n import tr
 
 
 class Game:
@@ -21,13 +22,15 @@ class Game:
             ai_type='player'
         )
         self.player_name = pdata.get('name', 'player')
+        self.lang = pdata.get('lang', 'en')
         self.player.base_attack = self.player.attack
         self.player.base_defence = self.player.defence
         self.entities = [self.player]
         self.spawn_default_entities()
+        self.place_npcs_for_map()
 
         self.tick = 0
-        self.map_max_h_mob = 4
+        self.map_max_h_mob = self.map.mob_limit
         self.spawn_interval = 4.0
         self.spawn_timer = 0.0
         self.camera_x = self.player.x
@@ -60,7 +63,8 @@ class Game:
         self.inventory = {
             'health potion (small)': 0,
             'magic potion (small)': 0,
-            'revive ring': 0
+            'revive ring': 0,
+            'barry': 0
         }
         self.equipment = {
             'weapon': None,
@@ -77,6 +81,7 @@ class Game:
             "magic potion (small)": {"type": "consumable"},
             "magic potion (medium)": {"type": "consumable"},
             "revive ring": {"type": "special"},
+            "barry": {"type": "consumable"},
             "iron sword": {"type": "equipment", "slot": "weapon", "attack": 30},
             "iron chestplate": {"type": "equipment", "slot": "armor", "defence": 20}
         }
@@ -89,12 +94,33 @@ class Game:
         ]
         self.last_saved = False
         self.last_save_slot = None
+        self.bush_regrow = {}
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
 
     def load_map(self, mapname):
         self.map = GameMap(os.path.join(MAP_DIR, mapname))
+        self.map_max_h_mob = self.map.mob_limit
+        if hasattr(self, "entities"):
+            self.place_npcs_for_map()
+
+    def place_npcs_for_map(self):
+        positions = {
+            "map_1.json": [(1, 8), (2, 8), (3, 8)],
+            "map_2.json": [(2, 8), (3, 8), (4, 8)],
+            "map_3.json": [(1, 8), (2, 8), (3, 8)]
+        }
+        order = ["dev", "priestess", "carmen"]
+        spots = positions.get(self.map.name, [])
+        for i, npc_id in enumerate(order):
+            ent = next((e for e in self.entities if e.eid == npc_id), None)
+            if ent is None:
+                data = npc_data.get(npc_id, {})
+                ent = Entity(npc_id, 0, 0, data.get('hp', 1), data.get('mp', 0), data.get('attack', 0), data.get('defence', 0), data.get('ai_type'), data.get('immortal', False))
+                self.entities.append(ent)
+            if i < len(spots):
+                ent.x, ent.y = spots[i]
 
     def spawn_default_entities(self):
         if 'slime' in mobs_data:
@@ -117,11 +143,28 @@ class Game:
             self.entities.append(
                 Entity('soldier', 8, 6, mdata['hp'], mdata.get('mp', 0), mdata.get('attack', 10), mdata.get('defence', 0), mdata.get('ai_type'), mdata.get('immortal', False))
             )
-        if 'dev' in mobs_data:
-            ddata = mobs_data['dev']
+        if 'dev' in npc_data:
+            ddata = npc_data['dev']
             self.entities.append(
                 Entity('dev', 2, 8, ddata.get('hp', 1), ddata.get('mp', 0), ddata.get('attack', 0), ddata.get('defence', 0), ddata.get('ai_type'), ddata.get('immortal', False))
             )
+        if 'priestess' in npc_data:
+            pdata = npc_data['priestess']
+            self.entities.append(
+                Entity('priestess', 4, 8, pdata.get('hp', 1), pdata.get('mp', 0), pdata.get('attack', 0), pdata.get('defence', 0), pdata.get('ai_type'), pdata.get('immortal', False))
+            )
+        if 'carmen' in npc_data:
+            cdata = npc_data['carmen']
+            self.entities.append(
+                Entity('carmen', 6, 8, cdata.get('hp', 1), cdata.get('mp', 0), cdata.get('attack', 0), cdata.get('defence', 0), cdata.get('ai_type'), cdata.get('immortal', False))
+            )
+
+    def get_entity_def(self, eid):
+        if eid in mobs_data:
+            return mobs_data[eid]
+        if eid in npc_data:
+            return npc_data[eid]
+        return {}
 
     def entity_at(self, x, y):
         for e in self.entities:
@@ -142,7 +185,8 @@ class Game:
             return False
         target = self.entity_at(nx, ny)
         if target and target.eid != 'player' and target.hp > 0:
-            if mobs_data.get(target.eid, {}).get('ai_type') == 'friendly':
+            target_def = self.get_entity_def(target.eid)
+            if target_def.get('ai_type') in ('friendly', 'neutral'):
                 return False
             if getattr(target, "immortal", False):
                 return False
@@ -163,27 +207,44 @@ class Game:
         self.player.x, self.player.y = nx, ny
         bt = self.map.get_block(nx, ny)
         if bt and 'on_step' in blocktypes[bt]:
-            if blocktypes[bt]['on_step'] == 'level_exit':
+            if blocktypes[bt]['on_step'] == 'portal':
+                self.handle_portal_at(nx, ny)
+            elif blocktypes[bt]['on_step'] == 'level_exit':
                 self.start_blackout()
         self.state_cleanup()
         self.update(player_tick=True)
         return True
 
+    def handle_portal_at(self, x, y):
+        if not getattr(self.map, "portals", None):
+            return
+        for p in self.map.portals:
+            if p.get("x") == x and p.get("y") == y:
+                target_map = p.get("target_map", "")
+                target_spawn = p.get("target_spawn", None)
+                if target_map:
+                    self.load_map(target_map)
+                    if target_spawn and len(target_spawn) == 2:
+                        self.player.x, self.player.y = target_spawn
+                    else:
+                        self.player.x, self.player.y = self.map.spawn
+                return
+
     def on_enemy_death(self, ent):
         mob = mobs_data.get(ent.eid, {})
         reward_money = mob.get('reward_money', {})
         reward_items = mob.get('reward_items', [])
-        lines = [f"killed: {ent.eid}"]
+        lines = [tr(self.lang, "reward.killed", name=ent.eid)]
         if reward_money:
             if isinstance(reward_money, dict):
                 amount = reward_money.get("amount", 0)
-                chance = reward_money.get("chance", 0.5)
+                chance = 1.0
             else:
                 amount = int(reward_money)
-                chance = 0.5
+                chance = 1.0
             if amount and random.random() < chance:
                 self.money += amount
-                lines.append(f"dropped: {amount} robux")
+                lines.append(tr(self.lang, "reward.dropped", text=f"{amount} robux"))
         dropped_items = []
         if reward_items:
             if isinstance(reward_items, dict):
@@ -191,12 +252,12 @@ class Game:
             for item in reward_items:
                 name = item.get("name")
                 count = item.get("count", 1)
-                chance = item.get("chance", 0.5)
+                chance = 0.4
                 if name and random.random() < chance:
                     self.inventory[name] = self.inventory.get(name, 0) + count
                     dropped_items.append(f"{name} x{count}")
         if dropped_items:
-            lines.append(f"dropped: {', '.join(dropped_items)}")
+            lines.append(tr(self.lang, "reward.dropped", text=", ".join(dropped_items)))
         self.push_message_lines(lines)
 
     def push_message(self, text):
@@ -263,7 +324,24 @@ class Game:
             self.spawn_timer = 0.0
             if self.count_hostile_mobs() < self.map_max_h_mob:
                 self.spawn_random_hostile()
+        self.update_bush_regrow()
         self.cleanup_messages()
+
+    def update_bush_regrow(self):
+        if not self.bush_regrow:
+            return
+        now = time.time()
+        current_map = self.map.name
+        to_remove = []
+        for (mname, x, y), t in self.bush_regrow.items():
+            if mname != current_map:
+                continue
+            if now >= t:
+                if 0 <= y < self.map.h and 0 <= x < self.map.w and self.map.grid[y][x] == "08":
+                    self.map.grid[y][x] = "07"
+                to_remove.append((mname, x, y))
+        for key in to_remove:
+            self.bush_regrow.pop(key, None)
 
     def count_hostile_mobs(self):
         count = 0
@@ -301,8 +379,10 @@ class Game:
                 break
 
     def update_enemy(self, ent):
-        mob = mobs_data[ent.eid]
-        if mob.get('ai_type') == 'friendly':
+        mob = mobs_data.get(ent.eid)
+        if mob is None:
+            return
+        if mob.get('ai_type') in ('friendly', 'neutral'):
             return
         if self.tick % mob.get('move_interval', 1) != 0:
             return
@@ -351,13 +431,30 @@ class Game:
             nx, ny = self.player.x + dx, self.player.y + dy
             ent = self.entity_at(nx, ny)
             if ent and ent.eid != 'player':
-                if mobs_data.get(ent.eid, {}).get('ai_type') == 'friendly':
+                ent_def = self.get_entity_def(ent.eid)
+                if ent_def.get('ai_type') in ('friendly', 'neutral'):
                     self.open_dialog(ent.eid)
                 return
         bt = self.map.get_block(self.player.x, self.player.y)
         if bt and 'on_step' in blocktypes[bt]:
             if blocktypes[bt]['on_step'] == 'level_exit':
                 self.start_blackout()
+        self.try_harvest_bush()
+
+    def try_harvest_bush(self):
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = self.player.x + dx, self.player.y + dy
+            bt = self.map.get_block(nx, ny)
+            if bt == "07":
+                count = random.randint(1, 3)
+                self.inventory["barry"] = self.inventory.get("barry", 0) + count
+                unit = "barry" if count == 1 else "barries"
+                text = tr(self.lang, "msg.harvested_berry", count=count, unit=unit)
+                self.push_message(text)
+                self.map.grid[ny][nx] = "08"
+                key = (self.map.name, nx, ny)
+                self.bush_regrow[key] = time.time() + random.uniform(20.0, 30.0)
+                return
 
     def open_dialog(self, npc_id):
         dialog_path = os.path.join(DIALOG_DIR, f"{npc_id}.json")
@@ -385,6 +482,10 @@ class Game:
         if next_node == "shop":
             self.open_shop()
             return
+        if next_node == "heal":
+            self.npc_heal()
+            self.close_dialog()
+            return
         self.dialog_node = next_node
         self.dialog_selected = 0
 
@@ -404,16 +505,27 @@ class Game:
         if self.ui_mode == "shop":
             self.ui_mode = None
 
+    def npc_heal(self):
+        npc = npc_data.get(self.active_npc, {})
+        cost = npc.get("heal_cost", 50)
+        if self.money < cost:
+            self.push_message(tr(self.lang, "msg.not_enough_robux"))
+            return
+        self.money -= cost
+        self.player.hp = self.player.max_hp
+        self.player.mp = self.player.max_mp
+        self.push_message(tr(self.lang, "msg.healed_full"))
+
     def buy_selected_item(self):
         item = self.shop_items[self.shop_selected % len(self.shop_items)]
         name = item["name"]
         price = item["price"]
         if self.money < price:
-            self.push_message("not enough robux")
+            self.push_message(tr(self.lang, "msg.not_enough_robux"))
             return
         self.money -= price
         self.inventory[name] = self.inventory.get(name, 0) + 1
-        self.push_message(f"bought {name} for {price} robux")
+        self.push_message(tr(self.lang, "msg.bought_item", name=name, price=price))
 
     def open_save(self):
         self.ui_mode = "save"
@@ -444,7 +556,7 @@ class Game:
             json.dump(payload, f, ensure_ascii=False, indent=2)
         self.last_saved = True
         self.last_save_slot = slot
-        self.push_message(f"saved to slot {slot}")
+        self.push_message(tr(self.lang, "msg.saved_slot", slot=slot))
 
     def load_save(self, slot):
         save_path = os.path.join(SAVE_DIR, f"slot_{slot}.json")
@@ -514,7 +626,7 @@ class Game:
             return
         filtered = [n for n in equipables if self.item_defs.get(n, {}).get("slot") == self.equip_category]
         if not filtered:
-            self.push_message("no items for this category")
+            self.push_message(tr(self.lang, "msg.no_items_category"))
             return
         name = filtered[self.equip_selected % len(filtered)]
         item_def = self.item_defs.get(name, {})
@@ -523,7 +635,7 @@ class Game:
             return
         self.equipment[slot] = name
         self.recalculate_stats()
-        self.push_message(f"equipped {name}")
+        self.push_message(tr(self.lang, "msg.equipped_item", name=name))
 
     def get_item_list(self):
         items = []
@@ -535,12 +647,12 @@ class Game:
     def use_item(self):
         items = self.get_item_list()
         if not items:
-            self.push_message("no items")
+            self.push_message(tr(self.lang, "msg.no_items"))
             return
         name = items[self.item_selected % len(items)]
         count = self.inventory.get(name, 0)
         if count <= 0:
-            self.push_message("no items")
+            self.push_message(tr(self.lang, "msg.no_items"))
             return
         if name == "health potion (small)":
             self.player.hp = clamp(self.player.hp + 20, 0, self.player.max_hp)
@@ -550,21 +662,23 @@ class Game:
             self.player.mp = clamp(self.player.mp + 10, 0, self.player.max_mp)
         elif name == "magic potion (medium)":
             self.player.mp = clamp(self.player.mp + 25, 0, self.player.max_mp)
+        elif name == "barry":
+            self.player.hp = clamp(self.player.hp + 10, 0, self.player.max_hp)
         else:
-            self.push_message("cannot use this item")
+            self.push_message(tr(self.lang, "msg.cannot_use_item"))
             return
         self.inventory[name] = max(0, self.inventory.get(name, 0) - 1)
-        self.push_message(f"used {name}")
+        self.push_message(tr(self.lang, "msg.used_item", name=name))
 
     def cast_spell(self):
         if not self.spells:
-            self.push_message("no spells")
+            self.push_message(tr(self.lang, "msg.no_spells"))
             return
         spell = self.spells[self.magic_selected % len(self.spells)]
         name = spell.get("name", "spell")
         cost = spell.get("mp_cost", 0)
         if self.player.mp < cost:
-            self.push_message("not enough MP")
+            self.push_message(tr(self.lang, "msg.not_enough_mp"))
             return
         self.player.mp -= cost
         if name == "heal":
@@ -572,11 +686,11 @@ class Game:
             self.player.hp = clamp(self.player.hp + 25, 0, self.player.max_hp)
             healed = self.player.hp - before
             if healed <= 0:
-                self.push_message("heal: HP full")
+                self.push_message(tr(self.lang, "msg.heal_full"))
             else:
-                self.push_message(f"heal +{healed}")
+                self.push_message(tr(self.lang, "msg.heal_gain", amount=healed))
         else:
-            self.push_message(f"cast {name}")
+            self.push_message(tr(self.lang, "msg.cast_spell", name=name))
 
     def recalculate_stats(self):
         attack_bonus = 0

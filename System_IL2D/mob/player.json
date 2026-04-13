@@ -1,6 +1,7 @@
 {
   "_comment_zh": "玩家初始能力值（模板）。",
   "name": "player",
+  "lang": "zh",
   "hp": 100,
   "mp": 30,
   "attack": 20,

@@ -1,10 +1,12 @@
 {
+  "_comment_zh": "NPC 對話樹。start 為起始節點。",
   "start": "node_1",
   "node_1": {
     "text": "Hello. Want to browse my shop?",
+    "text_zh": "你好，要看看我的商店嗎？",
     "responses": [
-      {"text": "Shop", "next": "shop"},
-      {"text": "Leave", "next": "end"}
+      { "text": "Shop", "text_zh": "商店", "next": "shop" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
     ]
   }
 }

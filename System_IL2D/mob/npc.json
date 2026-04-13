@@ -1,0 +1,23 @@
+﻿{
+  "_comment_zh": "//NPC 定義：friendly 預設 relation_point=100；neutral=0",
+  "dev": {
+    "_comment_zh": "dev 為友善且不死",
+    "immortal": true,
+    "ai_type": "friendly",
+    "relation_point": 100,
+    "image": "noFilter.webp"
+  },
+  "priestess": {
+    "_comment_zh": "治療 NPC：花費 50 robux 回滿 HP/MP",
+    "ai_type": "friendly",
+    "relation_point": 100,
+    "image": "priestess.jpg",
+    "heal_cost": 50
+  },
+  "carmen": {
+    "_comment_zh": "中立 NPC（非敵對）",
+    "ai_type": "neutral",
+    "relation_point": 0,
+    "image": "carmen.webp"
+  }
+}
