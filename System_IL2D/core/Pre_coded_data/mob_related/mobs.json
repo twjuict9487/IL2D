@@ -1,5 +1,5 @@
 {
-  "_comment_zh": "怪物/ NPC 資料。只放戰鬥與 AI 相關欄位，掉落獨立在 reward_* 欄位。",
+  "_comment_zh": "怪物資料（只放敵方）。friendly NPC 請放在 npc.json。",
   "slime": {
     "hp": 30,
     "mp": 0,
@@ -56,11 +56,5 @@
     "reward_items": [
       { "name": "iron chestplate", "count": 1, "chance": 0.5 }
     ]
-  },
-  "dev": {
-    "_comment_zh": "dev 為不死存在，immortal=true，不參與血量邏輯。",
-    "immortal": true,
-    "ai_type": "friendly",
-    "image": "noFilter.webp"
   }
 }

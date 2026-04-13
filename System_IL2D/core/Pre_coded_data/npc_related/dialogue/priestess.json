@@ -1,0 +1,21 @@
+{
+  "_comment_zh": "Priestess 對話樹（靈感：明日方舟 Priestess）。",
+  "start": "node_1",
+  "node_1": {
+    "text": "Doctor... you look weary. Shall I restore your strength?",
+    "text_zh": "博士……你看起來很疲憊。我可以替你恢復力量。",
+    "responses": [
+      { "text": "Heal (50 robux)", "text_zh": "治療（50 羅布幣）", "next": "heal" },
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_2" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_2": {
+    "text": "Even in the darkest hour, I will remain by your side. The path ahead is harsh, but we can endure it together.",
+    "text_zh": "即使在最黑暗的時刻，我也會在你身旁。前方的路很艱難，但我們可以一起走下去。",
+    "responses": [
+      { "text": "Back", "text_zh": "返回", "next": "node_1" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  }
+}

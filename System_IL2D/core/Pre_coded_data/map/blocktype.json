@@ -1,0 +1,12 @@
+﻿{
+  "_comment_zh": "//方塊代碼：01 草地、02 牆、03 傳送門、04 出口、05 樹、06 石頭、07 灌木(有莓)、08 灌木(無莓)、09 花",
+  "01": { "walkable": true, "zh_comment": "草地 / 可走" },
+  "02": { "walkable": false, "zh_comment": "牆 / 不可走" },
+  "03": { "walkable": true, "on_step": "portal", "zh_comment": "傳送門 / 進入後切換地圖" },
+  "04": { "walkable": true, "on_step": "level_exit", "zh_comment": "出口 / 結束關卡" },
+  "05": { "walkable": false, "image": "tree.jpg", "base": "01", "zh_comment": "樹 / 不可走" },
+  "06": { "walkable": false, "image": "rock.jpg", "base": "01", "zh_comment": "石頭 / 不可走" },
+  "07": { "walkable": false, "image": "bush_with_barries.jpg", "base": "01", "zh_comment": "灌木(有莓) / E 採集" },
+  "08": { "walkable": true, "image": "bush_without_barries.jpg", "base": "01", "zh_comment": "灌木(無莓) / 可走 / 等待再生" },
+  "09": { "walkable": true, "image": "flower.png", "base": "01", "zh_comment": "花 / 可走裝飾" }
+}

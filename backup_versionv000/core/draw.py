@@ -1,8 +1,8 @@
 import os
 import math
 import pygame
-from core.utils import clamp
-from core.map import mobs_data
+from temp.core.utils import clamp
+from temp.core.map import mobs_data
 
 TILE_SIZE = 48
 VIEWPORT = 10

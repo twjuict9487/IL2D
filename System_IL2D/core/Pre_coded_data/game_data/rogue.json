@@ -1,0 +1,11 @@
+﻿{
+  "normal_size": [20, 20],
+  "boss_size": [10, 15],
+  "boss_every": 5,
+  "mob_limit_normal": 10,
+  "mob_limit_boss": 1,
+  "boss_hp_mult": 5,
+  "boss_attack_mult": 3,
+  "death_penalty_rate": 0.2,
+  "retreat_item": "retreat item"
+}
