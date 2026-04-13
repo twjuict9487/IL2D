@@ -18,6 +18,18 @@ class GameMap:
         self.h = len(self.grid)
         self.w = len(self.grid[0])
 
+    @classmethod
+    def from_data(cls, name, data):
+        obj = cls.__new__(cls)
+        obj.name = name
+        obj.grid = data['grid']
+        obj.spawn = tuple(data['spawn'])
+        obj.portals = data.get('portals', [])
+        obj.mob_limit = data.get('mob_limit', 4)
+        obj.h = len(obj.grid)
+        obj.w = len(obj.grid[0])
+        return obj
+
     def is_walkable(self, x, y):
         if 0 <= y < self.h and 0 <= x < self.w:
             bt = self.grid[y][x]

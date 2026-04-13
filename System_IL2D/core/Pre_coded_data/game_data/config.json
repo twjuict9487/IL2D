@@ -1,0 +1,9 @@
+﻿{
+  "_comment_zh": "//遊戲可調參數",
+  "spawn_interval": 4.0,
+  "message_show_time": 2.0,
+  "message_fade_time": 2.0,
+  "transition_duration": 1.0,
+  "move_interval": 0.133,
+  "leave_rogue_hp": 100
+}

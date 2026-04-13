@@ -4,7 +4,7 @@ import time
 from collections import deque
 from .map import GameMap, blocktypes, mobs_data, player_data, npc_data
 from .entity import Entity
-from .utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, load_json, clamp
+from .utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp
 from .i18n import tr
 
 
@@ -64,52 +64,70 @@ class Game:
             'health potion (small)': 0,
             'magic potion (small)': 0,
             'revive ring': 0,
-            'barry': 0
+            'barry': 0,
+            'retreat item': 0
         }
         self.equipment = {
             'weapon': None,
-            'armor': None
+            'armor': None,
+            'ring1': None,
+            'ring2': None,
+            'ring3': None,
+            'ring4': None,
+            'ring5': None,
+            'ring6': None
         }
         self.objectives = ["Find the dev", "Try the shop"]
-        self.spells = [
-            {"name": "spark", "mp_cost": 5},
-            {"name": "heal", "mp_cost": 8}
-        ]
-        self.item_defs = {
-            "health potion (small)": {"type": "consumable"},
-            "health potion (medium)": {"type": "consumable"},
-            "magic potion (small)": {"type": "consumable"},
-            "magic potion (medium)": {"type": "consumable"},
-            "revive ring": {"type": "special"},
-            "barry": {"type": "consumable"},
-            "iron sword": {"type": "equipment", "slot": "weapon", "attack": 30},
-            "iron chestplate": {"type": "equipment", "slot": "armor", "defence": 20}
-        }
-        self.shop_items = [
-            {"name": "health potion (medium)", "price": 25},
-            {"name": "magic potion (medium)", "price": 40},
-            {"name": "iron sword", "price": 100},
-            {"name": "iron chestplate", "price": 150},
-            {"name": "revive ring", "price": 200}
-        ]
+        self.spells = []
+        self.item_defs = {}
+        self.shop_items = []
         self.last_saved = False
         self.last_save_slot = None
         self.bush_regrow = {}
+        self.rogue_layer = 0
+        self.rogue_is_boss = False
+        self.rogue_target_mobs = 0
+        self.transition_active = False
+        self.transition_timer = 0.0
+        self.transition_duration = 1.0
+        self.transition_mid_done = False
+        self.transition_action = None
+        self.banner = None
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
+        self.load_game_data()
+
+    def load_game_data(self):
+        cfg = load_json(CONFIG_FILE)
+        self.spawn_interval = cfg.get("spawn_interval", self.spawn_interval)
+        self.message_show_time = cfg.get("message_show_time", self.message_show_time)
+        self.message_fade_time = cfg.get("message_fade_time", self.message_fade_time)
+        self.transition_duration = cfg.get("transition_duration", self.transition_duration)
+        self.leave_rogue_hp = cfg.get("leave_rogue_hp", 100)
+        self.item_defs = load_json(ITEMS_FILE)
+        self.shop_items = load_json(SHOP_FILE)
+        self.spells = load_json(SPELLS_FILE)
+        self.objectives_cfg = load_json(OBJECTIVES_FILE)
+        self.rogue_cfg = load_json(ROGUE_FILE)
 
     def load_map(self, mapname):
+        if mapname == "rogue":
+            self.enter_rogue_layer(new_entry=True)
+            return
         self.map = GameMap(os.path.join(MAP_DIR, mapname))
         self.map_max_h_mob = self.map.mob_limit
         if hasattr(self, "entities"):
             self.place_npcs_for_map()
+        self.set_objectives_for_map()
+        self.show_enter_banner(mapname)
 
     def place_npcs_for_map(self):
         positions = {
             "map_1.json": [(1, 8), (2, 8), (3, 8)],
             "map_2.json": [(2, 8), (3, 8), (4, 8)],
-            "map_3.json": [(1, 8), (2, 8), (3, 8)]
+            "map_3.json": [(1, 8), (2, 8), (3, 8)],
+            "rogue": [(1, 12), (1, 13)]
         }
         order = ["dev", "priestess", "carmen"]
         spots = positions.get(self.map.name, [])
@@ -121,6 +139,8 @@ class Game:
                 self.entities.append(ent)
             if i < len(spots):
                 ent.x, ent.y = spots[i]
+            elif self.map.name == "rogue":
+                ent.x, ent.y = -999, -999
 
     def spawn_default_entities(self):
         if 'slime' in mobs_data:
@@ -168,7 +188,11 @@ class Game:
 
     def entity_at(self, x, y):
         for e in self.entities:
-            if (e.x, e.y) == (x, y) and (e.immortal or e.hp > 0):
+            size = getattr(e, "size", 1)
+            if size > 1:
+                if e.x <= x < e.x + size and e.y <= y < e.y + size and (e.immortal or e.hp > 0):
+                    return e
+            elif (e.x, e.y) == (x, y) and (e.immortal or e.hp > 0):
                 return e
         return None
 
@@ -176,6 +200,8 @@ class Game:
         return self.ui_mode is not None
 
     def request_player_move(self, dx, dy):
+        if self.transition_active:
+            return False
         if hasattr(self, 'death_timer') and self.death_timer is not None:
             return False
         if self.is_ui_blocking():
@@ -210,7 +236,7 @@ class Game:
             if blocktypes[bt]['on_step'] == 'portal':
                 self.handle_portal_at(nx, ny)
             elif blocktypes[bt]['on_step'] == 'level_exit':
-                self.start_blackout()
+                self.handle_exit_tile()
         self.state_cleanup()
         self.update(player_tick=True)
         return True
@@ -223,12 +249,27 @@ class Game:
                 target_map = p.get("target_map", "")
                 target_spawn = p.get("target_spawn", None)
                 if target_map:
-                    self.load_map(target_map)
-                    if target_spawn and len(target_spawn) == 2:
-                        self.player.x, self.player.y = target_spawn
+                    if target_map == "rogue":
+                        self.start_transition(self.enter_rogue_layer)
                     else:
-                        self.player.x, self.player.y = self.map.spawn
+                        def do_load():
+                            self.load_map(target_map)
+                            if target_spawn and len(target_spawn) == 2:
+                                self.player.x, self.player.y = target_spawn
+                            else:
+                                self.player.x, self.player.y = self.map.spawn
+                        self.start_transition(do_load)
                 return
+
+    def handle_exit_tile(self):
+        if self.map.name != "rogue":
+            self.start_blackout()
+            return
+        if self.count_hostile_mobs() > 0:
+            self.show_dev_block()
+            self.start_transition(self.reset_rogue_to_spawn)
+        else:
+            self.start_transition(self.enter_next_rogue_layer)
 
     def on_enemy_death(self, ent):
         mob = mobs_data.get(ent.eid, {})
@@ -277,6 +318,12 @@ class Game:
 
     def check_player_death(self):
         if self.player.hp <= 0:
+            if self.map.name == "rogue":
+                rate = self.rogue_cfg.get("death_penalty_rate", 0.2)
+                self.money = int(self.money * (1 - rate))
+                self.return_from_rogue()
+                self.death_timer = None
+                return
             if self.inventory.get('revive ring', 0) > 0:
                 self.inventory['revive ring'] -= 1
                 self.player.hp = self.player.max_hp
@@ -299,6 +346,9 @@ class Game:
             for ent in self.entities:
                 if ent.eid != 'player':
                     self.update_enemy(ent)
+            self.apply_recover_ring_tick()
+            if self.map.name == "rogue" and not self.rogue_is_boss:
+                self.rogue_target_mobs = 10
         self.camera_x = self.player.x
         self.camera_y = self.player.y
         if self.blackout == 1:
@@ -317,15 +367,29 @@ class Game:
             self.cleanup_messages()
 
     def update_time(self, dt):
+        if self.transition_active:
+            self.update_transition(dt)
+            return
         if self.is_ui_blocking():
             return
         self.spawn_timer += dt
-        if self.spawn_timer >= self.spawn_interval:
+        if self.spawn_timer >= self.spawn_interval and self.map.name != "rogue":
             self.spawn_timer = 0.0
             if self.count_hostile_mobs() < self.map_max_h_mob:
                 self.spawn_random_hostile()
         self.update_bush_regrow()
         self.cleanup_messages()
+
+    def apply_recover_ring_tick(self):
+        ring_name = "recover ring"
+        ring_def = self.item_defs.get(ring_name, {})
+        per_hp = ring_def.get("per_tick_hp", 2)
+        per_mp = ring_def.get("per_tick_mp", 1)
+        count = sum(1 for slot, name in self.equipment.items() if slot.startswith("ring") and name == ring_name)
+        if count <= 0:
+            return
+        self.player.hp = clamp(self.player.hp + per_hp * count, 0, self.player.max_hp)
+        self.player.mp = clamp(self.player.mp + per_mp * count, 0, self.player.max_mp)
 
     def update_bush_regrow(self):
         if not self.bush_regrow:
@@ -349,6 +413,176 @@ class Game:
             if e.eid != 'player' and mobs_data.get(e.eid, {}).get('ai_type') == 'hostile' and e.hp > 0:
                 count += 1
         return count
+
+    def set_objectives_for_map(self):
+        cfg = getattr(self, "objectives_cfg", {})
+        if self.map.name == "rogue":
+            lines = cfg.get("rogue", ["obj.rogue"])
+            self.objectives = [tr(self.lang, s) if s.startswith("obj.") else s for s in lines]
+        else:
+            lines = cfg.get("default", ["Find the dev", "Try the shop"])
+            self.objectives = [tr(self.lang, s) if s.startswith("obj.") else s for s in lines]
+
+    def show_enter_banner(self, label):
+        name = label.replace(".json", "")
+        self.banner = {"text": f"Now entering: {name}", "created": time.time(), "duration": 3.0}
+
+    def show_dev_block(self):
+        self.dialog_data = {
+            "start": "node_1",
+            "node_1": {
+                "text": "you have to kill everything in this layer before proceed, now go back and get killin",
+                "responses": [{"text": "ok", "next": "end"}]
+            }
+        }
+        self.dialog_node = "node_1"
+        self.dialog_selected = 0
+        self.active_npc = "dev"
+        self.ui_mode = "dialog"
+
+    def start_transition(self, action):
+        self.transition_active = True
+        self.transition_timer = 0.0
+        self.transition_mid_done = False
+        self.transition_action = action
+
+    def update_transition(self, dt):
+        self.transition_timer += dt
+        half = self.transition_duration / 2.0
+        if self.transition_timer >= half and not self.transition_mid_done:
+            self.transition_mid_done = True
+            if self.transition_action:
+                self.transition_action()
+        if self.transition_timer >= self.transition_duration:
+            self.transition_active = False
+            self.transition_action = None
+
+    def reset_rogue_to_spawn(self):
+        self.player.x, self.player.y = self.map.spawn
+
+    def return_from_rogue(self):
+        def do_return():
+            self.load_map("map_2.json")
+            self.player.x, self.player.y = self.map.spawn
+            self.player.hp = getattr(self, "leave_rogue_hp", 100)
+        self.start_transition(do_return)
+
+    def enter_rogue_layer(self, new_entry=False):
+        if new_entry:
+            self.rogue_layer = 0
+        self.rogue_layer += 1
+        cfg = getattr(self, "rogue_cfg", {})
+        boss_every = cfg.get("boss_every", 5)
+        self.rogue_is_boss = (self.rogue_layer % boss_every == 0)
+        size = cfg.get("boss_size", [10, 15]) if self.rogue_is_boss else cfg.get("normal_size", [20, 20])
+        w, h = size[0], size[1]
+        data = self.generate_rogue_map(w, h)
+        self.map = GameMap.from_data("rogue", data)
+        self.map_max_h_mob = self.map.mob_limit
+        self.player.x, self.player.y = self.map.spawn
+        self.place_npcs_for_map()
+        self.set_objectives_for_map()
+        layer_label = f"boss layer {self.rogue_layer}" if self.rogue_is_boss else f"layer {self.rogue_layer}"
+        self.banner = {"text": f"Now entering {layer_label}", "created": time.time(), "duration": 3.0}
+        retreat_name = cfg.get("retreat_item", "retreat item")
+        self.inventory[retreat_name] = self.inventory.get(retreat_name, 0) + 1
+        self.spawn_rogue_mobs()
+
+    def enter_next_rogue_layer(self):
+        self.enter_rogue_layer(new_entry=False)
+
+    def generate_rogue_map(self, w, h):
+        # create walls
+        grid = [["02" for _ in range(w)] for _ in range(h)]
+        start = (2, h - 2) if h <= 15 else (1, h - 2)
+        exit_pos = (w - 2, 1)
+        # carve simple path
+        x, y = start
+        grid[y][x] = "01"
+        while x < exit_pos[0]:
+            x += 1
+            grid[y][x] = "01"
+        while y > exit_pos[1]:
+            y -= 1
+            grid[y][x] = "01"
+        # add random open tiles
+        for yy in range(1, h - 1):
+            for xx in range(1, w - 1):
+                if grid[yy][xx] == "02" and random.random() < 0.65:
+                    grid[yy][xx] = "01"
+        # remove isolated open areas
+        def neighbors(cx, cy):
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = cx + dx, cy + dy
+                if 0 <= nx < w and 0 <= ny < h:
+                    yield nx, ny
+        reachable = set()
+        stack = [start]
+        while stack:
+            cx, cy = stack.pop()
+            if (cx, cy) in reachable:
+                continue
+            if grid[cy][cx] != "01":
+                continue
+            reachable.add((cx, cy))
+            for nx, ny in neighbors(cx, cy):
+                if (nx, ny) not in reachable and grid[ny][nx] == "01":
+                    stack.append((nx, ny))
+        for yy in range(1, h - 1):
+            for xx in range(1, w - 1):
+                if grid[yy][xx] == "01" and (xx, yy) not in reachable:
+                    grid[yy][xx] = "02"
+        # ensure npc spots
+        if h > 13:
+            grid[12][1] = "01"
+            grid[13][1] = "01"
+            if start == (1, h - 2):
+                grid[h - 2][1] = "01"
+            else:
+                grid[h - 2][2] = "01"
+        exit_x, exit_y = exit_pos
+        grid[exit_y][exit_x] = "04"
+        return {
+            "grid": grid,
+            "spawn": [start[0], start[1]],
+            "mob_limit": getattr(self, "rogue_cfg", {}).get("mob_limit_normal", 10),
+            "portals": []
+        }
+
+    def spawn_rogue_mobs(self):
+        # clear existing hostiles
+        self.entities = [e for e in self.entities if e.eid == "player" or e.immortal or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral")]
+        if self.rogue_is_boss:
+            self.spawn_rogue_boss()
+            self.rogue_target_mobs = 1
+            return
+        self.rogue_target_mobs = getattr(self, "rogue_cfg", {}).get("mob_limit_normal", 10)
+        count = self.count_hostile_mobs()
+        target = self.rogue_target_mobs
+        while count < target:
+            if not self.spawn_random_hostile():
+                break
+            count = self.count_hostile_mobs()
+
+    def spawn_rogue_boss(self):
+        # pick a base hostile for stats
+        base_id = None
+        for k, v in mobs_data.items():
+            if isinstance(v, dict) and v.get("ai_type") == "hostile":
+                base_id = k
+                base = v
+                break
+        if base_id is None:
+            return
+        w, h = self.map.w, self.map.h
+        bx, by = w // 2 - 1, h // 2 - 1
+        cfg = getattr(self, "rogue_cfg", {})
+        hp_mult = cfg.get("boss_hp_mult", 5)
+        atk_mult = cfg.get("boss_attack_mult", 3)
+        boss = Entity(base_id, bx, by, base.get("hp", 30) * hp_mult, base.get("mp", 0), base.get("attack", 10) * atk_mult, base.get("defence", 0), base.get("ai_type"))
+        boss.size = 3
+        boss.is_boss = True
+        self.entities.append(boss)
 
     def spawn_random_hostile(self):
         hostile_ids = [k for k, v in mobs_data.items() if isinstance(v, dict) and v.get('ai_type') == 'hostile']
@@ -383,6 +617,14 @@ class Game:
         if mob is None:
             return
         if mob.get('ai_type') in ('friendly', 'neutral'):
+            return
+        if getattr(ent, "is_boss", False):
+            px, py = self.player.x, self.player.y
+            dist = abs(ent.x - px) + abs(ent.y - py)
+            if dist <= 1:
+                enemy_damage = max(0, int(ent.attack * (1 - self.player.defence / 100)))
+                self.player.hp -= enemy_damage
+                self.check_player_death()
             return
         if self.tick % mob.get('move_interval', 1) != 0:
             return
@@ -620,11 +862,15 @@ class Game:
         self.ui_mode = "equip"
         self.equip_selected = 0
 
+    def get_equip_categories(self):
+        return ["weapon", "armor", "ring1", "ring2", "ring3", "ring4", "ring5", "ring6"]
+
     def equip_selected_item(self):
         equipables = self.get_equipable_items()
         if not equipables:
             return
-        filtered = [n for n in equipables if self.item_defs.get(n, {}).get("slot") == self.equip_category]
+        slot_key = "ring" if self.equip_category.startswith("ring") else self.equip_category
+        filtered = [n for n in equipables if self.item_defs.get(n, {}).get("slot") == slot_key]
         if not filtered:
             self.push_message(tr(self.lang, "msg.no_items_category"))
             return
@@ -633,7 +879,12 @@ class Game:
         slot = item_def.get("slot")
         if not slot:
             return
-        self.equipment[slot] = name
+        equipped_count = sum(1 for v in self.equipment.values() if v == name)
+        if self.inventory.get(name, 0) <= equipped_count:
+            self.push_message(tr(self.lang, "msg.not_enough_items"))
+            return
+        target_slot = self.equip_category if self.equip_category.startswith("ring") else slot
+        self.equipment[target_slot] = name
         self.recalculate_stats()
         self.push_message(tr(self.lang, "msg.equipped_item", name=name))
 
@@ -664,6 +915,15 @@ class Game:
             self.player.mp = clamp(self.player.mp + 25, 0, self.player.max_mp)
         elif name == "barry":
             self.player.hp = clamp(self.player.hp + 10, 0, self.player.max_hp)
+        elif name == "retreat item":
+            if self.map.name != "rogue":
+                self.push_message(tr(self.lang, "msg.cannot_use_item"))
+                return
+            self.inventory[name] = max(0, self.inventory.get(name, 0) - 1)
+            self.player.hp = getattr(self, "leave_rogue_hp", 100)
+            self.return_from_rogue()
+            self.push_message(tr(self.lang, "msg.used_item", name=name))
+            return
         else:
             self.push_message(tr(self.lang, "msg.cannot_use_item"))
             return

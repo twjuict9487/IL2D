@@ -253,8 +253,7 @@ def draw_menu_preview(screen, panel, game, selected):
         lines.append(tr(game.lang, "preview.leave"))
     y = panel.y + 48
     for line in lines:
-        surf = font.render(line, True, (230, 230, 230))
-        screen.blit(surf, (panel.x + 20, y))
+        _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
         y += font.get_height() + 6
 
 
@@ -295,49 +294,111 @@ def draw_menu_detail(screen, panel, game):
             screen.blit(surf, (panel.x + 24, y))
             y += font.get_height() + 6
     elif game.ui_mode == "equip":
+        categories = game.get_equip_categories()
+        col_w = (panel.width - 40) // 2
+        # top buttons
+        top_y = panel.y + 8
+        btn_w = 140
+        btn_h = 24
+        btn1 = pygame.Rect(panel.x + 16, top_y, btn_w, btn_h)
+        btn2 = pygame.Rect(panel.x + 16 + btn_w + 12, top_y, btn_w, btn_h)
+        pygame.draw.rect(screen, (40, 40, 50), btn1)
+        pygame.draw.rect(screen, (200, 200, 200), btn1, 1)
+        pygame.draw.rect(screen, (40, 40, 50), btn2)
+        pygame.draw.rect(screen, (200, 200, 200), btn2, 1)
+        _draw_text_outline(screen, font, tr(game.lang, "equip.change"), (230, 230, 230), (255, 255, 255), (btn1.x + 8, btn1.y + 4))
+        _draw_text_outline(screen, font, tr(game.lang, "equip.put_down_all"), (230, 230, 230), (255, 255, 255), (btn2.x + 8, btn2.y + 4))
+        y = panel.y + 48
+        # left categories with equipped
+        for i, name in enumerate(categories):
+            is_sel = i == game.equip_category_selected
+            color = (255, 255, 0) if is_sel else (230, 230, 230)
+            label = tr(game.lang, f"label.{name}") if name in ("weapon", "armor") else name
+            left_rect = pygame.Rect(panel.x + 16, y - 2, col_w, font.get_height() + 4)
+            right_rect = pygame.Rect(panel.x + 24 + col_w, y - 2, col_w, font.get_height() + 4)
+            pygame.draw.rect(screen, (255, 255, 255), left_rect, 1, border_radius=4)
+            pygame.draw.rect(screen, (255, 255, 255), right_rect, 1, border_radius=4)
+            if is_sel:
+                pygame.draw.rect(screen, _flicker_color(), left_rect, 2, border_radius=4)
+            equipped = game.equipment.get(name) if name in game.equipment else None
+            equip_label = _tr_item_name(game, equipped) if equipped else "none"
+            _draw_text_outline(screen, font, label, color, (255, 255, 255), (left_rect.x + 8, y))
+            _draw_text_outline(screen, font, equip_label, (230, 230, 230), (255, 255, 255), (right_rect.x + 8, y))
+            y += font.get_height() + 6
+
+        # right list: filtered items for selected category
         equipables = game.get_equipable_items()
-        filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == game.equip_category]
+        slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
+        filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
         if not filtered:
             surf = font.render(tr(game.lang, "msg.no_items_category"), True, (230, 230, 230))
             screen.blit(surf, (panel.x + 20, y))
             return
+        list_x = panel.x + 16
+        list_y = panel.bottom - 88
         selected = game.equip_selected % len(filtered)
-        for i, name in enumerate(filtered):
+        for i, name in enumerate(filtered[:3]):
             color = (255, 255, 0) if i == selected else (230, 230, 230)
-            surf = font.render(_tr_item_name(game, name), True, color)
-            rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
+            label = _tr_item_name(game, name)
+            rect = pygame.Rect(list_x, list_y + i * (font.get_height() + 6) - 2, panel.width - 32, font.get_height() + 4)
             pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
             if i == selected:
                 pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            screen.blit(surf, (panel.x + 24, y))
-            y += font.get_height() + 6
+            _draw_text_outline(screen, font, label, color, (255, 255, 255), (list_x + 8, list_y + i * (font.get_height() + 6)))
     elif game.ui_mode == "equip_category":
-        categories = ["weapon", "armor"]
+        categories = game.get_equip_categories()
+        col_w = (panel.width - 40) // 2
+        # top buttons
+        top_y = panel.y + 8
+        btn_w = 140
+        btn_h = 24
+        btn1 = pygame.Rect(panel.x + 16, top_y, btn_w, btn_h)
+        btn2 = pygame.Rect(panel.x + 16 + btn_w + 12, top_y, btn_w, btn_h)
+        pygame.draw.rect(screen, (40, 40, 50), btn1)
+        pygame.draw.rect(screen, (200, 200, 200), btn1, 1)
+        pygame.draw.rect(screen, (40, 40, 50), btn2)
+        pygame.draw.rect(screen, (200, 200, 200), btn2, 1)
+        _draw_text_outline(screen, font, tr(game.lang, "equip.change"), (230, 230, 230), (255, 255, 255), (btn1.x + 8, btn1.y + 4))
+        _draw_text_outline(screen, font, tr(game.lang, "equip.put_down_all"), (230, 230, 230), (255, 255, 255), (btn2.x + 8, btn2.y + 4))
+        y = panel.y + 48
         for i, name in enumerate(categories):
-            color = (255, 255, 0) if i == game.equip_category_selected else (230, 230, 230)
-            label = tr(game.lang, f"label.{name}")
-            surf = font.render(label, True, color)
-            rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
-            if i == game.equip_category_selected:
-                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            screen.blit(surf, (panel.x + 24, y))
+            is_sel = i == game.equip_category_selected
+            color = (255, 255, 0) if is_sel else (230, 230, 230)
+            label = tr(game.lang, f"label.{name}") if name in ("weapon", "armor") else name
+            left_rect = pygame.Rect(panel.x + 16, y - 2, col_w, font.get_height() + 4)
+            right_rect = pygame.Rect(panel.x + 24 + col_w, y - 2, col_w, font.get_height() + 4)
+            pygame.draw.rect(screen, (255, 255, 255), left_rect, 1, border_radius=4)
+            pygame.draw.rect(screen, (255, 255, 255), right_rect, 1, border_radius=4)
+            if is_sel:
+                pygame.draw.rect(screen, _flicker_color(), left_rect, 2, border_radius=4)
+            equipped = game.equipment.get(name) if name in game.equipment else None
+            equip_label = _tr_item_name(game, equipped) if equipped else "none"
+            _draw_text_outline(screen, font, label, color, (255, 255, 255), (left_rect.x + 8, y))
+            _draw_text_outline(screen, font, equip_label, (230, 230, 230), (255, 255, 255), (right_rect.x + 8, y))
             y += font.get_height() + 6
+        # bottom list (3 rows)
+        items = game.get_item_list()
+        bottom_y = panel.bottom - 88
+        for i in range(3):
+            if i >= len(items):
+                break
+            name = items[i]
+            count = game.inventory.get(name, 0)
+            line = f"{_tr_item_name(game, name)} x{count}"
+            _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 16, bottom_y + i * (font.get_height() + 6)))
     elif game.ui_mode == "objective":
         for line in game.objectives:
-            surf = font.render(line, True, (230, 230, 230))
-            screen.blit(surf, (panel.x + 20, y))
+            _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             y += font.get_height() + 6
     elif game.ui_mode == "status":
         lines = [
-            f"HP {game.player.hp}/{game.player.max_hp}",
-            f"MP {game.player.mp}/{game.player.max_mp}",
-            f"Attack {game.player.attack}",
-            f"Defence {game.player.defence}%"
+            f"{tr(game.lang, 'label.hp')} {game.player.hp}/{game.player.max_hp}",
+            f"{tr(game.lang, 'label.mp')} {game.player.mp}/{game.player.max_mp}",
+            f"{tr(game.lang, 'label.attack')} {game.player.attack}",
+            f"{tr(game.lang, 'label.defence')} {game.player.defence}%"
         ]
         for line in lines:
-            surf = font.render(line, True, (230, 230, 230))
-            screen.blit(surf, (panel.x + 20, y))
+            _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             y += font.get_height() + 6
     elif game.ui_mode == "save":
         slots = 3
@@ -587,7 +648,8 @@ def draw(game, screen):
             ex, ey = ent.x - left, ent.y - top
             draw_x = ex * tile_w + 4
             draw_y = ey * tile_h + 4
-            size = tile_w - 8, tile_h - 8
+            ent_size = getattr(ent, "size", 1)
+            size = tile_w * ent_size - 8, tile_h * ent_size - 8
             ent_def = mobs_data.get(ent.eid, None)
             if ent_def is None:
                 ent_def = npc_data.get(ent.eid, {})
@@ -601,9 +663,19 @@ def draw(game, screen):
                     color = (255, 200, 0)
                 else:
                     color = (255, 0, 0)
-                pygame.draw.rect(screen, color, (draw_x + 4, draw_y + 4, tile_w - 16, tile_h - 16))
+                pygame.draw.rect(screen, color, (draw_x + 4, draw_y + 4, size[0] - 8, size[1] - 8))
 
-    if game.blackout:
+    if getattr(game, "transition_active", False):
+        t = game.transition_timer / max(game.transition_duration, 0.001)
+        if t <= 0.5:
+            alpha = int(255 * (t * 2))
+        else:
+            alpha = int(255 * (1 - (t - 0.5) * 2))
+        s = pygame.Surface(screen.get_size())
+        s.set_alpha(max(0, min(255, alpha)))
+        s.fill((0, 0, 0))
+        screen.blit(s, (0, 0))
+    elif game.blackout:
         s = pygame.Surface(screen.get_size())
         s.set_alpha(game.black_alpha)
         s.fill((0, 0, 0))
@@ -612,3 +684,41 @@ def draw(game, screen):
     draw_messages(game, screen)
     draw_dialog(game, screen)
     draw_shop(game, screen)
+
+    if getattr(game, "banner", None):
+        banner = game.banner
+        now = time.time()
+        age = now - banner.get("created", now)
+        dur = banner.get("duration", 3.0)
+        if age <= dur:
+            alpha = int(255 * (1 - age / dur))
+            text = banner.get("text", "")
+            font = _get_font(20, bold=True)
+            surf = font.render(text, True, (255, 255, 255))
+            box_w = surf.get_width() + 40
+            box_h = surf.get_height() + 20
+            box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+            box.fill((18, 60, 92, min(200, alpha)))
+            x = screen.get_width() // 2 - box_w // 2
+            y = screen.get_height() // 2 - box_h // 2
+            screen.blit(box, (x, y))
+            surf.set_alpha(alpha)
+            screen.blit(surf, (x + 20, y + 10))
+        else:
+            game.banner = None
+
+    if getattr(game, "map", None) is not None and game.map.name == "rogue":
+        # mission bar top-right
+        total = 1 if game.rogue_is_boss else 10
+        left = game.count_hostile_mobs()
+        text = f"mob left: {left}/{total}"
+        font = _get_font(14)
+        surf = font.render(text, True, (255, 255, 255))
+        box_w = surf.get_width() + 20
+        box_h = surf.get_height() + 10
+        box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+        box.fill((10, 12, 16, 200))
+        x = screen.get_width() - box_w - 12
+        y = 12
+        screen.blit(box, (x, y))
+        screen.blit(surf, (x + 10, y + 5))

@@ -2,21 +2,21 @@
   "map": "map_1.json",
   "player": {
     "x": 1,
-    "y": 7,
-    "hp": 97,
-    "mp": 30,
+    "y": 6,
+    "hp": 76,
+    "mp": 6,
     "attack": 20,
     "defence": 10,
     "max_hp": 100,
     "max_mp": 30
   },
-  "money": 162,
+  "money": 200,
   "inventory": {
-    "health potion (small)": 6,
-    "magic potion (small)": 2,
+    "health potion (small)": 2,
+    "magic potion (small)": 0,
     "revive ring": 0,
-    "barry": 16,
-    "iron chestplate": 1
+    "barry": 35,
+    "iron chestplate": 2
   },
   "equipment": {
     "weapon": null,

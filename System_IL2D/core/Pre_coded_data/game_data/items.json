@@ -1,0 +1,12 @@
+﻿{
+  "health potion (small)": {"type": "consumable"},
+  "health potion (medium)": {"type": "consumable"},
+  "magic potion (small)": {"type": "consumable"},
+  "magic potion (medium)": {"type": "consumable"},
+  "revive ring": {"type": "special"},
+  "barry": {"type": "consumable"},
+  "retreat item": {"type": "consumable"},
+  "recover ring": {"type": "equipment", "slot": "ring", "per_tick_hp": 2, "per_tick_mp": 1},
+  "iron sword": {"type": "equipment", "slot": "weapon", "attack": 30},
+  "iron chestplate": {"type": "equipment", "slot": "armor", "defence": 20}
+}

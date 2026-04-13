@@ -1,0 +1,8 @@
+﻿[
+  {"name": "health potion (medium)", "price": 25},
+  {"name": "magic potion (medium)", "price": 40},
+  {"name": "iron sword", "price": 100},
+  {"name": "iron chestplate", "price": 150},
+  {"name": "revive ring", "price": 200},
+  {"name": "recover ring", "price": 220}
+]

@@ -26,6 +26,6 @@
   "portals": [
     { "x": 0, "y": 10, "target_map": "map_1.json", "target_spawn": [8, 4] },
     { "x": 19, "y": 10, "target_map": "map_3.json", "target_spawn": [1, 4] },
-    { "x": 10, "y": 1, "target_map": "", "target_spawn": null }
+    { "x": 10, "y": 1, "target_map": "rogue", "target_spawn": null }
   ]
 }

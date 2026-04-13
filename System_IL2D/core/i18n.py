@@ -4,6 +4,8 @@
         "menu.continue": "continue",
         "menu.leave": "leave",
         "menu.setting": "setting",
+        "equip.change": "equipment change",
+        "equip.put_down_all": "put down all",
         "setting.language": "language",
         "setting.back": "back",
         "lang.en": "English",
@@ -38,6 +40,7 @@
         "msg.no_spells": "no spells",
         "msg.not_enough_robux": "not enough robux",
         "msg.not_enough_mp": "not enough MP",
+        "msg.not_enough_items": "not enough items",
         "msg.no_items_category": "no items for this category",
         "msg.cannot_use_item": "cannot use this item",
         "msg.saved_slot": "saved to slot {slot}",
@@ -60,17 +63,23 @@
         "item.magic potion (small)": "magic potion (small)",
         "item.magic potion (medium)": "magic potion (medium)",
         "item.revive ring": "revive ring",
+        "item.retreat item": "retreat item",
+        "item.recover ring": "recover ring",
         "item.iron sword": "iron sword",
         "item.iron chestplate": "iron chestplate",
         "item.barry": "barry",
         "spell.spark": "spark",
         "spell.heal": "heal"
+        ,
+        "obj.rogue": "kill all mob, farm money, leave when you want"
     },
     "zh": {
         "menu.new_game": "新遊戲",
         "menu.continue": "繼續",
         "menu.leave": "離開",
         "menu.setting": "設定",
+        "equip.change": "裝備變更",
+        "equip.put_down_all": "全部卸下",
         "setting.language": "語言",
         "setting.back": "返回",
         "lang.en": "英文",
@@ -105,6 +114,7 @@
         "msg.no_spells": "沒有法術",
         "msg.not_enough_robux": "Robux 不足",
         "msg.not_enough_mp": "MP 不足",
+        "msg.not_enough_items": "道具數量不足",
         "msg.no_items_category": "此分類沒有道具",
         "msg.cannot_use_item": "無法使用此道具",
         "msg.saved_slot": "已存到槽位 {slot}",
@@ -126,11 +136,15 @@
         "item.magic potion (small)": "小型魔力藥水",
         "item.magic potion (medium)": "中型魔力藥水",
         "item.revive ring": "復活戒指",
+        "item.retreat item": "撤退道具",
+        "item.recover ring": "回復戒指",
         "item.iron sword": "鐵劍",
         "item.iron chestplate": "鐵胸甲",
         "item.barry": "莓果",
         "spell.spark": "電火花",
         "spell.heal": "治療"
+        ,
+        "obj.rogue": "擊殺全部怪物、刷錢、想走就走"
     }
 }
 

@@ -1,4 +1,5 @@
 import pygame
+from core.utils import CONFIG_FILE, load_json
 from core.i18n import tr
 from core.game import Game
 from core.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, TILE_SIZE, VIEWPORT, FPS
@@ -49,8 +50,13 @@ def init_context():
         "held_keys": {"w": False, "a": False, "s": False, "d": False},
         "press_time": {"w": 0.0, "a": 0.0, "s": 0.0, "d": 0.0},
         "last_move_time": 0.0,
-        "move_interval": 0.2
+        "move_interval": 0.133
     }
+    try:
+        cfg = load_json(CONFIG_FILE)
+        ctx["move_interval"] = cfg.get("move_interval", ctx["move_interval"])
+    except Exception:
+        pass
 
 
 def run_frame(ctx):
@@ -144,7 +150,7 @@ def _handle_settings_key(ctx, event):
 def _handle_esc_menu_key(ctx, event):
     game = ctx["game"]
     if game.ui_mode:
-        if event.key in (pygame.K_UP, pygame.K_LEFT):
+        if event.key in (pygame.K_UP, pygame.K_LEFT, pygame.K_w, pygame.K_a):
             if game.ui_mode == "save":
                 game.save_selected = (game.save_selected - 1) % 3
             elif game.ui_mode == "equip":
@@ -157,13 +163,14 @@ def _handle_esc_menu_key(ctx, event):
                 game.magic_selected = max(0, game.magic_selected - 1)
             elif game.ui_mode == "leave_confirm":
                 game.leave_selected = max(0, game.leave_selected - 1)
-        elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
+        elif event.key in (pygame.K_DOWN, pygame.K_RIGHT, pygame.K_s, pygame.K_d):
             if game.ui_mode == "save":
                 game.save_selected = (game.save_selected + 1) % 3
             elif game.ui_mode == "equip":
                 game.equip_selected = game.equip_selected + 1
             elif game.ui_mode == "equip_category":
-                game.equip_category_selected = min(1, game.equip_category_selected + 1)
+                max_idx = len(game.get_equip_categories()) - 1
+                game.equip_category_selected = min(max_idx, game.equip_category_selected + 1)
             elif game.ui_mode == "item":
                 game.item_selected = game.item_selected + 1
             elif game.ui_mode == "magic":
@@ -182,7 +189,8 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "equip":
                 game.equip_selected_item()
             elif game.ui_mode == "equip_category":
-                game.equip_category = "weapon" if game.equip_category_selected == 0 else "armor"
+                cats = game.get_equip_categories()
+                game.equip_category = cats[game.equip_category_selected % len(cats)]
                 game.open_equip_items()
             elif game.ui_mode == "item":
                 game.use_item()
@@ -387,17 +395,19 @@ def _handle_mouse_esc_menu(ctx, pos):
                     break
                 y += font.get_height() + 10
         elif game.ui_mode == "equip_category":
-            for i in range(2):
+            cats = game.get_equip_categories()
+            for i in range(len(cats)):
                 rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
                 if rect.collidepoint(mx, my):
                     game.equip_category_selected = i
-                    game.equip_category = "weapon" if i == 0 else "armor"
+                    game.equip_category = cats[i]
                     game.open_equip_items()
                     break
                 y += font.get_height() + 6
         elif game.ui_mode == "equip":
             equipables = game.get_equipable_items()
-            filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == game.equip_category]
+            slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
+            filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
             for i, _ in enumerate(filtered):
                 rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
                 if rect.collidepoint(mx, my):
