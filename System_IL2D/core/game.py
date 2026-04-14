@@ -96,6 +96,8 @@ class Game:
         self.transition_mid_done = False
         self.transition_action = None
         self.banner = None
+        self.move_anim_duration = 0.1
+        self.player_move_anim = None
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
@@ -108,6 +110,7 @@ class Game:
         self.message_show_time = cfg.get("message_show_time", self.message_show_time)
         self.message_fade_time = cfg.get("message_fade_time", self.message_fade_time)
         self.transition_duration = cfg.get("transition_duration", self.transition_duration)
+        self.move_anim_duration = cfg.get("move_anim_duration", self.move_anim_duration)
         self.leave_rogue_hp = cfg.get("leave_rogue_hp", 100)
         self.item_defs = load_json(ITEMS_FILE)
         self.shop_items = load_json(SHOP_FILE)
@@ -121,6 +124,7 @@ class Game:
             return
         self.map = GameMap(os.path.join(MAP_DIR, mapname))
         self.map_max_h_mob = self.map.mob_limit
+        self.player_move_anim = None
         if hasattr(self, "entities"):
             self.place_npcs_for_map()
         self.set_objectives_for_map()
@@ -214,6 +218,7 @@ class Game:
             return False
         if self.is_ui_blocking():
             return False
+        oldx, oldy = self.player.x, self.player.y
         nx, ny = self.player.x + dx, self.player.y + dy
         if not self.map.is_walkable(nx, ny):
             return False
@@ -230,6 +235,7 @@ class Game:
             if target.hp <= 0:
                 target.hp = -1
                 self.player.x, self.player.y = nx, ny
+                self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
                 self.on_enemy_death(target)
                 self.state_cleanup()
                 self.update(player_tick=True)
@@ -243,6 +249,7 @@ class Game:
             self.state_cleanup()
             return False
         self.player.x, self.player.y = nx, ny
+        self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
         bt = self.map.get_block(nx, ny)
         if bt and 'on_step' in blocktypes[bt]:
             if blocktypes[bt]['on_step'] == 'portal':
@@ -436,6 +443,26 @@ class Game:
         if random.random() < 0.05:
             self.money += 100
             self.push_message("Dev says youre lucky, and you recieved 100 robux")
+
+    def get_player_draw_pos(self):
+        anim = self.player_move_anim
+        if not anim:
+            return self.player.x, self.player.y
+        now = time.time()
+        start = anim.get("start", now)
+        dur = anim.get("duration", 0.1)
+        if dur <= 0:
+            self.player_move_anim = None
+            return self.player.x, self.player.y
+        t = (now - start) / dur
+        if t >= 1.0:
+            self.player_move_anim = None
+            return self.player.x, self.player.y
+        fx, fy = anim.get("from", (self.player.x, self.player.y))
+        tx, ty = anim.get("to", (self.player.x, self.player.y))
+        px = fx + (tx - fx) * t
+        py = fy + (ty - fy) * t
+        return px, py
 
     def handle_cheat_ring(self):
         self.money = int(self.money * 0.5)

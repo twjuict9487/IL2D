@@ -1,8 +1,9 @@
+import os
 import pygame
 from core.utils import CONFIG_FILE, load_json
 from core.i18n import tr
 from core.game import Game
-from core.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, TILE_SIZE, VIEWPORT, FPS
+from core.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, draw_dev_menu, draw_continue_menu, TILE_SIZE, VIEWPORT, FPS
 
 
 def _get_font(size, bold=False):
@@ -35,7 +36,7 @@ def init_context():
     screen = pygame.display.set_mode((TILE_SIZE * VIEWPORT, TILE_SIZE * (VIEWPORT + 1)))
     pygame.display.set_caption('Projekt:"IL2D" Prototype')
     clock = pygame.time.Clock()
-    return {
+    ctx = {
         "screen": screen,
         "clock": clock,
         "game": Game(),
@@ -47,6 +48,12 @@ def init_context():
         "settings_sub": None,
         "lang_selected": 0,
         "esc_selected": 0,
+        "continue_selected": 0,
+        "continue_slots": [],
+        "type_buffer": "",
+        "dev_menu_selected": 0,
+        "dev_menu_target": None,
+        "dev_menu_input": "",
         "held_keys": {"w": False, "a": False, "s": False, "d": False},
         "press_time": {"w": 0.0, "a": 0.0, "s": 0.0, "d": 0.0},
         "last_move_time": 0.0,
@@ -57,6 +64,7 @@ def init_context():
         ctx["move_interval"] = cfg.get("move_interval", ctx["move_interval"])
     except Exception:
         pass
+    return ctx
 
 
 def run_frame(ctx):
@@ -78,6 +86,8 @@ def _process_events(ctx):
         if event.type == pygame.QUIT:
             ctx["running"] = False
         elif event.type == pygame.KEYDOWN:
+            if _check_dev_secret(ctx, event):
+                continue
             _handle_key(ctx, event)
             _update_held_keys(ctx, event, True)
         elif event.type == pygame.KEYUP:
@@ -92,10 +102,78 @@ def _handle_key(ctx, event):
         _handle_main_menu_key(ctx, event)
     elif state == "settings":
         _handle_settings_key(ctx, event)
+    elif state == "dev_menu":
+        _handle_dev_menu_key(ctx, event)
+    elif state == "continue_menu":
+        _handle_continue_menu_key(ctx, event)
     elif state == "esc_menu":
         _handle_esc_menu_key(ctx, event)
     elif state == "game":
         _handle_game_key(ctx, event)
+
+
+def _check_dev_secret(ctx, event):
+    if ctx["state"] != "game":
+        return False
+    if not event.unicode:
+        return False
+    ch = event.unicode.lower()
+    if not ch.isalnum():
+        return False
+    secret = "twjuict9487isaprogamer"
+    buf = (ctx.get("type_buffer", "") + ch)[-len(secret):]
+    ctx["type_buffer"] = buf
+    if buf.endswith(secret):
+        ctx["state"] = "dev_menu"
+        ctx["dev_menu_selected"] = 0
+        ctx["dev_menu_target"] = None
+        ctx["dev_menu_input"] = ""
+        ctx["type_buffer"] = ""
+        return True
+    return False
+
+
+def _handle_dev_menu_key(ctx, event):
+    game = ctx["game"]
+    opts = ["max_hp", "max_mp", "add_money", "exit"]
+    if ctx["dev_menu_target"] is None:
+        if event.key in (pygame.K_UP, pygame.K_w):
+            ctx["dev_menu_selected"] = (ctx["dev_menu_selected"] - 1) % len(opts)
+        elif event.key in (pygame.K_DOWN, pygame.K_s):
+            ctx["dev_menu_selected"] = (ctx["dev_menu_selected"] + 1) % len(opts)
+        elif event.key == pygame.K_RETURN:
+            choice = opts[ctx["dev_menu_selected"]]
+            if choice == "exit":
+                ctx["state"] = "game"
+            else:
+                ctx["dev_menu_target"] = choice
+                ctx["dev_menu_input"] = ""
+        elif event.key == pygame.K_ESCAPE:
+            ctx["state"] = "game"
+    else:
+        if event.key == pygame.K_ESCAPE:
+            ctx["dev_menu_target"] = None
+            ctx["dev_menu_input"] = ""
+            return
+        if event.key == pygame.K_BACKSPACE:
+            ctx["dev_menu_input"] = ctx["dev_menu_input"][:-1]
+            return
+        if event.key == pygame.K_RETURN:
+            if ctx["dev_menu_input"].isdigit():
+                val = int(ctx["dev_menu_input"])
+                if ctx["dev_menu_target"] == "max_hp":
+                    game.player.max_hp = max(1, val)
+                    game.player.hp = game.player.max_hp
+                elif ctx["dev_menu_target"] == "max_mp":
+                    game.player.max_mp = max(0, val)
+                    game.player.mp = game.player.max_mp
+                elif ctx["dev_menu_target"] == "add_money":
+                    game.money += max(0, val)
+            ctx["dev_menu_target"] = None
+            ctx["dev_menu_input"] = ""
+            return
+        if event.unicode and event.unicode.isdigit():
+            ctx["dev_menu_input"] += event.unicode
 
 
 def _handle_main_menu_key(ctx, event):
@@ -109,15 +187,45 @@ def _handle_main_menu_key(ctx, event):
             ctx["game"] = Game()
             ctx["state"] = "game"
         elif ctx["menu_selected"] == 1:
-            if not ctx["game"].load_latest_save():
-                ctx["game"] = Game()
-            ctx["state"] = "game"
+            ctx["continue_slots"] = _get_save_slots()
+            ctx["continue_selected"] = 0
+            ctx["state"] = "continue_menu"
         elif ctx["menu_selected"] == 2:
             ctx["state"] = "settings"
         elif ctx["menu_selected"] == 3:
             ctx["running"] = False
         elif ctx["menu_selected"] == 4:
             pass
+
+
+def _get_save_slots():
+    slots = []
+    from core.utils import SAVE_DIR
+    for i in range(1, 4):
+        path = os.path.join(SAVE_DIR, f"slot_{i}.json")
+        slots.append({"slot": i, "exists": os.path.isfile(path)})
+    return slots
+
+
+def _handle_continue_menu_key(ctx, event):
+    slots = ctx.get("continue_slots", [])
+    if not slots:
+        if event.key == pygame.K_ESCAPE:
+            ctx["state"] = "main_menu"
+        return
+    if event.key in (pygame.K_UP, pygame.K_w):
+        ctx["continue_selected"] = (ctx["continue_selected"] - 1) % len(slots)
+    elif event.key in (pygame.K_DOWN, pygame.K_s):
+        ctx["continue_selected"] = (ctx["continue_selected"] + 1) % len(slots)
+    elif event.key == pygame.K_RETURN:
+        slot = slots[ctx["continue_selected"]]["slot"]
+        if ctx["game"].load_save(slot):
+            ctx["state"] = "game"
+        else:
+            # stay in menu if empty
+            pass
+    elif event.key == pygame.K_ESCAPE:
+        ctx["state"] = "main_menu"
 
 
 def _handle_settings_key(ctx, event):
@@ -272,6 +380,8 @@ def _handle_mouse(ctx, pos):
         _handle_mouse_main_menu(ctx, pos)
     elif state == "settings":
         _handle_mouse_settings(ctx, pos)
+    elif state == "continue_menu":
+        _handle_mouse_continue_menu(ctx, pos)
     elif state == "esc_menu":
         _handle_mouse_esc_menu(ctx, pos)
     elif state == "game":
@@ -339,11 +449,11 @@ def _handle_mouse_main_menu(ctx, pos):
                 ctx["game"] = Game()
                 ctx["state"] = "game"
             elif i == 1:
-                if not ctx["game"].load_latest_save():
-                    ctx["game"] = Game()
-                ctx["state"] = "game"
+                ctx["continue_slots"] = _get_save_slots()
+                ctx["continue_selected"] = 0
+                ctx["state"] = "continue_menu"
             elif i == 2:
-                ctx["game"].lang = "en" if ctx["game"].lang == "zh" else "zh"
+                ctx["state"] = "settings"
             elif i == 3:
                 ctx["running"] = False
             elif i == 4:
@@ -355,6 +465,25 @@ def _handle_mouse_settings(ctx, pos):
     # keep mouse simple: click outside closes sub menu
     if ctx["settings_sub"] == "language":
         return
+
+
+def _handle_mouse_continue_menu(ctx, pos):
+    mx, my = pos
+    screen = ctx["screen"]
+    slots = ctx.get("continue_slots", [])
+    if not slots:
+        return
+    font = _get_font(22)
+    start_y = 140
+    item_h = font.get_height() + 10
+    for i, _ in enumerate(slots):
+        rect = pygame.Rect(screen.get_width() // 2 - 140, start_y + i * item_h - 4, 280, font.get_height() + 8)
+        if rect.collidepoint(mx, my):
+            ctx["continue_selected"] = i
+            slot = slots[i]["slot"]
+            if ctx["game"].load_save(slot):
+                ctx["state"] = "game"
+            break
 
 
 def _handle_mouse_esc_menu(ctx, pos):
@@ -507,6 +636,12 @@ def _render(ctx):
             ctx["lang_selected"],
             ctx["game"].lang
         )
+    elif ctx["state"] == "continue_menu":
+        draw_continue_menu(ctx["screen"], ctx["continue_slots"], ctx["continue_selected"], ctx["game"].lang)
+    elif ctx["state"] == "dev_menu":
+        draw(ctx["game"], ctx["screen"])
+        draw_player_ui(ctx["game"], ctx["screen"])
+        draw_dev_menu(ctx["screen"], ctx)
     elif ctx["state"] == "esc_menu":
         draw(ctx["game"], ctx["screen"])
         draw_esc_menu(ctx["screen"], ctx["esc_selected"], ctx["game"])

@@ -97,6 +97,68 @@ def draw_main_menu(screen, selected, lang="en"):
     screen.blit(credits, (screen.get_width() // 2 - credits.get_width() // 2, screen.get_height() - 36))
 
 
+def draw_continue_menu(screen, slots, selected, lang="en"):
+    pygame.draw.rect(screen, (70, 78, 86), screen.get_rect())
+    font = _get_font(36, bold=True)
+    font2 = _get_font(22)
+    title = font.render(tr(lang, "menu.continue"), True, (255, 255, 255))
+    screen.blit(title, (screen.get_width() // 2 - title.get_width() // 2, 60))
+    if not slots:
+        hint = font2.render(tr(lang, "continue.empty"), True, (200, 200, 200))
+        screen.blit(hint, (screen.get_width() // 2 - hint.get_width() // 2, 140))
+        return
+    start_y = 140
+    for i, slot in enumerate(slots):
+        exists = slot.get("exists", False)
+        status = tr(lang, "continue.exists") if exists else tr(lang, "continue.empty")
+        label = f"{tr(lang, 'continue.slot', slot=slot.get('slot', i + 1))} - {status}"
+        color = (255, 255, 0) if i == selected else (220, 220, 220)
+        surf = font2.render(label, True, color)
+        x = screen.get_width() // 2 - surf.get_width() // 2
+        y = start_y + i * (font2.get_height() + 12)
+        screen.blit(surf, (x, y))
+        if i == selected:
+            rect = pygame.Rect(x - 12, y - 4, surf.get_width() + 24, surf.get_height() + 8)
+            pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=6)
+    hint = font2.render(tr(lang, "continue.hint"), True, (180, 180, 180))
+    screen.blit(hint, (screen.get_width() // 2 - hint.get_width() // 2, screen.get_height() - 40))
+
+
+def draw_dev_menu(screen, ctx):
+    panel_w = screen.get_width() * 2 // 3
+    panel_h = screen.get_height() * 2 // 3
+    panel = pygame.Rect(screen.get_width() // 2 - panel_w // 2, screen.get_height() // 2 - panel_h // 2, panel_w, panel_h)
+    bg = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+    bg.fill((10, 12, 16, 220))
+    screen.blit(bg, panel.topleft)
+    pygame.draw.rect(screen, (220, 220, 220), panel, 2)
+    font = _get_font(22, bold=True)
+    font2 = _get_font(18)
+    title = font.render("DEV MENU", True, (255, 255, 255))
+    screen.blit(title, (panel.x + 16, panel.y + 12))
+    opts = ["max_hp", "max_mp", "add_money", "exit"]
+    labels = {
+        "max_hp": "Set Max HP",
+        "max_mp": "Set Max MP",
+        "add_money": "Add Money",
+        "exit": "Exit"
+    }
+    y = panel.y + 60
+    for i, key in enumerate(opts):
+        color = (255, 255, 0) if i == ctx["dev_menu_selected"] else (200, 200, 200)
+        surf = font2.render(labels[key], True, color)
+        rect = pygame.Rect(panel.x + 16, y - 4, panel.width - 32, font2.get_height() + 8)
+        if i == ctx["dev_menu_selected"]:
+            pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=6)
+        screen.blit(surf, (panel.x + 24, y))
+        y += font2.get_height() + 12
+
+    if ctx["dev_menu_target"]:
+        prompt = f"Input {ctx['dev_menu_target']}: {ctx['dev_menu_input']}"
+        surf = font2.render(prompt, True, (230, 230, 230))
+        screen.blit(surf, (panel.x + 16, panel.bottom - 40))
+
+
 def draw_settings_menu(screen, selected, sub_mode, lang_selected, lang="en"):
     pygame.draw.rect(screen, (70, 78, 86), screen.get_rect())
     font = _get_font(32, bold=True)
@@ -599,19 +661,34 @@ def _wrap_text(font, text, max_width):
 
 def draw(game, screen):
     screen.fill((0, 0, 0))
-    cx, cy = game.camera_x, game.camera_y
     map_view_h = VIEWPORT
     map_view_w = VIEWPORT
     tile_h = TILE_SIZE
     tile_w = TILE_SIZE
-    left = clamp(cx - map_view_w // 2, 0, game.map.w - map_view_w)
-    top = clamp(cy - map_view_h // 2, 0, game.map.h - map_view_h)
+    view_w_px = map_view_w * tile_w
+    view_h_px = map_view_h * tile_h
+    if hasattr(game, "get_player_draw_pos"):
+        px, py = game.get_player_draw_pos()
+    else:
+        px, py = game.player.x, game.player.y
+    cam_px = px * tile_w + tile_w / 2 - view_w_px / 2
+    cam_py = py * tile_h + tile_h / 2 - view_h_px / 2
+    max_cam_px = max(0, game.map.w * tile_w - view_w_px)
+    max_cam_py = max(0, game.map.h * tile_h - view_h_px)
+    cam_px = clamp(cam_px, 0, max_cam_px)
+    cam_py = clamp(cam_py, 0, max_cam_py)
+    left = int(cam_px // tile_w)
+    top = int(cam_py // tile_h)
+    offset_x = -(cam_px - left * tile_w)
+    offset_y = -(cam_py - top * tile_h)
     portal_set = set()
     if getattr(game.map, "portals", None):
         for p in game.map.portals:
             portal_set.add((p.get("x"), p.get("y")))
-    for y in range(map_view_h):
-        for x in range(map_view_w):
+    tiles_x = map_view_w + 2
+    tiles_y = map_view_h + 2
+    for y in range(tiles_y):
+        for x in range(tiles_x):
             mx, my = left + x, top + y
             if 0 <= mx < game.map.w and 0 <= my < game.map.h:
                 bt = game.map.get_block(mx, my)
@@ -624,8 +701,8 @@ def draw(game, screen):
                     color = (200, 160, 60)
                 else:
                     color = (160, 160, 80)
-                tile_x = x * tile_w
-                tile_y = y * tile_h
+                tile_x = x * tile_w + offset_x
+                tile_y = y * tile_h + offset_y
                 pygame.draw.rect(screen, color, (tile_x, tile_y, tile_w, tile_h))
                 if bt == "04":
                     # pulsating highlight for exit
@@ -645,28 +722,37 @@ def draw(game, screen):
                 if (mx, my) in portal_set:
                     overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
                     overlay.fill((180, 60, 220, 160))
-                    screen.blit(overlay, (x * tile_w, y * tile_h))
+                    screen.blit(overlay, (tile_x, tile_y))
+    view_rect = pygame.Rect(cam_px, cam_py, view_w_px, view_h_px)
     for ent in game.entities:
-        if left <= ent.x < left + map_view_w and top <= ent.y < top + map_view_h:
-            ex, ey = ent.x - left, ent.y - top
-            draw_x = ex * tile_w + 4
-            draw_y = ey * tile_h + 4
-            ent_size = getattr(ent, "size", 1)
-            size = tile_w * ent_size - 8, tile_h * ent_size - 8
-            ent_def = mobs_data.get(ent.eid, None)
-            if ent_def is None:
-                ent_def = npc_data.get(ent.eid, {})
-            img = _load_image(ent_def.get("image"), size)
-            if img:
-                screen.blit(img, (draw_x, draw_y))
+        ent_size = getattr(ent, "size", 1)
+        ent_px = ent.x * tile_w
+        ent_py = ent.y * tile_h
+        ent_rect = pygame.Rect(ent_px, ent_py, ent_size * tile_w, ent_size * tile_h)
+        if not ent_rect.colliderect(view_rect):
+            continue
+        if ent.eid == 'player':
+            ex, ey = px, py
+        else:
+            ex, ey = ent.x, ent.y
+        draw_x = ex * tile_w - cam_px + 4
+        draw_y = ey * tile_h - cam_py + 4
+        ent_size = getattr(ent, "size", 1)
+        size = tile_w * ent_size - 8, tile_h * ent_size - 8
+        ent_def = mobs_data.get(ent.eid, None)
+        if ent_def is None:
+            ent_def = npc_data.get(ent.eid, {})
+        img = _load_image(ent_def.get("image"), size)
+        if img:
+            screen.blit(img, (int(draw_x), int(draw_y)))
+        else:
+            if ent.eid == 'player':
+                color = (0, 0, 255)
+            elif ent_def.get('ai_type') == 'friendly':
+                color = (255, 200, 0)
             else:
-                if ent.eid == 'player':
-                    color = (0, 0, 255)
-                elif ent_def.get('ai_type') == 'friendly':
-                    color = (255, 200, 0)
-                else:
-                    color = (255, 0, 0)
-                pygame.draw.rect(screen, color, (draw_x + 4, draw_y + 4, size[0] - 8, size[1] - 8))
+                color = (255, 0, 0)
+            pygame.draw.rect(screen, color, (int(draw_x) + 4, int(draw_y) + 4, size[0] - 8, size[1] - 8))
 
     if getattr(game, "transition_active", False):
         t = game.transition_timer / max(game.transition_duration, 0.001)
