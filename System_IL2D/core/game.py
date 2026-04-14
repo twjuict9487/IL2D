@@ -58,6 +58,7 @@ class Game:
         self.leave_step = 0
         self.leave_selected = 0
         self.request_quit = False
+        self.carmen_selected = 0
 
         self.money = 0
         self.inventory = {
@@ -87,6 +88,8 @@ class Game:
         self.rogue_layer = 0
         self.rogue_is_boss = False
         self.rogue_target_mobs = 0
+        self.rogue_difficulty = 0.0
+        self.rogue_rest_intro_done = False
         self.transition_active = False
         self.transition_timer = 0.0
         self.transition_duration = 1.0
@@ -97,6 +100,7 @@ class Game:
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
         self.load_game_data()
+        self.relations = {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)}
 
     def load_game_data(self):
         cfg = load_json(CONFIG_FILE)
@@ -121,13 +125,17 @@ class Game:
             self.place_npcs_for_map()
         self.set_objectives_for_map()
         self.show_enter_banner(mapname)
+        if self.map.name == "rouge_options.json":
+            self.rogue_rest_intro_done = False
+            self.open_rogue_rest_intro()
 
     def place_npcs_for_map(self):
         positions = {
             "map_1.json": [(1, 8), (2, 8), (3, 8)],
             "map_2.json": [(2, 8), (3, 8), (4, 8)],
             "map_3.json": [(1, 8), (2, 8), (3, 8)],
-            "rogue": [(1, 12), (1, 13)]
+            "rogue": [(1, 12), (1, 13)],
+            "rouge_options.json": [(4, 5), (6, 5)]
         }
         order = ["dev", "priestess", "carmen"]
         spots = positions.get(self.map.name, [])
@@ -139,7 +147,7 @@ class Game:
                 self.entities.append(ent)
             if i < len(spots):
                 ent.x, ent.y = spots[i]
-            elif self.map.name == "rogue":
+            elif self.map.name in ("rogue", "rouge_options.json"):
                 ent.x, ent.y = -999, -999
 
     def spawn_default_entities(self):
@@ -217,7 +225,7 @@ class Game:
             if getattr(target, "immortal", False):
                 return False
             player_damage = max(0, int(self.player.attack * (1 - target.defence / 100)))
-            enemy_damage = max(0, int(target.attack * (1 - self.player.defence / 100)))
+            enemy_damage, reflect = self.compute_player_damage(target.attack, target)
             target.hp -= player_damage
             if target.hp <= 0:
                 target.hp = -1
@@ -227,6 +235,10 @@ class Game:
                 self.update(player_tick=True)
                 return True
             self.player.hp -= enemy_damage
+            if reflect > 0 and target.hp > 0:
+                target.hp -= reflect
+                if target.hp <= 0:
+                    self.on_enemy_death(target)
             self.check_player_death()
             self.state_cleanup()
             return False
@@ -262,6 +274,9 @@ class Game:
                 return
 
     def handle_exit_tile(self):
+        if self.map.name == "rouge_options.json":
+            self.start_transition(self.enter_next_rogue_layer)
+            return
         if self.map.name != "rogue":
             self.start_blackout()
             return
@@ -276,6 +291,7 @@ class Game:
         reward_money = mob.get('reward_money', {})
         reward_items = mob.get('reward_items', [])
         lines = [tr(self.lang, "reward.killed", name=ent.eid)]
+        is_boss = getattr(ent, "is_boss", False)
         if reward_money:
             if isinstance(reward_money, dict):
                 amount = reward_money.get("amount", 0)
@@ -284,6 +300,8 @@ class Game:
                 amount = int(reward_money)
                 chance = 1.0
             if amount and random.random() < chance:
+                if is_boss:
+                    amount = amount * 10
                 self.money += amount
                 lines.append(tr(self.lang, "reward.dropped", text=f"{amount} robux"))
         dropped_items = []
@@ -294,6 +312,9 @@ class Game:
                 name = item.get("name")
                 count = item.get("count", 1)
                 chance = 0.4
+                if is_boss:
+                    chance = 1.0
+                    count = count * 3
                 if name and random.random() < chance:
                     self.inventory[name] = self.inventory.get(name, 0) + count
                     dropped_items.append(f"{name} x{count}")
@@ -347,6 +368,7 @@ class Game:
                 if ent.eid != 'player':
                     self.update_enemy(ent)
             self.apply_recover_ring_tick()
+            self.apply_dev_ring_tick()
             if self.map.name == "rogue" and not self.rogue_is_boss:
                 self.rogue_target_mobs = 10
         self.camera_x = self.player.x
@@ -390,6 +412,45 @@ class Game:
             return
         self.player.hp = clamp(self.player.hp + per_hp * count, 0, self.player.max_hp)
         self.player.mp = clamp(self.player.mp + per_mp * count, 0, self.player.max_mp)
+
+    def apply_dev_ring_tick(self):
+        ring_name = "dev's super powerful ring"
+        count = sum(1 for slot, name in self.equipment.items() if slot.startswith("ring") and name == ring_name)
+        if count <= 0:
+            return
+        if count > 1:
+            self.handle_cheat_ring()
+            # keep only one equipped
+            kept = False
+            for slot in list(self.equipment.keys()):
+                if slot.startswith("ring") and self.equipment[slot] == ring_name:
+                    if not kept:
+                        kept = True
+                    else:
+                        self.equipment[slot] = None
+            return
+        hp_gain = max(int(self.player.max_hp * 0.10), int(self.player.max_hp * 0.05))
+        mp_gain = max(int(self.player.max_mp * 0.10), int(self.player.max_mp * 0.05))
+        self.player.hp = clamp(self.player.hp + hp_gain, 0, self.player.max_hp)
+        self.player.mp = clamp(self.player.mp + mp_gain, 0, self.player.max_mp)
+        if random.random() < 0.05:
+            self.money += 100
+            self.push_message("Dev says youre lucky, and you recieved 100 robux")
+
+    def handle_cheat_ring(self):
+        self.money = int(self.money * 0.5)
+        self.dialog_data = {
+            "start": "node_1",
+            "node_1": {
+                "text": "i know youre cheating, now get back and play fairly! this item is already useful enough!!!!",
+                "responses": [{"text": "ok", "next": "end"}]
+            }
+        }
+        self.dialog_node = "node_1"
+        self.dialog_selected = 0
+        self.active_npc = "dev"
+        self.ui_mode = "dialog"
+        self.push_message("information_shown: -50% robux")
 
     def update_bush_regrow(self):
         if not self.bush_regrow:
@@ -465,6 +526,8 @@ class Game:
             self.load_map("map_2.json")
             self.player.x, self.player.y = self.map.spawn
             self.player.hp = getattr(self, "leave_rogue_hp", 100)
+            self.inventory["retreat item"] = 0
+            self.push_message("information_shown: retreat item cleared")
         self.start_transition(do_return)
 
     def enter_rogue_layer(self, new_entry=False):
@@ -472,6 +535,20 @@ class Game:
             self.rogue_layer = 0
         self.rogue_layer += 1
         cfg = getattr(self, "rogue_cfg", {})
+        special_layer = cfg.get("special_layer", 30)
+        special_map = cfg.get("special_map", "rouge_options.json")
+        if self.rogue_layer == special_layer:
+            self.map = GameMap(os.path.join(MAP_DIR, special_map))
+            self.map_max_h_mob = self.map.mob_limit
+            self.player.x, self.player.y = self.map.spawn
+            # clear hostiles in rest map
+            self.entities = [e for e in self.entities if e.eid == "player" or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral") or e.immortal]
+            self.place_npcs_for_map()
+            self.set_objectives_for_map()
+            self.show_enter_banner(special_map)
+            self.rogue_rest_intro_done = False
+            self.open_rogue_rest_intro()
+            return
         boss_every = cfg.get("boss_every", 5)
         self.rogue_is_boss = (self.rogue_layer % boss_every == 0)
         size = cfg.get("boss_size", [10, 15]) if self.rogue_is_boss else cfg.get("normal_size", [20, 20])
@@ -579,7 +656,9 @@ class Game:
         cfg = getattr(self, "rogue_cfg", {})
         hp_mult = cfg.get("boss_hp_mult", 5)
         atk_mult = cfg.get("boss_attack_mult", 3)
-        boss = Entity(base_id, bx, by, base.get("hp", 30) * hp_mult, base.get("mp", 0), base.get("attack", 10) * atk_mult, base.get("defence", 0), base.get("ai_type"))
+        hp = int(base.get("hp", 30) * hp_mult * (1.0 + self.rogue_difficulty))
+        atk = int(base.get("attack", 10) * atk_mult * (1.0 + self.rogue_difficulty))
+        boss = Entity(base_id, bx, by, hp, base.get("mp", 0), atk, base.get("defence", 0), base.get("ai_type"))
         boss.size = 3
         boss.is_boss = True
         self.entities.append(boss)
@@ -597,7 +676,13 @@ class Game:
                 continue
             if self.entity_at(x, y):
                 continue
-            ent = Entity(mob_id, x, y, mob['hp'], mob.get('mp', 0), mob.get('attack', 10), mob.get('defence', 0), mob.get('ai_type'), mob.get('immortal', False))
+            hp = mob['hp']
+            atk = mob.get('attack', 10)
+            if self.map.name == "rogue":
+                mult = 1.0 + self.rogue_difficulty
+                hp = int(hp * mult)
+                atk = int(atk * mult)
+            ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, mob.get('defence', 0), mob.get('ai_type'), mob.get('immortal', False))
             self.entities.append(ent)
             return True
         return False
@@ -622,8 +707,12 @@ class Game:
             px, py = self.player.x, self.player.y
             dist = abs(ent.x - px) + abs(ent.y - py)
             if dist <= 1:
-                enemy_damage = max(0, int(ent.attack * (1 - self.player.defence / 100)))
+                enemy_damage, reflect = self.compute_player_damage(ent.attack, ent)
                 self.player.hp -= enemy_damage
+                if reflect > 0 and ent.hp > 0:
+                    ent.hp -= reflect
+                    if ent.hp <= 0:
+                        self.on_enemy_death(ent)
                 self.check_player_death()
             return
         if self.tick % mob.get('move_interval', 1) != 0:
@@ -632,8 +721,12 @@ class Game:
         dist = abs(ent.x - px) + abs(ent.y - py)
         if ent.eid == 'soldier':
             if dist <= mob.get('attack_range', 2):
-                enemy_damage = max(0, int(ent.attack * (1 - self.player.defence / 100)))
+                enemy_damage, reflect = self.compute_player_damage(ent.attack, ent)
                 self.player.hp -= enemy_damage
+                if reflect > 0 and ent.hp > 0:
+                    ent.hp -= reflect
+                    if ent.hp <= 0:
+                        self.on_enemy_death(ent)
                 self.check_player_death()
                 return
             if dist <= mob.get('detect_range', 6):
@@ -648,6 +741,14 @@ class Game:
             nx, ny = path[1]
             if not self.entity_at(nx, ny):
                 ent.x, ent.y = nx, ny
+
+    def compute_player_damage(self, incoming, attacker=None):
+        defence = self.player.defence
+        if defence <= 100:
+            return max(0, int(incoming * (1 - defence / 100))), 0
+        # reverse damage when defence exceeds 100
+        reflect = int(incoming * ((defence - 100) / 100))
+        return 0, max(0, reflect)
 
     def find_path(self, start, goal):
         queue = deque()
@@ -675,7 +776,12 @@ class Game:
             if ent and ent.eid != 'player':
                 ent_def = self.get_entity_def(ent.eid)
                 if ent_def.get('ai_type') in ('friendly', 'neutral'):
-                    self.open_dialog(ent.eid)
+                    if self.map.name == "rouge_options.json" and ent.eid == "dev":
+                        self.open_rogue_rest_leave()
+                    elif ent.eid == "carmen":
+                        self.open_dialog("carmen")
+                    else:
+                        self.open_dialog(ent.eid)
                 return
         bt = self.map.get_block(self.player.x, self.player.y)
         if bt and 'on_step' in blocktypes[bt]:
@@ -708,11 +814,45 @@ class Game:
         self.active_npc = npc_id
         self.ui_mode = "dialog"
 
+    def open_rogue_rest_intro(self):
+        self.dialog_data = {
+            "start": "node_1",
+            "node_1": {
+                "text": "come talk to me when you're ready.",
+                "responses": [{"text": "okay", "next": "end"}]
+            }
+        }
+        self.dialog_node = "node_1"
+        self.dialog_selected = 0
+        self.active_npc = "dev"
+        self.ui_mode = "dialog"
+
+    def open_rogue_rest_leave(self):
+        # two chats then leave question
+        self.dialog_data = {
+            "start": "node_1",
+            "node_1": {
+                "text": "you have been gone through alot in this rouge, perhaps its time to save and leave?",
+                "responses": [{"text": "okay", "next": "node_leave"}]
+            },
+            "node_leave": {
+                "text": "are you going to leave?",
+                "responses": [
+                    {"text": "yes", "next": "rogue_leave_yes"},
+                    {"text": "no", "next": "rogue_leave_no"}
+                ]
+            }
+        }
+        self.dialog_node = "node_1"
+        self.dialog_selected = 0
+        self.active_npc = "dev"
+        self.ui_mode = "dialog"
+
     def dialog_choose(self):
         if not self.dialog_data or not self.dialog_node:
             return
         node = self.dialog_data.get(self.dialog_node, {})
-        responses = node.get("responses", [])
+        responses = self.get_dialog_responses(node)
         if not responses:
             self.close_dialog()
             return
@@ -720,6 +860,36 @@ class Game:
         next_node = choice.get("next")
         if next_node == "end":
             self.close_dialog()
+            return
+        if next_node == "gift":
+            self.gift_to_npc()
+            self.close_dialog()
+            return
+        if next_node == "upgrade":
+            self.dialog_node = "upgrade"
+            self.dialog_selected = 0
+            return
+        if next_node == "carmen_upgrade_hp":
+            self.carmen_roll("hp")
+            self.close_dialog()
+            return
+        if next_node == "carmen_upgrade_mp":
+            self.carmen_roll("mp")
+            self.close_dialog()
+            return
+        if next_node == "carmen_talk":
+            self.push_message(tr(self.lang, "msg.carmen_talk"))
+            self.close_dialog()
+            return
+        if next_node == "rogue_leave_yes":
+            self.close_dialog()
+            self.return_from_rogue()
+            return
+        if next_node == "rogue_leave_no":
+            self.close_dialog()
+            self.rogue_difficulty += 0.2
+            self.push_message("welp, good luck going deeper, as i notice you've been playing too long, difficulity is higher at this point")
+            self.start_transition(self.enter_next_rogue_layer)
             return
         if next_node == "shop":
             self.open_shop()
@@ -731,6 +901,13 @@ class Game:
         self.dialog_node = next_node
         self.dialog_selected = 0
 
+    def get_dialog_responses(self, node):
+        responses = node.get("responses", [])
+        if self.active_npc and self.active_npc in npc_data:
+            if not any(r.get("next") == "gift" for r in responses):
+                responses = responses + [{"text": "gift", "next": "gift"}]
+        return responses
+
     def close_dialog(self):
         self.dialog_data = None
         self.dialog_node = None
@@ -738,6 +915,42 @@ class Game:
         self.active_npc = None
         if self.ui_mode == "dialog":
             self.ui_mode = None
+
+    def gift_to_npc(self):
+        gift_name = "Asus Tuf Gaming A15"
+        if self.inventory.get(gift_name, 0) <= 0:
+            self.push_message(tr(self.lang, "msg.not_enough_items"))
+            return
+        self.inventory[gift_name] = max(0, self.inventory.get(gift_name, 0) - 1)
+        npc = npc_data.get(self.active_npc or "", {})
+        add = npc.get("gift_relation", 0)
+        self.relations[self.active_npc] = self.relations.get(self.active_npc, 0) + add
+        self.push_message(tr(self.lang, "msg.gifted", name=self.active_npc, amount=add))
+
+    def open_carmen_upgrade(self):
+        self.ui_mode = "carmen_upgrade"
+        self.carmen_selected = 0
+
+    def carmen_roll(self, stat):
+        cost = 100
+        if self.money < cost:
+            self.push_message(tr(self.lang, "msg.not_enough_robux"))
+            return
+        self.money -= cost
+        if random.random() < 0.9:
+            delta = 10
+        else:
+            delta = -5
+        if stat == "hp":
+            self.player.max_hp = max(50, self.player.max_hp + delta)
+            if self.player.hp > self.player.max_hp:
+                self.player.hp = self.player.max_hp
+            self.push_message(tr(self.lang, "msg.upgrade_hp", delta=delta))
+        else:
+            self.player.max_mp = max(10, self.player.max_mp + delta)
+            if self.player.mp > self.player.max_mp:
+                self.player.mp = self.player.max_mp
+            self.push_message(tr(self.lang, "msg.upgrade_mp", delta=delta))
 
     def open_shop(self):
         self.ui_mode = "shop"
@@ -765,6 +978,12 @@ class Game:
         if self.money < price:
             self.push_message(tr(self.lang, "msg.not_enough_robux"))
             return
+        if name == "dev's super powerful ring":
+            owned = self.inventory.get(name, 0)
+            equipped = sum(1 for v in self.equipment.values() if v == name)
+            if owned + equipped >= 1:
+                self.push_message(tr(self.lang, "msg.only_one"))
+                return
         self.money -= price
         self.inventory[name] = self.inventory.get(name, 0) + 1
         self.push_message(tr(self.lang, "msg.bought_item", name=name, price=price))
@@ -791,7 +1010,8 @@ class Game:
             "money": self.money,
             "inventory": self.inventory,
             "equipment": self.equipment,
-            "objectives": self.objectives
+            "objectives": self.objectives,
+            "relations": self.relations
         }
         with open(save_path, "w", encoding="utf-8") as f:
             import json
@@ -821,6 +1041,7 @@ class Game:
         self.inventory = data.get("inventory", self.inventory)
         self.equipment = data.get("equipment", self.equipment)
         self.objectives = data.get("objectives", self.objectives)
+        self.relations = data.get("relations", {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)})
         self.recalculate_stats()
         self.last_saved = True
         self.last_save_slot = slot
@@ -883,6 +1104,11 @@ class Game:
         if self.inventory.get(name, 0) <= equipped_count:
             self.push_message(tr(self.lang, "msg.not_enough_items"))
             return
+        if name == "dev's super powerful ring":
+            target_slot = self.equip_category if self.equip_category.startswith("ring") else slot
+            if any(v == name for v in self.equipment.values()) and self.equipment.get(target_slot) != name:
+                self.handle_cheat_ring()
+                return
         target_slot = self.equip_category if self.equip_category.startswith("ring") else slot
         self.equipment[target_slot] = name
         self.recalculate_stats()

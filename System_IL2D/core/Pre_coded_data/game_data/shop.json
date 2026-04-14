@@ -4,5 +4,9 @@
   {"name": "iron sword", "price": 100},
   {"name": "iron chestplate", "price": 150},
   {"name": "revive ring", "price": 200},
-  {"name": "recover ring", "price": 220}
+  {"name": "recover ring", "price": 220},
+  {"name": "dev's super powerful sword", "price": 2000},
+  {"name": "dev's super powerful shield", "price": 2000},
+  {"name": "dev's super powerful ring", "price": 2000},
+  {"name": "Asus Tuf Gaming A15", "price": 20000}
 ]

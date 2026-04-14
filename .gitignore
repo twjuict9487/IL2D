@@ -208,3 +208,5 @@ __marimo__/
 backup_version*/
 .vscode/
 saves/
+# saves should not be tracked
+System_IL2D/saves/

@@ -1,0 +1,19 @@
+﻿{
+  "start": "node_1",
+  "node_1": {
+    "text": "want to try your luck?",
+    "responses": [
+      {"text": "upgrade", "next": "upgrade"},
+      {"text": "talk", "next": "carmen_talk"},
+      {"text": "leave", "next": "end"}
+    ]
+  },
+  "upgrade": {
+    "text": "choose a category",
+    "responses": [
+      {"text": "hp", "next": "carmen_upgrade_hp"},
+      {"text": "mp", "next": "carmen_upgrade_mp"},
+      {"text": "leave", "next": "end"}
+    ]
+  }
+}

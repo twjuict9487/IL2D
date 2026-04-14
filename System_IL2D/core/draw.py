@@ -513,7 +513,7 @@ def draw_dialog(game, screen):
     npc_name = npc_id
     node = game.dialog_data.get(game.dialog_node, {})
     text = node.get("text_zh", node.get("text", "")) if game.lang == "zh" else node.get("text", "")
-    responses = node.get("responses", [])
+    responses = game.get_dialog_responses(node)
 
     img_size = int(panel_h * 0.7)
     ent_def = mobs_data.get(npc_id, None)
@@ -542,7 +542,10 @@ def draw_dialog(game, screen):
         resp_y = text_y + 8
     for i, resp in enumerate(responses):
         color = (255, 255, 0) if i == game.dialog_selected else (200, 200, 200)
-        rtext = resp.get("text_zh", resp.get("text", "")) if game.lang == "zh" else resp.get("text", "")
+        if resp.get("next") == "gift":
+            rtext = tr(game.lang, "dialog.gift")
+        else:
+            rtext = resp.get("text_zh", resp.get("text", "")) if game.lang == "zh" else resp.get("text", "")
         surf = font2.render(rtext, True, color)
         rect = pygame.Rect(img_x + img_size + 8, resp_y - 2, panel.width - img_size - 32, font2.get_height() + 4)
         if i == game.dialog_selected:
@@ -709,7 +712,7 @@ def draw(game, screen):
 
     if getattr(game, "map", None) is not None and game.map.name == "rogue":
         # mission bar top-right
-        total = 1 if game.rogue_is_boss else 10
+        total = 1 if game.rogue_is_boss else getattr(game, "rogue_cfg", {}).get("mob_limit_normal", 10)
         left = game.count_hostile_mobs()
         text = f"mob left: {left}/{total}"
         font = _get_font(14)
