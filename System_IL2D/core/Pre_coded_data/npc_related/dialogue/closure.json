@@ -1,0 +1,12 @@
+{
+  "_comment_zh": "closure 商店對話（販售一般商店）",
+  "start": "node_1",
+  "node_1": {
+    "text": "welcome to my clostore!",
+    "text_zh": "歡迎來到我的 Clostore！",
+    "responses": [
+      { "text": "Shop", "text_zh": "商店", "next": "shop" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  }
+}

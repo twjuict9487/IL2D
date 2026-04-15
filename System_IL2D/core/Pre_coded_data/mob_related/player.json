@@ -1,5 +1,5 @@
 {
-  "_comment_zh": "玩家初始能力值（模板）。",
+  "_comment_zh": "//玩家基礎資料（靜態）",
   "name": "player",
   "lang": "zh",
   "hp": 100,

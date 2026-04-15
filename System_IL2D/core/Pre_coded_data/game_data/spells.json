@@ -1,4 +1,12 @@
 ﻿[
   {"name": "spark", "mp_cost": 5},
-  {"name": "heal", "mp_cost": 8}
+  {"name": "heal", "mp_cost": 8},
+  {"name": "fireball", "mp_cost": 15},
+  {"name": "ice shard", "mp_cost": 12},
+  {"name": "lightning strike", "mp_cost": 20},
+  {"name": "earthquake", "mp_cost": 25},
+  {"name": "wind blade", "mp_cost": 10},
+  {"name": "water wave", "mp_cost": 18},
+  {"name": "shadow bolt", "mp_cost": 22},
+  {"name": "holy light", "mp_cost": 30}
 ]

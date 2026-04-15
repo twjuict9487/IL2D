@@ -210,3 +210,5 @@ backup_version*/
 saves/
 # saves should not be tracked
 System_IL2D/saves/
+# generated image output / temp assets
+System_IL2D/Pictures/nobg_output/
