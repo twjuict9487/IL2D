@@ -5,12 +5,14 @@
     "immortal": true,
     "ai_type": "friendly",
     "relation_point": 100,
+    "gift_relation": 1000,
     "image": "noFilter.webp"
   },
   "priestess": {
     "_comment_zh": "治療 NPC：花費 50 robux 回滿 HP/MP",
     "ai_type": "friendly",
     "relation_point": 100,
+    "gift_relation": 50,
     "image": "priestess.jpg",
     "heal_cost": 50
   },
@@ -18,6 +20,28 @@
     "_comment_zh": "中立 NPC（非敵對）",
     "ai_type": "neutral",
     "relation_point": 0,
+    "gift_relation": 50,
     "image": "carmen.webp"
+  },
+  "closure": {
+    "_comment_zh": "一般商店 NPC（販售目前商店全部品項）",
+    "ai_type": "friendly",
+    "relation_point": 100,
+    "gift_relation": 50,
+    "image": "Closure.webp"
+  },
+  "kaltsit": {
+    "_comment_zh": "任務發布者 NPC（凱爾希）",
+    "ai_type": "friendly",
+    "relation_point": 100,
+    "gift_relation": 50,
+    "image": "头像_凯尔希.png"
+  },
+  "monst3r": {
+    "_comment_zh": "隊伍成員（Monst3r），由凱爾希任務解鎖",
+    "ai_type": "team",
+    "relation_point": 100,
+    "gift_relation": 0,
+    "image": "头像_Mon3tr.png"
   }
 }

@@ -1,11 +1,11 @@
 {
-  "_comment_zh": "NPC 對話樹。start 為起始節點。",
+  "_comment_zh": "dev 商店對話（只賣 dev 裝）",
   "start": "node_1",
   "node_1": {
-    "text": "Hello. Want to browse my shop?",
-    "text_zh": "你好，要看看我的商店嗎？",
+    "text": "Hello. Want to browse my dev shop?",
+    "text_zh": "哈囉，要看看我的開發者商店嗎？",
     "responses": [
-      { "text": "Shop", "text_zh": "商店", "next": "shop" },
+      { "text": "Shop", "text_zh": "商店", "next": "dev_shop" },
       { "text": "Leave", "text_zh": "離開", "next": "end" }
     ]
   }

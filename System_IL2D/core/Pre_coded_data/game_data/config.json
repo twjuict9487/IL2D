@@ -4,6 +4,7 @@
   "message_show_time": 2.0,
   "message_fade_time": 2.0,
   "transition_duration": 1.0,
-  "move_interval": 0.133,
+  "move_interval": 0.08,
+  "move_anim_duration": 0.04,
   "leave_rogue_hp": 100
 }

@@ -1,6 +1,6 @@
 
 import os
-from .utils import load_json, MAP_DIR, MOB_DIR, PLAYER_FILE, NPC_FILE
+from ..support.utils import load_json, MAP_DIR, MOB_DIR, PLAYER_FILE, NPC_FILE
 
 blocktypes = load_json(os.path.join(MAP_DIR, 'blocktype.json'))
 mobs_data = load_json(os.path.join(MOB_DIR, 'mobs.json'))
@@ -15,6 +15,7 @@ class GameMap:
         self.spawn = tuple(data['spawn'])
         self.portals = data.get('portals', [])
         self.mob_limit = data.get('mob_limit', 4)
+        self.spawn_interval = data.get('spawn_interval')
         self.h = len(self.grid)
         self.w = len(self.grid[0])
 
@@ -26,6 +27,7 @@ class GameMap:
         obj.spawn = tuple(data['spawn'])
         obj.portals = data.get('portals', [])
         obj.mob_limit = data.get('mob_limit', 4)
+        obj.spawn_interval = data.get('spawn_interval')
         obj.h = len(obj.grid)
         obj.w = len(obj.grid[0])
         return obj

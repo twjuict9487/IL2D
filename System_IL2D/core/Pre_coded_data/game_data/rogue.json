@@ -7,5 +7,7 @@
   "boss_hp_mult": 5,
   "boss_attack_mult": 3,
   "death_penalty_rate": 0.2,
-  "retreat_item": "retreat item"
+  "retreat_item": "retreat item",
+  "special_layer": 30,
+  "special_map": "rouge_options.json"
 }
