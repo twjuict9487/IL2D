@@ -2,15 +2,25 @@ import os
 import math
 import time
 import pygame
-from ..support.utils import clamp
-from ..world.map import mobs_data, npc_data, blocktypes, player_data
-from ..support.i18n import tr
+try:
+    from ..support.utils import clamp
+    from ..world.map import mobs_data, npc_data, blocktypes, player_data
+    from ..support.i18n import tr
+except ImportError:
+    import sys
+    _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
+    if _ROOT not in sys.path:
+        sys.path.insert(0, _ROOT)
+    from System_IL2D.core.functions.support.utils import clamp
+    from System_IL2D.core.functions.world.map import mobs_data, npc_data, blocktypes, player_data
+    from System_IL2D.core.functions.support.i18n import tr
 
-TILE_SIZE = 48
-VIEWPORT = 16
+TILE_SIZE = 60
+VIEWPORT = 12
 FPS = 60
 
 _IMAGE_CACHE = {}
+_ANIM_CACHE = {}
 
 
 def _load_image(filename, size=None):
@@ -20,27 +30,96 @@ def _load_image(filename, size=None):
     if cache_key in _IMAGE_CACHE:
         return _IMAGE_CACHE[cache_key]
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    pictures_dir = os.path.join(base_dir, "Pictures")
-    path = os.path.join(pictures_dir, filename)
-    # Prefer preprocessed no-background assets when available.
-    if filename:
-        stem, _ext = os.path.splitext(filename)
-        nobg_name = f"{stem}_nobg.png"
-        nobg_path = os.path.join(pictures_dir, "nobg_output", nobg_name)
-        if os.path.isfile(nobg_path):
-            path = nobg_path
-    if not os.path.isfile(path):
-        _IMAGE_CACHE[cache_key] = None
+    clips_dir = os.path.join(base_dir, "clips")
+    stem, ext = os.path.splitext(filename)
+    candidates = []
+    nobg_name = f"{stem}_nobg.png"
+    candidates.append(os.path.join(clips_dir, nobg_name))
+    candidates.append(os.path.join(clips_dir, "nobg_output", nobg_name))
+    candidates.append(os.path.join(clips_dir, filename))
+    # Fallbacks for engines/environments that cannot decode WEBP reliably.
+    if ext.lower() == ".webp":
+        for alt in (".png", ".jpg", ".jpeg"):
+            candidates.append(os.path.join(clips_dir, stem + alt))
+            candidates.append(os.path.join(clips_dir, "nobg_output", stem + alt))
+    for path in candidates:
+        if not os.path.isfile(path):
+            continue
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            if size:
+                img = pygame.transform.smoothscale(img, (int(size[0]), int(size[1])))
+            _IMAGE_CACHE[cache_key] = img
+            return img
+        except Exception:
+            continue
+    _IMAGE_CACHE[cache_key] = None
+    return None
+
+
+def _load_anim_frames(folder_name, size=None):
+    if not folder_name:
+        return []
+    cache_key = (folder_name, size)
+    if cache_key in _ANIM_CACHE:
+        return _ANIM_CACHE[cache_key]
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    clips_dir = os.path.join(base_dir, "clips")
+    folder = os.path.join(clips_dir, folder_name)
+    if not os.path.isdir(folder):
+        _ANIM_CACHE[cache_key] = []
+        return []
+    frames = []
+    names = sorted(
+        [n for n in os.listdir(folder) if n.lower().endswith(".png")]
+    )
+    for name in names:
+        path = os.path.join(folder, name)
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            if size:
+                img = pygame.transform.smoothscale(img, (int(size[0]), int(size[1])))
+            frames.append(img)
+        except Exception:
+            continue
+    _ANIM_CACHE[cache_key] = frames
+    return frames
+
+
+def _get_anim_frame(folder_name, size=None, fps=12):
+    frames = _load_anim_frames(folder_name, size)
+    if not frames:
         return None
-    try:
-        img = pygame.image.load(path).convert_alpha()
-        if size:
-            img = pygame.transform.smoothscale(img, (int(size[0]), int(size[1])))
-        _IMAGE_CACHE[cache_key] = img
-        return img
-    except Exception:
-        _IMAGE_CACHE[cache_key] = None
-        return None
+    tick = pygame.time.get_ticks() / 1000.0
+    idx = int(tick * max(1, fps)) % len(frames)
+    return frames[idx]
+
+
+def _get_entity_anim_state(game, ent):
+    if ent.eid == "monst3r":
+        return getattr(game, "monst3r_anim_state", "move")
+    if ent.eid == "wisadel":
+        return getattr(game, "wisadel_anim_state", "move")
+    return "move"
+
+
+def _get_entity_render_image(game, ent, ent_def, size):
+    # Data-driven render mode:
+    # static: use single image
+    # animated: use folder frames (move/skill3)
+    render_mode = ent_def.get("render_mode", "static")
+    if render_mode == "animated":
+        state = _get_entity_anim_state(game, ent)
+        fps = int(ent_def.get("anim_fps", 12) or 12)
+        if state == "skill3" and ent_def.get("anim_skill3"):
+            img = _get_anim_frame(ent_def.get("anim_skill3"), size=size, fps=fps)
+            if img is not None:
+                return img
+        if ent_def.get("anim_move"):
+            img = _get_anim_frame(ent_def.get("anim_move"), size=size, fps=fps)
+            if img is not None:
+                return img
+    return _load_image(ent_def.get("image"), size)
 
 
 def _flicker_color():
@@ -58,12 +137,15 @@ def _get_font(size, bold=False):
     return pygame.font.SysFont('consolas', size, bold=bold)
 
 
-def _draw_text_outline(screen, font, text, color, outline_color, pos):
+def _draw_text_outline(screen, font, text, color, outline_color, pos, thickness=1):
     x, y = pos
     base = font.render(text, True, color)
     outline = font.render(text, True, outline_color)
-    for ox, oy in [(1, 0), (0, 1)]:
-        screen.blit(outline, (x + ox, y + oy))
+    for ox in range(-thickness, thickness + 1):
+        for oy in range(-thickness, thickness + 1):
+            if ox == 0 and oy == 0:
+                continue
+            screen.blit(outline, (x + ox, y + oy))
     screen.blit(base, (x, y))
 
 
@@ -150,8 +232,9 @@ def draw_dev_menu(screen, ctx):
     font2 = _get_font(18)
     title = font.render(tr(lang, "dev.title"), True, (255, 255, 255))
     screen.blit(title, (panel.x + 16, panel.y + 12))
-    opts = ["max_hp", "max_mp", "add_money", "add_skipper", "get_dev_set", "exit"]
+    opts = ["pre_dev_set", "max_hp", "max_mp", "add_money", "add_skipper", "get_dev_set", "exit"]
     labels = {
+        "pre_dev_set": tr(lang, "dev.pre_dev_set"),
         "max_hp": tr(lang, "dev.max_hp"),
         "max_mp": tr(lang, "dev.max_mp"),
         "add_money": tr(lang, "dev.add_money"),
@@ -213,11 +296,11 @@ def draw_settings_menu(screen, selected, sub_mode, lang_selected, lang="en"):
 
 
 def draw_esc_menu(screen, selected, game=None):
-    font = _get_font(16)
-    font2 = _get_font(14)
-    opts = ['item', 'magic', 'equipments', 'team', 'objective', 'status', 'save', 'leave']
-    # ocean blue base
-    screen.fill((18, 60, 92))
+    font = _get_font(16, bold=True)
+    font2 = _get_font(14, bold=True)
+    opts = ['item', 'magic', 'equipments', 'team', 'objective', 'status', 'skill_tree', 'save', 'leave']
+    # requested blue
+    screen.fill((31, 56, 242))
     menu_w = screen.get_width() // 4
     menu_h = screen.get_height()
     x = 0
@@ -229,14 +312,16 @@ def draw_esc_menu(screen, selected, game=None):
     item_h = font.get_height() + 6
     for i, opt in enumerate(opts):
         is_selected = i == selected
-        color = (255, 255, 0) if is_selected else (220, 220, 220)
-        surf = font.render(tr(game.lang, f"esc.{opt}"), True, color)
+        color = (255, 255, 0) if is_selected else (245, 245, 245)
+        label = tr(game.lang, f"esc.{opt}")
         item_rect = pygame.Rect(x + 12, y + 20 + i * item_h, menu_w - 24, item_h)
         if is_selected:
-            pygame.draw.rect(screen, (255, 255, 255), item_rect, 2, border_radius=4)
+            pygame.draw.rect(screen, (255, 224, 60), item_rect, 2, border_radius=4)
         else:
             pygame.draw.rect(screen, (90, 140, 170), item_rect, 1, border_radius=4)
-        screen.blit(surf, (item_rect.x + (item_rect.width - surf.get_width()) // 2, item_rect.y + 2))
+        txt_x = item_rect.x + 10
+        txt_y = item_rect.y + 2
+        _draw_text_outline(screen, font, label, color, (10, 18, 40), (txt_x, txt_y), thickness=2)
 
     right_x = menu_w
     right_w = screen.get_width() - menu_w
@@ -290,7 +375,7 @@ def draw_esc_menu(screen, selected, game=None):
         money_text = f"{tr(game.lang, 'label.robux')}: {game.money}"
         _draw_text_outline(screen, font2, money_text, (230, 230, 230), (255, 255, 255), (money_rect.x + 8, money_rect.y + 18))
 
-    if game.ui_mode in ("save", "equip_root", "equip", "equip_category", "item", "magic", "team", "objective", "status", "leave_confirm", "level_skipper"):
+    if game.ui_mode in ("save", "equip_root", "equip", "equip_category", "item", "magic", "team", "objective", "status", "skill_tree", "leave_confirm", "level_skipper"):
         draw_menu_detail(screen, content_rect, game)
     else:
         draw_menu_preview(screen, content_rect, game, selected)
@@ -298,7 +383,7 @@ def draw_esc_menu(screen, selected, game=None):
 
 def draw_menu_preview(screen, panel, game, selected):
     font = _get_font(14)
-    opts = ['item', 'magic', 'equipments', 'team', 'objective', 'status', 'save', 'leave']
+    opts = ['item', 'magic', 'equipments', 'team', 'objective', 'status', 'skill_tree', 'save', 'leave']
     label = opts[selected]
     lines = []
     if label == "item":
@@ -310,7 +395,7 @@ def draw_menu_preview(screen, panel, game, selected):
         lines.append(tr(game.lang, "preview.spells"))
         for sp in game.spells:
             sname = _tr_spell_name(game, sp['name'])
-            lines.append(f"{sname} ({sp['mp_cost']} MP)")
+            lines.append(f"{sname} ({sp['mp_cost']} MP, CD {sp.get('cooldown', 10)}s)")
     elif label == "equipments":
         lines.append(tr(game.lang, "preview.current"))
         shown = 0
@@ -338,6 +423,12 @@ def draw_menu_preview(screen, panel, game, selected):
         lines.append(f"{tr(game.lang, 'label.mp')} {game.player.mp}/{game.player.max_mp}")
         lines.append(f"{tr(game.lang, 'label.attack')} {game.player.attack}")
         lines.append(f"{tr(game.lang, 'label.defence')} {game.player.defence}%")
+        lines.append(f"{tr(game.lang, 'label.level')} {game.player_level}")
+        lines.append(f"{tr(game.lang, 'label.exp')} {game.player_exp}/{game.exp_to_next_level()}")
+        lines.append(f"{tr(game.lang, 'label.sp')} {game.player_skill_points}")
+    elif label == "skill_tree":
+        lines.append(tr(game.lang, "preview.skill_tree"))
+        lines.append(f"{tr(game.lang, 'label.sp')} {game.player_skill_points}")
     elif label == "save":
         lines.append(tr(game.lang, "preview.save"))
         if game.last_saved:
@@ -378,7 +469,7 @@ def draw_menu_detail(screen, panel, game):
         selected = game.magic_selected % len(game.spells)
         for i, sp in enumerate(game.spells):
             sname = _tr_spell_name(game, sp['name'])
-            line = f"{sname} ({sp['mp_cost']} MP)"
+            line = f"{sname} ({sp['mp_cost']} MP, CD {sp.get('cooldown', 10)}s)"
             surf = font.render(line, True, (230, 230, 230))
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
             pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
@@ -489,6 +580,8 @@ def draw_menu_detail(screen, panel, game):
                 line = m
                 if m == "monst3r":
                     line = f"Monst3r  ({tr(game.lang, 'team.detect')}: 4)"
+                elif m == "wisadel":
+                    line = f"Wisadel  ({tr(game.lang, 'team.detect')}: 8, {tr(game.lang, 'team.range')}: 5)"
                 _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
                 y += font.get_height() + 6
     elif game.ui_mode == "objective":
@@ -500,11 +593,32 @@ def draw_menu_detail(screen, panel, game):
             f"{tr(game.lang, 'label.hp')} {game.player.hp}/{game.player.max_hp}",
             f"{tr(game.lang, 'label.mp')} {game.player.mp}/{game.player.max_mp}",
             f"{tr(game.lang, 'label.attack')} {game.player.attack}",
-            f"{tr(game.lang, 'label.defence')} {game.player.defence}%"
+            f"{tr(game.lang, 'label.defence')} {game.player.defence}%",
+            f"{tr(game.lang, 'label.level')} {game.player_level}",
+            f"{tr(game.lang, 'label.exp')} {game.player_exp}/{game.exp_to_next_level()}",
+            f"{tr(game.lang, 'label.sp')} {game.player_skill_points}",
         ]
         for line in lines:
             _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             y += font.get_height() + 6
+    elif game.ui_mode == "skill_tree":
+        nodes = game.get_skill_tree_nodes()
+        if not nodes:
+            _draw_text_outline(screen, font, tr(game.lang, "msg.no_skills"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+            return
+        _draw_text_outline(screen, font, f"{tr(game.lang, 'label.sp')}: {game.player_skill_points}", (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+        y += font.get_height() + 10
+        selected = game.skill_tree_selected % len(nodes)
+        for i, n in enumerate(nodes):
+            state = tr(game.lang, "skill.unlocked") if n["unlocked"] else tr(game.lang, "skill.locked")
+            line = f"{n['name']}  [{state}]  ({tr(game.lang, 'label.cost')}: {n['cost']})"
+            color = (255, 255, 0) if i == selected else (230, 230, 230)
+            rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
+            pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
+            if i == selected:
+                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
+            _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y))
+            y += font.get_height() + 8
     elif game.ui_mode == "save":
         slots = 3
         for i in range(slots):
@@ -547,11 +661,7 @@ def draw_menu_detail(screen, panel, game):
 
 
 def get_leave_prompt(game):
-    if game.leave_step == 0:
-        return tr(game.lang, "leave.saved"), ["yes", "no"]
-    if game.leave_step == 1:
-        return tr(game.lang, "leave.confirm"), ["yes", "no"]
-    return tr(game.lang, "leave.warn"), ["ok"]
+    return "leave", ["starter menu", "leave game", "go back"]
 
 
 def draw_player_ui(game, screen):
@@ -680,15 +790,17 @@ def draw_shop(game, screen):
     pygame.draw.rect(screen, (200, 200, 200), panel, 2)
     font = _get_font(16)
     font2 = _get_font(14)
-    title = font.render("shop", True, (255, 255, 255))
+    title = font.render(tr(game.lang, "shop.title"), True, (255, 255, 255))
     screen.blit(title, (panel.x + 12, panel.y + 12))
-    money = font2.render(f"robux: {game.money}", True, (200, 200, 200))
+    money = font2.render(f"{tr(game.lang, 'label.robux')}: {game.money}", True, (200, 200, 200))
     screen.blit(money, (panel.right - money.get_width() - 12, panel.y + 14))
     cats = game.get_shop_categories() if hasattr(game, "get_shop_categories") else ["all"]
     cat_y = panel.y + 36
     cat_x = panel.x + 16
     for cat in cats:
-        label = cat
+        label = tr(game.lang, f"shop.cat.{cat}")
+        if label == f"shop.cat.{cat}":
+            label = cat
         surf = font2.render(label, True, (220, 220, 220))
         rect = pygame.Rect(cat_x - 6, cat_y - 2, surf.get_width() + 12, font2.get_height() + 6)
         pygame.draw.rect(screen, (180, 180, 180), rect, 1, border_radius=4)
@@ -699,19 +811,19 @@ def draw_shop(game, screen):
 
     y = panel.y + 62
     if not game.shop_items:
-        empty = font2.render("no items in this category", True, (220, 220, 220))
+        empty = font2.render(tr(game.lang, "shop.empty"), True, (220, 220, 220))
         screen.blit(empty, (panel.x + 24, y))
     else:
         for i, item in enumerate(game.shop_items):
             color = (255, 255, 0) if i == game.shop_selected else (230, 230, 230)
-            line = f"{_tr_item_name(game, item['name'])} - {item['price']} robux"
+            line = f"{_tr_item_name(game, item['name'])} - {item['price']} {tr(game.lang, 'label.robux')}"
             surf = font2.render(line, True, color)
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font2.get_height() + 4)
             if i == game.shop_selected:
                 pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
             screen.blit(surf, (panel.x + 24, y))
             y += font2.get_height() + 6
-    hint = font2.render("A/D or <-/-> switch type, Enter buy, ESC close", True, (200, 200, 200))
+    hint = font2.render(tr(game.lang, "shop.hint"), True, (200, 200, 200))
     screen.blit(hint, (panel.x + 20, panel.bottom - 24))
 
 
@@ -829,7 +941,7 @@ def draw(game, screen):
             ent_def = mobs_data.get(ent.eid, None)
             if ent_def is None:
                 ent_def = npc_data.get(ent.eid, {})
-        img = _load_image(ent_def.get("image"), size)
+        img = _get_entity_render_image(game, ent, ent_def, size)
         if img:
             screen.blit(img, (int(draw_x), int(draw_y)))
         else:

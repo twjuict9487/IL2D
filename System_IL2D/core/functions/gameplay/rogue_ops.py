@@ -32,6 +32,7 @@ def enter_rogue_layer(game, new_entry=False):
             if e.eid == "player" or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral") or e.immortal
         ]
         game.place_npcs_for_map()
+        game.teleport_team_to_player()
         game.set_objectives_for_map()
         game.show_enter_banner(special_map)
         game.rogue_rest_intro_done = False
@@ -47,6 +48,7 @@ def enter_rogue_layer(game, new_entry=False):
     game.map_max_h_mob = game.map.mob_limit
     game.player.x, game.player.y = game.map.spawn
     game.place_npcs_for_map()
+    game.teleport_team_to_player()
     game.set_objectives_for_map()
     if game.rogue_is_boss:
         layer_label = tr(game.lang, "banner.boss_layer", layer=game.rogue_layer)

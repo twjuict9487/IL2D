@@ -190,7 +190,7 @@ def _check_dev_secret(ctx, event):
 
 def _handle_dev_menu_key(ctx, event):
     game = ctx["game"]
-    opts = ["max_hp", "max_mp", "add_money", "add_skipper", "get_dev_set", "exit"]
+    opts = ["pre_dev_set", "max_hp", "max_mp", "add_money", "add_skipper", "get_dev_set", "exit"]
     if ctx["dev_menu_target"] is None:
         if event.key in (pygame.K_UP, pygame.K_w):
             ctx["dev_menu_selected"] = (ctx["dev_menu_selected"] - 1) % len(opts)
@@ -200,6 +200,8 @@ def _handle_dev_menu_key(ctx, event):
             choice = opts[ctx["dev_menu_selected"]]
             if choice == "exit":
                 ctx["state"] = "game"
+            elif choice == "pre_dev_set":
+                game.grant_pre_dev_set()
             elif choice == "get_dev_set":
                 game.grant_dev_set()
             else:
@@ -383,6 +385,8 @@ def _handle_esc_menu_key(ctx, event):
                 game.item_selected = max(0, game.item_selected - 1)
             elif game.ui_mode == "magic":
                 game.magic_selected = max(0, game.magic_selected - 1)
+            elif game.ui_mode == "skill_tree":
+                game.skill_tree_selected = max(0, game.skill_tree_selected - 1)
             elif game.ui_mode == "leave_confirm":
                 game.leave_selected = max(0, game.leave_selected - 1)
             elif game.ui_mode == "level_skipper":
@@ -401,9 +405,10 @@ def _handle_esc_menu_key(ctx, event):
                 game.item_selected = game.item_selected + 1
             elif game.ui_mode == "magic":
                 game.magic_selected = game.magic_selected + 1
+            elif game.ui_mode == "skill_tree":
+                game.skill_tree_selected = game.skill_tree_selected + 1
             elif game.ui_mode == "leave_confirm":
-                max_opt = 0 if game.leave_step == 2 else 1
-                game.leave_selected = min(max_opt, game.leave_selected + 1)
+                game.leave_selected = min(2, game.leave_selected + 1)
             elif game.ui_mode == "level_skipper":
                 game.change_level_skip_amount(1)
         elif event.key == pygame.K_ESCAPE:
@@ -435,6 +440,8 @@ def _handle_esc_menu_key(ctx, event):
                 game.use_item()
             elif game.ui_mode == "magic":
                 game.cast_spell()
+            elif game.ui_mode == "skill_tree":
+                game.unlock_selected_skill()
             elif game.ui_mode == "leave_confirm":
                 game.handle_leave_confirm()
             elif game.ui_mode == "level_skipper":
@@ -446,9 +453,9 @@ def _handle_esc_menu_key(ctx, event):
         return
 
     if event.key == pygame.K_UP:
-        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 8
+        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 9
     elif event.key == pygame.K_DOWN:
-        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 8
+        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 9
     elif event.key == pygame.K_ESCAPE:
         ctx["state"] = "game"
     elif event.key == pygame.K_RETURN:
@@ -465,8 +472,10 @@ def _handle_esc_menu_key(ctx, event):
         elif ctx["esc_selected"] == 5:
             game.ui_mode = "status"
         elif ctx["esc_selected"] == 6:
-            game.open_save()
+            game.ui_mode = "skill_tree"
         elif ctx["esc_selected"] == 7:
+            game.open_save()
+        elif ctx["esc_selected"] == 8:
             game.open_leave_confirm()
 
 
@@ -546,10 +555,23 @@ def _update_held_keys(ctx, event, is_down):
 
 
 def _press_move(ctx, key, dx, dy):
-    ctx["press_time"][key] = pygame.time.get_ticks() / 1000.0
-    moved = ctx["game"].request_player_move(dx, dy)
+    now = pygame.time.get_ticks() / 1000.0
+    ctx["press_time"][key] = now
+    moved = False
+    held = ctx["held_keys"]
+    # Allow instant diagonal step when two directions are held.
+    if key in ("w", "s"):
+        side_dx = (1 if held["d"] else 0) - (1 if held["a"] else 0)
+        if side_dx != 0:
+            moved = ctx["game"].request_player_move(side_dx, dy)
+    elif key in ("a", "d"):
+        side_dy = (1 if held["s"] else 0) - (1 if held["w"] else 0)
+        if side_dy != 0:
+            moved = ctx["game"].request_player_move(dx, side_dy)
+    if not moved:
+        moved = ctx["game"].request_player_move(dx, dy)
     if moved:
-        ctx["last_move_time"] = ctx["press_time"][key]
+        ctx["last_move_time"] = now
 
 
 def _handle_held_movement(ctx):
@@ -569,6 +591,11 @@ def _handle_held_movement(ctx):
     dy = (1 if down else 0) - (1 if up else 0)
     if dx != 0 or dy != 0:
         moved = game.request_player_move(dx, dy)
+        # QOL: if diagonal blocked, try axis slide.
+        if not moved and dx != 0 and dy != 0:
+            moved = game.request_player_move(dx, 0)
+            if not moved:
+                moved = game.request_player_move(0, dy)
         if moved:
             ctx["last_move_time"] = now
 
@@ -637,7 +664,7 @@ def _handle_mouse_esc_menu(ctx, pos):
     item_h = font.get_height() + 6
     if mx < menu_w:
         idx = (my - 20) // item_h
-        if 0 <= idx < 8:
+        if 0 <= idx < 9:
             ctx["esc_selected"] = idx
             if idx == 0:
                 game.ui_mode = "item"
@@ -652,8 +679,10 @@ def _handle_mouse_esc_menu(ctx, pos):
             elif idx == 5:
                 game.ui_mode = "status"
             elif idx == 6:
-                game.open_save()
+                game.ui_mode = "skill_tree"
             elif idx == 7:
+                game.open_save()
+            elif idx == 8:
                 game.open_leave_confirm()
     else:
         panel = pygame.Rect(menu_w, 0, screen.get_width() - menu_w, screen.get_height())
@@ -723,9 +752,18 @@ def _handle_mouse_esc_menu(ctx, pos):
                     game.cast_spell()
                     break
                 y += font.get_height() + 6
+        elif game.ui_mode == "skill_tree":
+            nodes = game.get_skill_tree_nodes()
+            for i, _ in enumerate(nodes):
+                rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
+                if rect.collidepoint(mx, my):
+                    game.skill_tree_selected = i
+                    game.unlock_selected_skill()
+                    break
+                y += font.get_height() + 6
         elif game.ui_mode == "leave_confirm":
             y = panel.y + 48 + font.get_height() + 10
-            options = ["yes", "no"] if game.leave_step < 2 else ["ok"]
+            options = ["starter menu", "leave game", "go back"]
             for i, _ in enumerate(options):
                 rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
                 if rect.collidepoint(mx, my):
@@ -900,6 +938,10 @@ def _render(ctx):
     else:
         draw(ctx["game"], ctx["screen"])
         draw_player_ui(ctx["game"], ctx["screen"])
+    if ctx["game"].request_main_menu:
+        ctx["game"].request_main_menu = False
+        ctx["game"].ui_mode = None
+        ctx["state"] = "main_menu"
     if ctx["game"].request_quit:
         ctx["running"] = False
     pygame.display.flip()

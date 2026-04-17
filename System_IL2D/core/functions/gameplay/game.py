@@ -65,6 +65,7 @@ class Game:
         self.leave_step = 0
         self.leave_selected = 0
         self.request_quit = False
+        self.request_main_menu = False
         self.carmen_selected = 0
 
         self.money = 0
@@ -89,6 +90,12 @@ class Game:
         self.equip_categories = ["weapon", "armor", "ring1", "ring2", "ring3", "ring4", "ring5", "ring6"]
         self.objectives = ["Find the dev", "Try the shop"]
         self.spells = []
+        self.spell_last_cast = {}
+        self.player_level = int(pdata.get("level", 1))
+        self.player_exp = int(pdata.get("exp", 0))
+        self.player_skill_points = int(pdata.get("skill_points", 3))
+        self.skill_tree = {"harvest_barries": False}
+        self.skill_tree_selected = 0
         self.item_defs = {}
         self.shop_items = []
         self.shop_all_items = []
@@ -117,11 +124,18 @@ class Game:
         self.request_close_esc_menu = False
         self.kaltsit_mission = None
         self.kaltsit_intro_done = False
+        self.ines_intro_done = False
         self.kaltsit_completed = 0
         self.kaltsit_reward_ready = False
+        self.ines_reward_ready = False
         self.monst3r_unlocked = False
+        self.wisadel_unlocked = False
         self.team_members = []
         self.last_player_tile = tuple(self.map.spawn)
+        self.monst3r_anim_state = "move"
+        self.monst3r_anim_until = 0.0
+        self.wisadel_anim_state = "move"
+        self.wisadel_anim_until = 0.0
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
@@ -268,7 +282,9 @@ class Game:
         self.player_move_anim = None
         if hasattr(self, "entities"):
             self.place_npcs_for_map()
+            self.teleport_team_to_player()
             self.ensure_monst3r_entity()
+            self.ensure_wisadel_entity()
         self.set_objectives_for_map()
         self.show_enter_banner(mapname)
         if self.map.name == "rouge_options.json":
@@ -277,14 +293,14 @@ class Game:
 
     def place_npcs_for_map(self):
         positions = {
-            "map_1.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8)],
+            "map_1.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8)],
             # map_2: keep NPCs near left entrance (portal at x=0,y=15) with 1-tile gap.
-            "map_2.json": [(2, 16), (3, 16), (4, 16), (5, 16), (6, 16)],
-            "map_3.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8)],
-            "rogue": [(1, 12), (1, 13), (-999, -999), (-999, -999), (-999, -999)],
-            "rouge_options.json": [(4, 5), (6, 5), (-999, -999), (-999, -999), (-999, -999)]
+            "map_2.json": [(2, 16), (3, 16), (4, 16), (5, 16), (6, 16), (7, 16)],
+            "map_3.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8)],
+            "rogue": [(1, 12), (1, 13), (-999, -999), (-999, -999), (-999, -999), (-999, -999)],
+            "rouge_options.json": [(4, 5), (6, 5), (-999, -999), (-999, -999), (-999, -999), (-999, -999)]
         }
-        order = ["dev", "priestess", "carmen", "closure", "kaltsit"]
+        order = ["dev", "priestess", "carmen", "closure", "kaltsit", "ines"]
         spots = positions.get(self.map.name, [])
         for i, npc_id in enumerate(order):
             ent = next((e for e in self.entities if e.eid == npc_id), None)
@@ -343,6 +359,11 @@ class Game:
             self.entities.append(
                 Entity('kaltsit', 8, 8, kdata.get('hp', 1), kdata.get('mp', 0), kdata.get('attack', 0), kdata.get('defence', 0), kdata.get('ai_type'), kdata.get('immortal', False))
             )
+        if 'ines' in npc_data:
+            idata = npc_data['ines']
+            self.entities.append(
+                Entity('ines', 9, 8, idata.get('hp', 1), idata.get('mp', 0), idata.get('attack', 0), idata.get('defence', 0), idata.get('ai_type'), idata.get('immortal', False))
+            )
 
     def _populate_runtime_deco(self):
         # Rebuild decor on normal maps so they don't look empty.
@@ -369,9 +390,9 @@ class Game:
 
         # Avoid expected NPC lines on open-world maps.
         npc_rows = {
-            "map_1.json": [(x, 8) for x in range(1, 7)],
-            "map_2.json": [(x, 16) for x in range(2, 7)],
-            "map_3.json": [(x, 8) for x in range(1, 7)],
+            "map_1.json": [(x, 8) for x in range(1, 8)],
+            "map_2.json": [(x, 16) for x in range(2, 8)],
+            "map_3.json": [(x, 8) for x in range(1, 8)],
         }
         for pos in npc_rows.get(self.map.name, []):
             reserved.add(pos)
@@ -447,6 +468,13 @@ class Game:
             return False
         oldx, oldy = self.player.x, self.player.y
         nx, ny = self.player.x + dx, self.player.y + dy
+        # Prevent corner-cutting through diagonal stone gaps:
+        # diagonal move is blocked if either orthogonal side is not walkable.
+        if dx != 0 and dy != 0:
+            if (not self.map.is_walkable(self.player.x + dx, self.player.y)) or (
+                not self.map.is_walkable(self.player.x, self.player.y + dy)
+            ):
+                return False
         if not self.map.is_walkable(nx, ny):
             return False
         target = self.entity_at(nx, ny)
@@ -514,6 +542,7 @@ class Game:
                                 self.player.x, self.player.y = target_spawn
                             else:
                                 self.player.x, self.player.y = self.map.spawn
+                            self.teleport_team_to_player()
                         self.start_transition(do_load)
                 return
 
@@ -565,6 +594,7 @@ class Game:
         if dropped_items:
             lines.append(tr(self.lang, "reward.dropped", text=", ".join(dropped_items)))
         self.push_message_lines(lines)
+        self.add_exp(int(mob.get("exp_reward", 10)))
 
         # Kaltsit mission progress
         mission = getattr(self, "kaltsit_mission", None)
@@ -590,6 +620,30 @@ class Game:
             "lines": lines,
             "created": time.time()
         })
+
+    def exp_to_next_level(self):
+        if self.player_level < 20:
+            return self.player_level * 10
+        return self.player_level * 30
+
+    def skill_points_on_level_up(self):
+        return 3 if self.player_level < 20 else 2
+
+    def add_exp(self, amount):
+        if amount <= 0:
+            return
+        self.player_exp += amount
+        leveled = 0
+        while self.player_exp >= self.exp_to_next_level():
+            need = self.exp_to_next_level()
+            self.player_exp -= need
+            self.player_level += 1
+            gained = self.skill_points_on_level_up()
+            self.player_skill_points += gained
+            leveled += 1
+            self.push_message(tr(self.lang, "msg.level_up", level=self.player_level, sp=gained))
+        if leveled == 0:
+            self.push_message(tr(self.lang, "msg.exp_gain", amount=amount))
 
     def state_cleanup(self):
         self.entities = [e for e in self.entities if e.eid == 'player' or e.immortal or e.hp > 0]
@@ -626,6 +680,7 @@ class Game:
                 if ent.eid != 'player':
                     self.update_enemy(ent)
             self.update_monst3r(player_tick=True)
+            self.update_wisadel(player_tick=True)
             self.apply_recover_ring_tick()
             self.apply_dev_ring_tick()
             if self.map.name == "rogue" and not self.rogue_is_boss:
@@ -661,6 +716,7 @@ class Game:
                 self.spawn_random_hostile()
         self.update_bush_regrow()
         self.update_monst3r(player_tick=False)
+        self.update_wisadel(player_tick=False)
         self.cleanup_messages()
 
     def ensure_monst3r_entity(self):
@@ -668,18 +724,50 @@ class Game:
             self.entities = [e for e in self.entities if e.eid != "monst3r"]
             return
         if any(e.eid == "monst3r" for e in self.entities):
+            self.teleport_team_to_player()
             return
         hp = max(1, int(self.player.max_hp * 0.2))
         mp = max(0, int(self.player.max_mp * 0.2))
         atk = max(1, int(self.player.attack * 0.2))
         dfs = max(0, int(self.player.defence * 0.2))
-        spawn_x = max(1, self.player.x - 1)
-        spawn_y = self.player.y
+        spawn_x, spawn_y = self._find_team_spawn_near_player()
+        if spawn_x is None or spawn_y is None:
+            return
         mon = Entity("monst3r", spawn_x, spawn_y, hp, mp, atk, dfs, ai_type="team")
         mon.move_interval = 1
         self.entities.append(mon)
         if "monst3r" not in self.team_members:
             self.team_members.append("monst3r")
+
+    def _find_team_spawn_near_player(self, ignore_eid=None):
+        candidates = [
+            (self.player.x - 1, self.player.y),
+            (self.player.x + 1, self.player.y),
+            (self.player.x, self.player.y - 1),
+            (self.player.x, self.player.y + 1),
+            (self.player.x - 1, self.player.y - 1),
+            (self.player.x + 1, self.player.y - 1),
+            (self.player.x - 1, self.player.y + 1),
+            (self.player.x + 1, self.player.y + 1),
+        ]
+        for tx, ty in candidates:
+            blocker = self.entity_at(tx, ty)
+            if self.map.is_walkable(tx, ty) and (blocker is None or blocker.eid == ignore_eid):
+                return tx, ty
+        return None, None
+
+    def _is_hostile_entity(self, ent):
+        return ent.eid != "player" and ent.ai_type != "team" and mobs_data.get(ent.eid, {}).get("ai_type") == "hostile" and ent.hp > 0
+
+    def teleport_team_to_player(self):
+        for member_id in ("monst3r", "wisadel"):
+            ent = next((e for e in self.entities if e.eid == member_id), None)
+            if ent is None:
+                continue
+            tx, ty = self._find_team_spawn_near_player(ignore_eid=member_id)
+            if tx is None or ty is None:
+                continue
+            ent.x, ent.y = tx, ty
 
     def on_kaltsit_mission_complete(self):
         mission = self.kaltsit_mission or {}
@@ -690,6 +778,76 @@ class Game:
         self.push_message(tr(self.lang, "msg.mission_complete_count", count=self.kaltsit_completed))
         if self.kaltsit_completed >= 10 and not self.monst3r_unlocked:
             self.kaltsit_reward_ready = True
+        if self.kaltsit_completed >= 10 and not self.wisadel_unlocked:
+            self.ines_reward_ready = True
+
+    def ensure_wisadel_entity(self):
+        if not self.wisadel_unlocked:
+            self.entities = [e for e in self.entities if e.eid != "wisadel"]
+            return
+        if any(e.eid == "wisadel" for e in self.entities):
+            self.teleport_team_to_player()
+            return
+        hp = max(1, int(self.player.max_hp * 0.4))
+        mp = max(0, int(self.player.max_mp * 0.4))
+        atk = max(1, int(self.player.attack * 0.4))
+        dfs = max(0, int(self.player.defence * 0.4))
+        spawn_x, spawn_y = self._find_team_spawn_near_player()
+        if spawn_x is None or spawn_y is None:
+            return
+        wis = Entity("wisadel", spawn_x, spawn_y, hp, mp, atk, dfs, ai_type="team")
+        wis.move_interval = 1
+        self.entities.append(wis)
+        if "wisadel" not in self.team_members:
+            self.team_members.append("wisadel")
+
+    def update_wisadel(self, player_tick=False):
+        wis = next((e for e in self.entities if e.eid == "wisadel"), None)
+        if wis is None:
+            return
+        wis.attack = max(1, int(self.player.attack * 0.4))
+        wis.defence = max(0, int(self.player.defence * 0.4))
+        wis.max_hp = max(1, int(self.player.max_hp * 0.4))
+        if wis.hp > wis.max_hp:
+            wis.hp = wis.max_hp
+        if not player_tick:
+            return
+        if time.time() >= self.wisadel_anim_until:
+            self.wisadel_anim_state = "move"
+        hostiles = [e for e in self.entities if self._is_hostile_entity(e)]
+        target = None
+        best_dist = 9999
+        for e in hostiles:
+            dist = abs(e.x - wis.x) + abs(e.y - wis.y)
+            if dist <= 8 and dist < best_dist:
+                best_dist = dist
+                target = e
+        if target is None:
+            tx, ty = self.last_player_tile
+            if (wis.x, wis.y) == (tx, ty):
+                return
+            path = self.find_path((wis.x, wis.y), (tx, ty))
+            if path and len(path) > 1:
+                nx, ny = path[1]
+                if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
+                    wis.x, wis.y = nx, ny
+                    self.wisadel_anim_state = "move"
+            return
+        if best_dist <= 5:
+            dmg = max(1, int(wis.attack * (1 - target.defence / 100)))
+            target.hp -= dmg
+            self.wisadel_anim_state = "skill3"
+            self.wisadel_anim_until = time.time() + 0.6
+            if target.hp <= 0:
+                self.on_enemy_death(target)
+                self.state_cleanup()
+            return
+        path = self.find_path((wis.x, wis.y), (target.x, target.y))
+        if path and len(path) > 1:
+            nx, ny = path[1]
+            if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
+                wis.x, wis.y = nx, ny
+                self.wisadel_anim_state = "move"
 
     def update_monst3r(self, player_tick=False):
         mon = next((e for e in self.entities if e.eid == "monst3r"), None)
@@ -703,6 +861,8 @@ class Game:
             mon.hp = mon.max_hp
         if not player_tick:
             return
+        if time.time() >= self.monst3r_anim_until:
+            self.monst3r_anim_state = "move"
         hostiles = [e for e in self.entities if e.eid != "player" and e.eid != "monst3r" and mobs_data.get(e.eid, {}).get("ai_type") == "hostile" and e.hp > 0]
         target = None
         best_dist = 9999
@@ -719,13 +879,16 @@ class Game:
             path = self.find_path((mon.x, mon.y), (tx, ty))
             if path and len(path) > 1:
                 nx, ny = path[1]
-                if self.map.is_walkable(nx, ny) and (self.entity_at(nx, ny) is None or (nx, ny) == (self.player.x, self.player.y)):
+                if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
                     mon.x, mon.y = nx, ny
+                    self.monst3r_anim_state = "move"
             return
         if best_dist <= 1:
             dmg = max(1, int(mon.attack * (1 - target.defence / 100)))
             target.hp -= dmg
             if target.hp <= 0:
+                self.monst3r_anim_state = "skill3"
+                self.monst3r_anim_until = time.time() + 1.0
                 self.on_enemy_death(target)
                 self.state_cleanup()
             return
@@ -734,6 +897,7 @@ class Game:
             nx, ny = path[1]
             if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
                 mon.x, mon.y = nx, ny
+                self.monst3r_anim_state = "move"
 
     def apply_recover_ring_tick(self):
         ring_name = "recover ring"
@@ -871,6 +1035,31 @@ class Game:
             lines.append(f"Kaltsit: {text}")
         return lines
 
+    def get_skill_tree_nodes(self):
+        return [
+            {
+                "id": "harvest_barries",
+                "name": tr(self.lang, "skill.harvest_barries"),
+                "cost": 5,
+                "unlocked": self.skill_tree.get("harvest_barries", False),
+            }
+        ]
+
+    def unlock_selected_skill(self):
+        nodes = self.get_skill_tree_nodes()
+        if not nodes:
+            return
+        node = nodes[self.skill_tree_selected % len(nodes)]
+        if node["unlocked"]:
+            self.push_message(tr(self.lang, "msg.skill_already_unlocked"))
+            return
+        if self.player_skill_points < node["cost"]:
+            self.push_message(tr(self.lang, "msg.not_enough_sp"))
+            return
+        self.player_skill_points -= node["cost"]
+        self.skill_tree[node["id"]] = True
+        self.push_message(tr(self.lang, "msg.skill_unlocked", name=node["name"]))
+
     def show_enter_banner(self, label):
         name = label.replace(".json", "")
         self.banner = {"text": tr(self.lang, "banner.now_entering", where=name), "created": time.time(), "duration": 3.0}
@@ -912,6 +1101,7 @@ class Game:
         def do_return():
             self.load_map("map_2.json")
             self.player.x, self.player.y = self.map.spawn
+            self.teleport_team_to_player()
             self.player.hp = self.player.max_hp
             self.inventory["retreat item"] = 0
             self.push_message(tr(self.lang, "msg.retreat_cleared"))
@@ -1098,6 +1288,9 @@ class Game:
 
     def grant_dev_set(self):
         return game_npc_ops.grant_dev_set(self)
+
+    def grant_pre_dev_set(self):
+        return game_npc_ops.grant_pre_dev_set(self)
 
     def close_shop(self):
         return game_npc_ops.close_shop(self)

@@ -1,3 +1,4 @@
+import time
 from ..support.i18n import tr
 from ..support.utils import clamp
 
@@ -156,10 +157,18 @@ def cast_spell(game):
     spell = game.spells[game.magic_selected % len(game.spells)]
     name = spell.get("name", "spell")
     cost = spell.get("mp_cost", 0)
+    cooldown = float(spell.get("cooldown", 10))
+    now = time.time()
+    last_cast = game.spell_last_cast.get(name, 0.0)
+    remain = cooldown - (now - last_cast)
+    if remain > 0:
+        game.push_message(tr(game.lang, "msg.spell_cooldown", name=name, sec=f"{remain:.1f}"))
+        return
     if game.player.mp < cost:
         game.push_message(tr(game.lang, "msg.not_enough_mp"))
         return
     game.player.mp -= cost
+    game.spell_last_cast[name] = now
     if name == "heal":
         before = game.player.hp
         game.player.hp = clamp(game.player.hp + 25, 0, game.player.max_hp)

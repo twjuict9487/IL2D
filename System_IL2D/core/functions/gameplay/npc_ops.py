@@ -31,6 +31,9 @@ def player_interact(game):
 
 
 def try_harvest_bush(game):
+    if not getattr(game, "skill_tree", {}).get("harvest_barries", False):
+        game.push_message(tr(game.lang, "msg.need_skill_harvest"))
+        return
     for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
         nx, ny = game.player.x + dx, game.player.y + dy
         bt = game.map.get_block(nx, ny)
@@ -46,8 +49,8 @@ def try_harvest_bush(game):
 
 
 def open_dialog(game, npc_id):
-    if npc_id == "kaltsit":
-        _open_kaltsit_mission_dialog(game)
+    if npc_id in ("kaltsit", "ines"):
+        _open_kaltsit_mission_dialog(game, npc_id)
         return
     dialog_path = os.path.join(DIALOG_DIR, f"{npc_id}.json")
     if not os.path.isfile(dialog_path):
@@ -59,9 +62,10 @@ def open_dialog(game, npc_id):
     game.ui_mode = "dialog"
 
 
-def _open_kaltsit_mission_dialog(game):
+def _open_kaltsit_mission_dialog(game, npc_id="kaltsit"):
     if (
         getattr(game, "kaltsit_completed", 0) >= 10
+        and npc_id == "kaltsit"
         and not getattr(game, "monst3r_unlocked", False)
     ):
         game.monst3r_unlocked = True
@@ -76,22 +80,43 @@ def _open_kaltsit_mission_dialog(game):
         }
         game.dialog_node = "node_1"
         game.dialog_selected = 0
-        game.active_npc = "kaltsit"
+        game.active_npc = npc_id
         game.ui_mode = "dialog"
         return
-
-    if not getattr(game, "kaltsit_intro_done", False):
-        game.kaltsit_intro_done = True
+    if (
+        getattr(game, "kaltsit_completed", 0) >= 10
+        and npc_id == "ines"
+        and not getattr(game, "wisadel_unlocked", False)
+    ):
+        game.wisadel_unlocked = True
+        game.ines_reward_ready = False
+        game.ensure_wisadel_entity()
         game.dialog_data = {
             "start": "node_1",
             "node_1": {
-                "text": tr(game.lang, "dialog.kaltsit_intro"),
+                "text": tr(game.lang, "msg.team_wisadel_joined"),
                 "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
             },
         }
         game.dialog_node = "node_1"
         game.dialog_selected = 0
-        game.active_npc = "kaltsit"
+        game.active_npc = npc_id
+        game.ui_mode = "dialog"
+        return
+
+    intro_flag = "kaltsit_intro_done" if npc_id == "kaltsit" else "ines_intro_done"
+    if not getattr(game, intro_flag, False):
+        setattr(game, intro_flag, True)
+        game.dialog_data = {
+            "start": "node_1",
+            "node_1": {
+                "text": tr(game.lang, "dialog.kaltsit_intro") if npc_id == "kaltsit" else tr(game.lang, "dialog.ines_intro"),
+                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+            },
+        }
+        game.dialog_node = "node_1"
+        game.dialog_selected = 0
+        game.active_npc = npc_id
         game.ui_mode = "dialog"
         return
     mission = getattr(game, "kaltsit_mission", None)
@@ -108,7 +133,7 @@ def _open_kaltsit_mission_dialog(game):
     }
     game.dialog_node = "node_1"
     game.dialog_selected = 0
-    game.active_npc = "kaltsit"
+    game.active_npc = npc_id
     game.ui_mode = "dialog"
 
 
@@ -369,6 +394,23 @@ def grant_dev_set(game):
     game.push_message(tr(game.lang, "msg.dev_set_granted"))
 
 
+def grant_pre_dev_set(game):
+    # 1) Max HP/MP directly
+    game.player.max_hp = 10000
+    game.player.max_mp = 10000
+    game.player.hp = game.player.max_hp
+    game.player.mp = game.player.max_mp
+
+    # 2) Grant all known items x100
+    for name in game.item_defs.keys():
+        game.inventory[name] = game.inventory.get(name, 0) + 100
+
+    # 3) Ensure dev set exists and auto-equip best
+    game.grant_dev_set()
+    game.equip_best()
+    game.push_message(tr(game.lang, "msg.pre_dev_set_granted"))
+
+
 def close_shop(game):
     if game.ui_mode == "shop":
         game.ui_mode = None
@@ -404,4 +446,8 @@ def buy_selected_item(game):
             return
     game.money -= price
     game.inventory[name] = game.inventory.get(name, 0) + 1
-    game.push_message(tr(game.lang, "msg.bought_item", name=name, price=price))
+    key = f"item.{name}"
+    item_label = tr(game.lang, key)
+    if item_label == key:
+        item_label = name
+    game.push_message(tr(game.lang, "msg.bought_item", name=item_label, price=price))

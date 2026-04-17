@@ -35,13 +35,41 @@
     "ai_type": "friendly",
     "relation_point": 100,
     "gift_relation": 50,
-    "image": "头像_凯尔希.png"
+    "image": "头像_凯尔希.png",
+    "render_mode": "animated",
+    "anim_move": "nobg_kaltsit_walk",
+    "anim_fps": 12
+  },
+  "ines": {
+    "_comment_zh": "任務發布者 NPC（伊內絲），機制同凱爾希，獎勵為 Wisadel",
+    "ai_type": "friendly",
+    "relation_point": 100,
+    "gift_relation": 50,
+    "image": "头像_凯尔希.png",
+    "render_mode": "animated",
+    "anim_move": "nobg_ines_relax",
+    "anim_fps": 12
   },
   "monst3r": {
     "_comment_zh": "隊伍成員（Monst3r），由凱爾希任務解鎖",
     "ai_type": "team",
     "relation_point": 100,
     "gift_relation": 0,
-    "image": "头像_Mon3tr.png"
+    "image": "头像_Mon3tr.png",
+    "render_mode": "animated",
+    "anim_move": "nobg_monst3r_walk",
+    "anim_skill3": "nobg_mons3r_attack",
+    "anim_fps": 12
+  },
+  "wisadel": {
+    "_comment_zh": "隊伍成員（Wisadel），由伊內絲任務解鎖",
+    "ai_type": "team",
+    "relation_point": 100,
+    "gift_relation": 0,
+    "image": "维什戴尔-超新星-基建-Move-x1.webp",
+    "render_mode": "animated",
+    "anim_move": "nobg_wisadel_walk",
+    "anim_skill3": "nobg_wisadel_attack",
+    "anim_fps": 12
   }
 }
