@@ -16,8 +16,19 @@ def _load_translations():
 TRANSLATIONS = _load_translations()
 
 
+def _normalize_lang(lang):
+    if not lang:
+        return "en"
+    token = str(lang).lower().replace("_", "-")
+    if token in ("zh", "zh-tw", "zh-hant", "zh-hk", "zh-mo"):
+        return "zh"
+    if token in TRANSLATIONS:
+        return token
+    return "en"
+
+
 def tr(lang, key, **kwargs):
-    table = TRANSLATIONS.get(lang, TRANSLATIONS.get("en", {}))
+    table = TRANSLATIONS.get(_normalize_lang(lang), TRANSLATIONS.get("en", {}))
     text = table.get(key)
     if text is None:
         text = TRANSLATIONS.get("en", {}).get(key, key)

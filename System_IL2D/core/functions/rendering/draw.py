@@ -18,6 +18,7 @@ except ImportError:
 TILE_SIZE = 60
 VIEWPORT = 12
 FPS = 60
+MAX_ANIM_FRAMES = 48
 
 _IMAGE_CACHE = {}
 _ANIM_CACHE = {}
@@ -70,9 +71,10 @@ def _load_anim_frames(folder_name, size=None):
         _ANIM_CACHE[cache_key] = []
         return []
     frames = []
-    names = sorted(
-        [n for n in os.listdir(folder) if n.lower().endswith(".png")]
-    )
+    names = sorted([n for n in os.listdir(folder) if n.lower().endswith(".png")])
+    if len(names) > MAX_ANIM_FRAMES:
+        step = max(1, len(names) // MAX_ANIM_FRAMES)
+        names = names[::step][:MAX_ANIM_FRAMES]
     for name in names:
         path = os.path.join(folder, name)
         try:
@@ -139,14 +141,32 @@ def _get_font(size, bold=False):
 
 def _draw_text_outline(screen, font, text, color, outline_color, pos, thickness=1):
     x, y = pos
+    # Keep outlines dark and thick enough for high-contrast readability.
+    if (outline_color[0] + outline_color[1] + outline_color[2]) >= 540:
+        outline_color = (8, 12, 20)
+    eff_thickness = max(2, int(thickness))
     base = font.render(text, True, color)
     outline = font.render(text, True, outline_color)
-    for ox in range(-thickness, thickness + 1):
-        for oy in range(-thickness, thickness + 1):
+    shadow = font.render(text, True, (0, 0, 0))
+    # Soft drop shadow improves readability on busy panels.
+    shadow.set_alpha(120)
+    screen.blit(shadow, (x + 1, y + 2))
+    for ox in range(-eff_thickness, eff_thickness + 1):
+        for oy in range(-eff_thickness, eff_thickness + 1):
             if ox == 0 and oy == 0:
                 continue
             screen.blit(outline, (x + ox, y + oy))
     screen.blit(base, (x, y))
+
+
+def _draw_readability_row(screen, rect, selected=False):
+    fill_alpha = 170 if selected else 120
+    fill = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+    fill.fill((7, 14, 26, fill_alpha))
+    screen.blit(fill, rect.topleft)
+    border = _flicker_color() if selected else (120, 170, 205)
+    width = 2 if selected else 1
+    pygame.draw.rect(screen, border, rect, width, border_radius=4)
 
 
 def _tr_item_name(game, name):
@@ -436,6 +456,9 @@ def draw_menu_preview(screen, panel, game, selected):
     elif label == "leave":
         lines.append(tr(game.lang, "preview.leave"))
     y = panel.y + 48
+    body = pygame.Surface((panel.width - 24, panel.height - 56), pygame.SRCALPHA)
+    body.fill((6, 14, 26, 105))
+    screen.blit(body, (panel.x + 12, panel.y + 40))
     for line in lines:
         _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
         y += font.get_height() + 6
@@ -444,38 +467,35 @@ def draw_menu_preview(screen, panel, game, selected):
 def draw_menu_detail(screen, panel, game):
     font = _get_font(14)
     y = panel.y + 48
+    body = pygame.Surface((panel.width - 24, panel.height - 56), pygame.SRCALPHA)
+    body.fill((6, 14, 26, 110))
+    screen.blit(body, (panel.x + 12, panel.y + 40))
     if game.ui_mode == "item":
         items = game.get_item_list()
         if not items:
-            surf = font.render(tr(game.lang, "msg.no_items"), True, (230, 230, 230))
-            screen.blit(surf, (panel.x + 20, y))
+            _draw_text_outline(screen, font, tr(game.lang, "msg.no_items"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             return
         selected = game.item_selected % len(items)
         for i, name in enumerate(items):
             count = game.inventory.get(name, 0)
             line = f"{_tr_item_name(game, name)} x{count}"
-            surf = font.render(line, True, (230, 230, 230))
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
-            if i == selected:
-                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            screen.blit(surf, (panel.x + 24, y))
+            _draw_readability_row(screen, rect, selected=(i == selected))
+            color = (255, 247, 170) if i == selected else (230, 230, 230)
+            _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y), thickness=2)
             y += font.get_height() + 6
     elif game.ui_mode == "magic":
         if not game.spells:
-            surf = font.render(tr(game.lang, "msg.no_spells"), True, (230, 230, 230))
-            screen.blit(surf, (panel.x + 20, y))
+            _draw_text_outline(screen, font, tr(game.lang, "msg.no_spells"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             return
         selected = game.magic_selected % len(game.spells)
         for i, sp in enumerate(game.spells):
             sname = _tr_spell_name(game, sp['name'])
             line = f"{sname} ({sp['mp_cost']} MP, CD {sp.get('cooldown', 10)}s)"
-            surf = font.render(line, True, (230, 230, 230))
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
-            if i == selected:
-                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            screen.blit(surf, (panel.x + 24, y))
+            _draw_readability_row(screen, rect, selected=(i == selected))
+            color = (255, 247, 170) if i == selected else (230, 230, 230)
+            _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y), thickness=2)
             y += font.get_height() + 6
     elif game.ui_mode == "equip_root":
         options = [
@@ -614,9 +634,7 @@ def draw_menu_detail(screen, panel, game):
             line = f"{n['name']}  [{state}]  ({tr(game.lang, 'label.cost')}: {n['cost']})"
             color = (255, 255, 0) if i == selected else (230, 230, 230)
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
-            if i == selected:
-                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
+            _draw_readability_row(screen, rect, selected=(i == selected))
             _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y))
             y += font.get_height() + 8
     elif game.ui_mode == "save":
@@ -624,11 +642,9 @@ def draw_menu_detail(screen, panel, game):
         for i in range(slots):
             color = (255, 255, 0) if i == game.save_selected else (230, 230, 230)
             line = f"slot {i + 1}"
-            surf = font.render(line, True, color)
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            if i == game.save_selected:
-                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            screen.blit(surf, (panel.x + 24, y))
+            _draw_readability_row(screen, rect, selected=(i == game.save_selected))
+            _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y))
             y += font.get_height() + 10
         hint = font.render(tr(game.lang, "hint.save"), True, (200, 200, 200))
         screen.blit(hint, (panel.x + 20, panel.bottom - 30))
@@ -639,11 +655,9 @@ def draw_menu_detail(screen, panel, game):
         y += font.get_height() + 10
         for i, opt in enumerate(options):
             color = (255, 255, 0) if i == game.leave_selected else (230, 230, 230)
-            opt_surf = font.render(opt, True, color)
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            if i == game.leave_selected:
-                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            screen.blit(opt_surf, (panel.x + 24, y))
+            _draw_readability_row(screen, rect, selected=(i == game.leave_selected))
+            _draw_text_outline(screen, font, opt, color, (255, 255, 255), (panel.x + 24, y))
             y += font.get_height() + 6
     elif game.ui_mode == "level_skipper":
         available = game.inventory.get("rouge level skipper", 0)
