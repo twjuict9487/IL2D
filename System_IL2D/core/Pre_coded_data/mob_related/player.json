@@ -5,5 +5,8 @@
   "hp": 100,
   "mp": 30,
   "attack": 20,
-  "defence": 10
+  "defence": 10,
+  "level": 1,
+  "exp": 0,
+  "skill_points": 3
 }

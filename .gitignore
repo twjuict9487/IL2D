@@ -212,3 +212,6 @@ saves/
 System_IL2D/saves/
 # generated image output / temp assets
 System_IL2D/Pictures/nobg_output/
+
+# keep final game assets in clips tracked, but ignore converter scratch output
+System_IL2D/clips/*_png_pack/
