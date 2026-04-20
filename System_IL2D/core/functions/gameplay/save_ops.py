@@ -101,6 +101,11 @@ def load_save(game, slot):
     loaded_tree = data.get("skill_tree", {})
     if isinstance(loaded_tree, dict):
         game.skill_tree.update(loaded_tree)
+    # Loading an existing save should not auto-open startup NPC dialog.
+    game.ui_mode = None
+    game.dialog_data = None
+    game.dialog_node = None
+    game.active_npc = None
     game.teleport_team_to_player()
     game.ensure_monst3r_entity()
     game.ensure_wisadel_entity()

@@ -4,8 +4,9 @@ from ..support.utils import clamp
 
 
 def open_equip(game):
-    game.ui_mode = "equip_root"
+    game.ui_mode = "equip"
     game.equip_root_selected = 0
+    game.equip_category_selected = max(0, game.get_equip_categories().index(game.equip_category)) if game.get_equip_categories() else 0
 
 
 def open_equip_items(game):

@@ -169,6 +169,16 @@ def _draw_readability_row(screen, rect, selected=False):
     pygame.draw.rect(screen, border, rect, width, border_radius=4)
 
 
+def _fit_text(font, text, max_w):
+    if font.size(text)[0] <= max_w:
+        return text
+    ell = "..."
+    s = text
+    while s and font.size(s + ell)[0] > max_w:
+        s = s[:-1]
+    return (s + ell) if s else ell
+
+
 def _tr_item_name(game, name):
     key = f"item.{name}"
     label = tr(game.lang, key)
@@ -316,11 +326,11 @@ def draw_settings_menu(screen, selected, sub_mode, lang_selected, lang="en"):
 
 
 def draw_esc_menu(screen, selected, game=None):
-    font = _get_font(16, bold=True)
-    font2 = _get_font(14, bold=True)
+    font = _get_font(18, bold=True)
+    font2 = _get_font(16, bold=True)
     opts = ['item', 'magic', 'equipments', 'team', 'objective', 'status', 'skill_tree', 'save', 'leave']
     # requested blue
-    screen.fill((31, 56, 242))
+    screen.fill((14, 26, 48))
     menu_w = screen.get_width() // 4
     menu_h = screen.get_height()
     x = 0
@@ -329,11 +339,11 @@ def draw_esc_menu(screen, selected, game=None):
     left_rect = pygame.Rect(x, y, menu_w, menu_h)
     pygame.draw.rect(screen, (12, 42, 70), left_rect)
     pygame.draw.rect(screen, (190, 230, 255), left_rect, 2)
-    item_h = font.get_height() + 6
+    item_h = font.get_height() + 10
     for i, opt in enumerate(opts):
         is_selected = i == selected
         color = (255, 255, 0) if is_selected else (245, 245, 245)
-        label = tr(game.lang, f"esc.{opt}")
+        label = _fit_text(font, tr(game.lang, f"esc.{opt}"), menu_w - 34)
         item_rect = pygame.Rect(x + 12, y + 20 + i * item_h, menu_w - 24, item_h)
         if is_selected:
             pygame.draw.rect(screen, (255, 224, 60), item_rect, 2, border_radius=4)
@@ -341,13 +351,13 @@ def draw_esc_menu(screen, selected, game=None):
             pygame.draw.rect(screen, (90, 140, 170), item_rect, 1, border_radius=4)
         txt_x = item_rect.x + 10
         txt_y = item_rect.y + 2
-        _draw_text_outline(screen, font, label, color, (10, 18, 40), (txt_x, txt_y), thickness=2)
+        _draw_text_outline(screen, font, label, color, (0, 0, 0), (txt_x, txt_y), thickness=2)
 
     right_x = menu_w
     right_w = screen.get_width() - menu_w
     right_h = screen.get_height()
     panel = pygame.Rect(right_x, y, right_w, right_h)
-    pygame.draw.rect(screen, (16, 70, 110), panel)
+    pygame.draw.rect(screen, (8, 36, 62), panel)
     pygame.draw.rect(screen, (190, 230, 255), panel, 2)
 
     if game is None:
@@ -356,7 +366,7 @@ def draw_esc_menu(screen, selected, game=None):
     # header bar (top)
     header_h = 72
     header_rect = pygame.Rect(panel.x + 8, panel.y + 8, panel.width - 16, header_h)
-    pygame.draw.rect(screen, (10, 50, 90), header_rect)
+    pygame.draw.rect(screen, (6, 28, 48), header_rect)
     pygame.draw.rect(screen, (200, 240, 255), header_rect, 2)
     title = opts[selected]
     title_surf = font.render(tr(game.lang, f"esc.{title}"), True, (255, 255, 255))
@@ -364,11 +374,11 @@ def draw_esc_menu(screen, selected, game=None):
 
     # main content panel
     content_rect = pygame.Rect(panel.x + 8, header_rect.bottom + 8, panel.width - 16, panel.height - header_h - 24 - 64)
-    pygame.draw.rect(screen, (12, 58, 96), content_rect)
+    pygame.draw.rect(screen, (8, 32, 56), content_rect)
     pygame.draw.rect(screen, (200, 240, 255), content_rect, 2)
     # footer info panel (bottom-right)
     info_rect = pygame.Rect(panel.right - 220, panel.bottom - 60, 210, 52)
-    pygame.draw.rect(screen, (10, 50, 90), info_rect)
+    pygame.draw.rect(screen, (6, 28, 48), info_rect)
     pygame.draw.rect(screen, (200, 240, 255), info_rect, 2)
     info_font = _get_font(12)
     info_text = info_font.render(tr(game.lang, "label.now"), True, (200, 220, 220))
@@ -402,7 +412,7 @@ def draw_esc_menu(screen, selected, game=None):
 
 
 def draw_menu_preview(screen, panel, game, selected):
-    font = _get_font(14)
+    font = _get_font(16)
     opts = ['item', 'magic', 'equipments', 'team', 'objective', 'status', 'skill_tree', 'save', 'leave']
     label = opts[selected]
     lines = []
@@ -459,13 +469,30 @@ def draw_menu_preview(screen, panel, game, selected):
     body = pygame.Surface((panel.width - 24, panel.height - 56), pygame.SRCALPHA)
     body.fill((6, 14, 26, 105))
     screen.blit(body, (panel.x + 12, panel.y + 40))
+    if label == "item":
+        col_w = (panel.width - 44) // 2
+        row_h = font.get_height() + 6
+        max_rows = max(1, (panel.height - 70) // row_h)
+        shown = 0
+        for i, line in enumerate(lines):
+            row = i // 2
+            if row >= max_rows:
+                break
+            col = i % 2
+            x = panel.x + 20 + col * (col_w + 8)
+            yy = y + row * row_h
+            line = _fit_text(font, line, col_w - 4)
+            _draw_text_outline(screen, font, line, (235, 235, 235), (0, 0, 0), (x, yy))
+            shown += 1
+        return
     for line in lines:
-        _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+        line = _fit_text(font, line, panel.width - 36)
+        _draw_text_outline(screen, font, line, (235, 235, 235), (0, 0, 0), (panel.x + 20, y))
         y += font.get_height() + 6
 
 
 def draw_menu_detail(screen, panel, game):
-    font = _get_font(14)
+    font = _get_font(16)
     y = panel.y + 48
     body = pygame.Surface((panel.width - 24, panel.height - 56), pygame.SRCALPHA)
     body.fill((6, 14, 26, 110))
@@ -476,14 +503,26 @@ def draw_menu_detail(screen, panel, game):
             _draw_text_outline(screen, font, tr(game.lang, "msg.no_items"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             return
         selected = game.item_selected % len(items)
-        for i, name in enumerate(items):
+        col_w = (panel.width - 44) // 2
+        row_h = font.get_height() + 8
+        max_rows = max(1, (panel.height - 70) // row_h)
+        per_page = max_rows * 2
+        page = selected // per_page
+        start = page * per_page
+        end = min(len(items), start + per_page)
+        show = items[start:end]
+        for i, name in enumerate(show):
             count = game.inventory.get(name, 0)
             line = f"{_tr_item_name(game, name)} x{count}"
-            rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-            _draw_readability_row(screen, rect, selected=(i == selected))
-            color = (255, 247, 170) if i == selected else (230, 230, 230)
-            _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y), thickness=2)
-            y += font.get_height() + 6
+            abs_i = start + i
+            row = i // 2
+            col = i % 2
+            rx = panel.x + 16 + col * (col_w + 8)
+            ry = y + row * row_h
+            rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 6)
+            _draw_readability_row(screen, rect, selected=(abs_i == selected))
+            color = (255, 247, 170) if abs_i == selected else (230, 230, 230)
+            _draw_text_outline(screen, font, _fit_text(font, line, col_w - 10), color, (0, 0, 0), (rx + 6, ry), thickness=2)
     elif game.ui_mode == "magic":
         if not game.spells:
             _draw_text_outline(screen, font, tr(game.lang, "msg.no_spells"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
@@ -495,7 +534,7 @@ def draw_menu_detail(screen, panel, game):
             rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
             _draw_readability_row(screen, rect, selected=(i == selected))
             color = (255, 247, 170) if i == selected else (230, 230, 230)
-            _draw_text_outline(screen, font, line, color, (255, 255, 255), (panel.x + 24, y), thickness=2)
+            _draw_text_outline(screen, font, _fit_text(font, line, panel.width - 40), color, (0, 0, 0), (panel.x + 24, y), thickness=2)
             y += font.get_height() + 6
     elif game.ui_mode == "equip_root":
         options = [
@@ -512,9 +551,21 @@ def draw_menu_detail(screen, panel, game):
             _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 24, y))
             y += font.get_height() + 6
     elif game.ui_mode == "equip":
+        tabs = [
+            tr(game.lang, "equip.change"),
+            tr(game.lang, "equip.best"),
+            tr(game.lang, "equip.put_down_all"),
+        ]
+        tab_w = (panel.width - 40) // 3
+        tab_y = y
+        for i, t in enumerate(tabs):
+            rx = panel.x + 16 + i * (tab_w + 4)
+            rect = pygame.Rect(rx, tab_y - 2, tab_w, font.get_height() + 8)
+            _draw_readability_row(screen, rect, selected=(i == game.equip_root_selected))
+            _draw_text_outline(screen, font, _fit_text(font, t, tab_w - 10), (255, 247, 170) if i == game.equip_root_selected else (230, 230, 230), (0, 0, 0), (rx + 6, tab_y), thickness=2)
+        y += font.get_height() + 14
         categories = game.get_equip_categories()
         col_w = (panel.width - 40) // 2
-        y = panel.y + 48
         # left categories with equipped
         for i, name in enumerate(categories):
             is_sel = i == game.equip_category_selected
@@ -559,7 +610,7 @@ def draw_menu_detail(screen, panel, game):
             pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
             if i == selected:
                 pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
-            _draw_text_outline(screen, font, label, color, (255, 255, 255), (rx + 8, ry))
+            _draw_text_outline(screen, font, _fit_text(font, label, col_w2 - 10), color, (0, 0, 0), (rx + 8, ry))
     elif game.ui_mode == "equip_category":
         categories = game.get_equip_categories()
         col_w = (panel.width - 40) // 2
