@@ -1,29 +1,94 @@
 [
-  { "name": "health potion (medium)", "price": 25 },
-  { "name": "magic potion (medium)", "price": 40 },
-  { "name": "revive ring", "price": 200 },
-  { "name": "rouge level skipper", "price": 5000 },
-  { "name": "Asus Tuf Gaming A15", "price": 20000 },
-
-  { "name": "iron sword", "price": 100 },
-  { "name": "diamond sword", "price": 200 },
-  { "name": "wand", "price": 400 },
-  { "name": "emerald sword", "price": 800 },
-  { "name": "staff", "price": 1600 },
-  { "name": "netherite sword", "price": 3200 },
-  { "name": "dev's super powerful sword", "price": 20000 },
-
-  { "name": "dev's super powerful shield", "price": 20000 },
-  { "name": "dev's super powerful helmet", "price": 20000 },
-
-  { "name": "iron chestplate", "price": 150 },
-  { "name": "diamond chestplate", "price": 300 },
-  { "name": "emerald chestplate", "price": 600 },
-  { "name": "netherite chestplate", "price": 1200 },
-  { "name": "dev's super powerful armor", "price": 20000 },
-  { "name": "dev's super powerful pants", "price": 20000 },
-  { "name": "dev's super powerful boots", "price": 20000 },
-
-  { "name": "recover ring", "price": 220 },
-  { "name": "dev's super powerful ring", "price": 20000 }
+  {
+    "name": "中型生命藥水",
+    "price": 25
+  },
+  {
+    "name": "中型魔力藥水",
+    "price": 40
+  },
+  {
+    "name": "復活戒指",
+    "price": 200
+  },
+  {
+    "name": "Rogue 跳層器",
+    "price": 5000
+  },
+  {
+    "name": "Asus Tuf Gaming A15",
+    "price": 20000
+  },
+  {
+    "name": "鐵劍",
+    "price": 100
+  },
+  {
+    "name": "鑽石劍",
+    "price": 200
+  },
+  {
+    "name": "魔杖",
+    "price": 400
+  },
+  {
+    "name": "綠寶石劍",
+    "price": 800
+  },
+  {
+    "name": "法杖",
+    "price": 1600
+  },
+  {
+    "name": "下界合金劍",
+    "price": 3200
+  },
+  {
+    "name": "開發者之劍",
+    "price": 20000
+  },
+  {
+    "name": "開發者之盾",
+    "price": 20000
+  },
+  {
+    "name": "開發者之頭盔",
+    "price": 20000
+  },
+  {
+    "name": "鐵胸甲",
+    "price": 150
+  },
+  {
+    "name": "鑽石胸甲",
+    "price": 300
+  },
+  {
+    "name": "綠寶石胸甲",
+    "price": 600
+  },
+  {
+    "name": "下界合金胸甲",
+    "price": 1200
+  },
+  {
+    "name": "開發者之鎧",
+    "price": 20000
+  },
+  {
+    "name": "開發者之護腿",
+    "price": 20000
+  },
+  {
+    "name": "開發者之戰靴",
+    "price": 20000
+  },
+  {
+    "name": "回復戒指",
+    "price": 220
+  },
+  {
+    "name": "開發者之戒",
+    "price": 20000
+  }
 ]

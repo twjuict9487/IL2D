@@ -2,14 +2,28 @@ import os
 import random
 import time
 from collections import deque
-from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
-from ..models.entity import Entity
-from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp
-from ..support.i18n import tr
-from . import rogue_ops as game_rogue_ops
-from . import npc_ops as game_npc_ops
-from . import inventory_ops as game_inventory_ops
-from . import save_ops as game_save_ops
+try:
+    from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
+    from ..models.entity import Entity
+    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp
+    from ..support.i18n import tr
+    from . import rogue_ops as game_rogue_ops
+    from . import npc_ops as game_npc_ops
+    from . import inventory_ops as game_inventory_ops
+    from . import save_ops as game_save_ops
+except ImportError:
+    import sys
+    _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    if _ROOT not in sys.path:
+        sys.path.insert(0, _ROOT)
+    from System_IL2D.core.functions.world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
+    from System_IL2D.core.functions.models.entity import Entity
+    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp
+    from System_IL2D.core.functions.support.i18n import tr
+    from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
+    from System_IL2D.core.functions.gameplay import npc_ops as game_npc_ops
+    from System_IL2D.core.functions.gameplay import inventory_ops as game_inventory_ops
+    from System_IL2D.core.functions.gameplay import save_ops as game_save_ops
 
 
 class Game:
@@ -17,7 +31,7 @@ class Game:
 
     def __init__(self):
         pdata = player_data
-        self.lang = pdata.get('lang', 'en')
+        self.lang = pdata.get('lang', 'zh')
         self.player_name = pdata.get('name', 'player')
         self.load_map('map_1.json')
         self.player = Entity(
@@ -31,6 +45,10 @@ class Game:
         )
         self.player.base_attack = self.player.attack
         self.player.base_defence = self.player.defence
+        self.player.base_magic_attack = int(pdata.get("magic_attack", self.player.attack))
+        self.player.base_magic_defense = int(pdata.get("magic_defense", 0))
+        self.player.magic_attack = self.player.base_magic_attack
+        self.player.magic_defense = self.player.base_magic_defense
         self.entities = [self.player]
         self.spawn_default_entities()
         self.place_npcs_for_map()
@@ -53,15 +71,26 @@ class Game:
         self.dialog_node = None
         self.dialog_selected = 0
         self.active_npc = None
+        self.interact_candidates = []
+        self.interact_selected = 0
 
         self.shop_selected = 0
         self.save_selected = 0
         self.equip_selected = 0
         self.equip_category_selected = 0
         self.equip_root_selected = 0
+        self.equip_focus = "tabs"
         self.equip_category = "weapon"
         self.item_selected = 0
         self.magic_selected = 0
+        self.hotbar_mode = "item"  # item | magic
+        self.hotbar_stage = "type"  # type | slot | item
+        self.hotbar_type_selected = 0  # 0=item, 1=magic
+        self.hotbar_slot_selected = 0
+        self.hotbar_list_selected = 0
+        self.active_hotbar = "item"  # currently visible/triggered in-game bar
+        self.item_hotbar_slots = [None] * 10
+        self.magic_hotbar_slots = [None] * 10
         self.leave_step = 0
         self.leave_selected = 0
         self.request_quit = False
@@ -73,9 +102,9 @@ class Game:
             'health potion (small)': 0,
             'magic potion (small)': 0,
             'revive ring': 0,
-            'barry': 0,
+            'berry': 0,
             'retreat item': 0,
-            'rouge level skipper': 0
+            'rogue level skipper': 0
         }
         self.equipment = {
             'weapon': None,
@@ -91,12 +120,17 @@ class Game:
         self.objectives = ["Find the dev", "Try the shop"]
         self.spells = []
         self.spell_last_cast = {}
+        self.spell_cd_ticks = {}
         self.player_level = int(pdata.get("level", 1))
         self.player_exp = int(pdata.get("exp", 0))
         self.player_skill_points = int(pdata.get("skill_points", 3))
         self.skill_tree = {"harvest_barries": False}
         self.skill_tree_selected = 0
         self.item_defs = {}
+        self.item_alias = {}
+        self.item_display = {}
+        self.spell_alias = {}
+        self.spell_display = {}
         self.shop_items = []
         self.shop_all_items = []
         self.shop_base_items = []
@@ -143,6 +177,20 @@ class Game:
         self.relations = {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)}
         self.maybe_startup_closure_greet()
 
+    def canonical_item_name(self, name):
+        return self.item_alias.get(name, name)
+
+    def canonical_spell_name(self, name):
+        return self.spell_alias.get(name, name)
+
+    def display_item_name(self, name):
+        cid = self.canonical_item_name(name)
+        return self.item_display.get(cid, cid)
+
+    def display_spell_name(self, name):
+        cid = self.canonical_spell_name(name)
+        return self.spell_display.get(cid, cid)
+
     def load_game_data(self):
         cfg = load_json(CONFIG_FILE)
         self.spawn_interval = cfg.get("spawn_interval", self.spawn_interval)
@@ -151,14 +199,63 @@ class Game:
         self.transition_duration = cfg.get("transition_duration", self.transition_duration)
         self.move_anim_duration = cfg.get("move_anim_duration", self.move_anim_duration)
         self.leave_rogue_hp = cfg.get("leave_rogue_hp", 100)
-        self.item_defs = load_json(ITEMS_FILE)
+        self._load_item_defs(load_json(ITEMS_FILE))
         raw_shop = load_json(SHOP_FILE)
         self._refresh_equipment_layout()
         self.shop_all_items = self._build_synced_shop_items(raw_shop)
         self.shop_items = list(self.shop_all_items)
-        self.spells = load_json(SPELLS_FILE)
+        self._load_spells(load_json(SPELLS_FILE))
         self.objectives_cfg = load_json(OBJECTIVES_FILE)
         self.rogue_cfg = load_json(ROGUE_FILE)
+
+    def _load_item_defs(self, raw_defs):
+        defs = {}
+        alias = {}
+        display = {}
+        if not isinstance(raw_defs, dict):
+            raw_defs = {}
+        for key, data in raw_defs.items():
+            if not isinstance(data, dict):
+                continue
+            item_id = data.get("id", key)
+            item_id = str(item_id)
+            node = dict(data)
+            node.pop("id", None)
+            defs[item_id] = node
+            alias[item_id] = item_id
+            alias[key] = item_id
+            display[item_id] = key
+        self.item_defs = defs
+        self.item_alias = alias
+        self.item_display = display
+        self.inventory = {self.canonical_item_name(k): int(v) for k, v in self.inventory.items()}
+        self.inventory = {k: v for k, v in self.inventory.items() if k and isinstance(v, int)}
+        self.equipment = {k: self.canonical_item_name(v) if v else None for k, v in self.equipment.items()}
+
+    def _load_spells(self, raw_spells):
+        spells = []
+        alias = {}
+        display = {}
+        if not isinstance(raw_spells, list):
+            raw_spells = []
+        for sp in raw_spells:
+            if not isinstance(sp, dict):
+                continue
+            sid = str(sp.get("id", sp.get("name", "")))
+            if not sid:
+                continue
+            node = dict(sp)
+            disp = str(node.get("name", sid))
+            node["name"] = sid
+            node.pop("id", None)
+            spells.append(node)
+            alias[sid] = sid
+            alias[disp] = sid
+            display[sid] = disp
+        self.spells = spells
+        self.spell_alias = alias
+        self.spell_display = display
+        self.magic_hotbar_slots = [self.canonical_spell_name(v) if v else None for v in self.magic_hotbar_slots]
 
     def _refresh_equipment_layout(self):
         slot_order = ["weapon", "shield", "helmet", "armor", "pants", "boots"]
@@ -211,7 +308,7 @@ class Game:
         for row in raw_shop:
             if not isinstance(row, dict):
                 continue
-            name = row.get("name")
+            name = self.canonical_item_name(row.get("name"))
             price = int(row.get("price", 0) or 0)
             if not name:
                 continue
@@ -433,7 +530,8 @@ class Game:
                 placed_block += 1
                 continue
             if placed_walk < walk_target:
-                self.map.grid[y][x] = random.choice(["08", "09"])
+                # "08" (bush without berries) should only appear after harvesting.
+                self.map.grid[y][x] = random.choice(["09"])
                 placed_walk += 1
                 continue
             if placed_block >= block_target and placed_walk >= walk_target:
@@ -676,6 +774,7 @@ class Game:
         if player_tick:
             self.last_player_tile = (self.player.x, self.player.y)
             self.tick += 1
+            self.update_spell_cooldowns_tick()
             for ent in self.entities:
                 if ent.eid != 'player':
                     self.update_enemy(ent)
@@ -934,6 +1033,12 @@ class Game:
             self.money += 100
             self.push_message(tr(self.lang, "msg.dev_lucky_robux"))
 
+    def has_attention_ring(self):
+        return any(
+            slot.startswith("ring") and name == "AtTENtioN RiNG"
+            for slot, name in self.equipment.items()
+        )
+
     def get_player_draw_pos(self):
         anim = self.player_move_anim
         if not anim:
@@ -948,6 +1053,8 @@ class Game:
         if t >= 1.0:
             self.player_move_anim = None
             return self.player.x, self.player.y
+        # Smoothstep easing to reduce tile-snap feeling.
+        t = t * t * (3.0 - 2.0 * t)
         fx, fy = anim.get("from", (self.player.x, self.player.y))
         tx, ty = anim.get("to", (self.player.x, self.player.y))
         px = fx + (tx - fx) * t
@@ -1151,6 +1258,8 @@ class Game:
                 hp = int(hp * mult)
                 atk = int(atk * mult)
             ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, mob.get('defence', 0), mob.get('ai_type'), mob.get('immortal', False))
+            ent.magic_attack = int(mob.get("magic_attack", ent.attack))
+            ent.magic_defense = int(mob.get("magic_defense", 0))
             self.entities.append(ent)
             return True
         return False
@@ -1171,6 +1280,7 @@ class Game:
             return
         if mob.get('ai_type') in ('friendly', 'neutral'):
             return
+        force_detect = self.has_attention_ring()
         if getattr(ent, "is_boss", False):
             px, py = self.player.x, self.player.y
             dist = abs(ent.x - px) + abs(ent.y - py)
@@ -1197,10 +1307,10 @@ class Game:
                         self.on_enemy_death(ent)
                 self.check_player_death()
                 return
-            if dist <= mob.get('detect_range', 6):
+            if force_detect or dist <= mob.get('detect_range', 6):
                 self.move_enemy_toward(ent, (px, py))
             return
-        if dist <= mob.get('detect_range', 0):
+        if force_detect or dist <= mob.get('detect_range', 0):
             self.move_enemy_toward(ent, (px, py))
 
     def move_enemy_toward(self, ent, goal):
@@ -1237,6 +1347,12 @@ class Game:
 
     def player_interact(self):
         return game_npc_ops.player_interact(self)
+
+    def confirm_interact_choice(self):
+        return game_npc_ops.confirm_interact_choice(self)
+
+    def cancel_interact_choice(self):
+        return game_npc_ops.cancel_interact_choice(self)
 
     def try_harvest_bush(self):
         return game_npc_ops.try_harvest_bush(self)
@@ -1345,6 +1461,27 @@ class Game:
 
     def cast_spell(self):
         return game_inventory_ops.cast_spell(self)
+
+    def use_item_by_name(self, name):
+        name = self.canonical_item_name(name)
+        if name == "rogue level skipper":
+            self.use_level_skipper_hotbar()
+            return
+        items = self.get_item_list()
+        if name not in items:
+            self.push_message(tr(self.lang, "msg.no_items"))
+            return
+        self.item_selected = items.index(name)
+        self.use_item()
+
+    def use_level_skipper_hotbar(self):
+        return game_rogue_ops.use_level_skipper_hotbar(self)
+
+    def cast_spell_by_name(self, name):
+        return game_inventory_ops.cast_spell_by_name(self, name)
+
+    def update_spell_cooldowns_tick(self):
+        return game_inventory_ops.update_spell_cooldowns_tick(self)
 
     def recalculate_stats(self):
         return game_inventory_ops.recalculate_stats(self)

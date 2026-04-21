@@ -7,11 +7,25 @@ mobs_data = load_json(os.path.join(MOB_DIR, 'mobs.json'))
 player_data = load_json(PLAYER_FILE)
 npc_data = load_json(NPC_FILE)
 
+
+def _normalize_grid(raw_grid):
+    # Support both:
+    # 1) 2D list: [["01","02"], ...]
+    # 2) readable row strings: ["01 02 03", ...]
+    grid = []
+    for row in raw_grid:
+        if isinstance(row, str):
+            toks = [t for t in row.replace(",", " ").split() if t]
+            grid.append(toks)
+        else:
+            grid.append(list(row))
+    return grid
+
 class GameMap:
     def __init__(self, mapfile):
         data = load_json(mapfile)
         self.name = os.path.basename(mapfile)
-        self.grid = data['grid']
+        self.grid = _normalize_grid(data['grid'])
         self.spawn = tuple(data['spawn'])
         self.portals = data.get('portals', [])
         self.mob_limit = data.get('mob_limit', 4)
@@ -23,7 +37,7 @@ class GameMap:
     def from_data(cls, name, data):
         obj = cls.__new__(cls)
         obj.name = name
-        obj.grid = data['grid']
+        obj.grid = _normalize_grid(data['grid'])
         obj.spawn = tuple(data['spawn'])
         obj.portals = data.get('portals', [])
         obj.mob_limit = data.get('mob_limit', 4)

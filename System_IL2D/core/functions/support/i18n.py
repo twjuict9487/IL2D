@@ -10,7 +10,7 @@ def _load_translations():
             return data
     except Exception:
         pass
-    return {"en": {}, "zh": {}}
+    return {"zh": {}, "en": {}}
 
 
 TRANSLATIONS = _load_translations()
@@ -18,17 +18,17 @@ TRANSLATIONS = _load_translations()
 
 def _normalize_lang(lang):
     if not lang:
-        return "en"
+        return "zh"
     token = str(lang).lower().replace("_", "-")
     if token in ("zh", "zh-tw", "zh-hant", "zh-hk", "zh-mo"):
         return "zh"
     if token in TRANSLATIONS:
         return token
-    return "en"
+    return "zh"
 
 
 def tr(lang, key, **kwargs):
-    table = TRANSLATIONS.get(_normalize_lang(lang), TRANSLATIONS.get("en", {}))
+    table = TRANSLATIONS.get(_normalize_lang(lang), TRANSLATIONS.get("zh", {}))
     text = table.get(key)
     if text is None:
         text = TRANSLATIONS.get("en", {}).get(key, key)

@@ -46,6 +46,9 @@ def save_game(game):
         "exp": game.player_exp,
         "skill_points": game.player_skill_points,
         "skill_tree": game.skill_tree,
+        "item_hotbar_slots": game.item_hotbar_slots,
+        "magic_hotbar_slots": game.magic_hotbar_slots,
+        "active_hotbar": game.active_hotbar,
     }
     with open(save_path, "w", encoding="utf-8") as f:
         import json
@@ -78,10 +81,18 @@ def load_save(game, slot):
     game.money = data.get("money", 0)
     saved_inv = data.get("inventory", {})
     if isinstance(saved_inv, dict):
+        # legacy key migration
+        if "barry" in saved_inv and "berry" not in saved_inv:
+            saved_inv["berry"] = saved_inv.get("barry", 0)
+        if "rouge level skipper" in saved_inv and "rogue level skipper" not in saved_inv:
+            saved_inv["rogue level skipper"] = saved_inv.get("rouge level skipper", 0)
         for name, count in saved_inv.items():
             if isinstance(count, int):
-                game.inventory[name] = count
-    game.equipment = game._merge_equipment_slots(data.get("equipment", game.equipment))
+                game.inventory[game.canonical_item_name(name)] = count
+    eq = data.get("equipment", game.equipment)
+    if isinstance(eq, dict):
+        eq = {k: game.canonical_item_name(v) if v else None for k, v in eq.items()}
+    game.equipment = game._merge_equipment_slots(eq)
     game.objectives = data.get("objectives", game.objectives)
     game.lang = data.get("lang", game.lang)
     game.relations = data.get("relations", {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)})
@@ -101,6 +112,14 @@ def load_save(game, slot):
     loaded_tree = data.get("skill_tree", {})
     if isinstance(loaded_tree, dict):
         game.skill_tree.update(loaded_tree)
+    item_slots = data.get("item_hotbar_slots")
+    if isinstance(item_slots, list):
+        game.item_hotbar_slots = [(game.canonical_item_name(v) if v else None) for v in (item_slots + [None] * 10)[:10]]
+    magic_slots = data.get("magic_hotbar_slots")
+    if isinstance(magic_slots, list):
+        game.magic_hotbar_slots = [(game.canonical_spell_name(v) if v else None) for v in (magic_slots + [None] * 10)[:10]]
+    active = data.get("active_hotbar", "item")
+    game.active_hotbar = "magic" if active == "magic" else "item"
     # Loading an existing save should not auto-open startup NPC dialog.
     game.ui_mode = None
     game.dialog_data = None

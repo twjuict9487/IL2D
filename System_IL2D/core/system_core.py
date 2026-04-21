@@ -1,4 +1,4 @@
-import os
+﻿import os
 import pygame
 from core.functions.support.utils import CONFIG_FILE, SAVE_DIR, load_json
 from core.functions.support.i18n import tr
@@ -10,10 +10,24 @@ _UI_IMG_CACHE = {}
 
 
 def _get_font(size, bold=False):
+    # Prefer explicit CJK font files on Windows to avoid missing glyphs.
+    for font_path in (
+        r"C:\Windows\Fonts\msjh.ttc",  # Microsoft JhengHei
+        r"C:\Windows\Fonts\msyh.ttc",  # Microsoft YaHei
+        r"C:\Windows\Fonts\mingliu.ttc",
+    ):
+        if os.path.isfile(font_path):
+            try:
+                return pygame.font.Font(font_path, size)
+            except Exception:
+                pass
     for name in ("Microsoft JhengHei", "Microsoft YaHei", "Noto Sans CJK TC", "Noto Sans CJK SC"):
-        font = pygame.font.SysFont(name, size, bold=bold)
-        if font is not None:
-            return font
+        try:
+            matched = pygame.font.match_font(name)
+            if matched:
+                return pygame.font.Font(matched, size)
+        except Exception:
+            pass
     return pygame.font.SysFont('consolas', size, bold=bold)
 
 
@@ -106,11 +120,13 @@ def init_context():
         "held_keys": {"w": False, "a": False, "s": False, "d": False},
         "press_time": {"w": 0.0, "a": 0.0, "s": 0.0, "d": 0.0},
         "last_move_time": 0.0,
-        "move_interval": 0.133
+        "move_interval": 0.133,
+        "hold_repeat_delay": 0.08,
     }
     try:
         cfg = load_json(CONFIG_FILE)
         ctx["move_interval"] = cfg.get("move_interval", ctx["move_interval"])
+        ctx["hold_repeat_delay"] = cfg.get("hold_repeat_delay", ctx["hold_repeat_delay"])
     except Exception:
         pass
     return ctx
@@ -229,7 +245,7 @@ def _handle_dev_menu_key(ctx, event):
                 elif ctx["dev_menu_target"] == "add_money":
                     game.money += max(0, val)
                 elif ctx["dev_menu_target"] == "add_skipper":
-                    game.inventory["rouge level skipper"] = game.inventory.get("rouge level skipper", 0) + max(0, val)
+                    game.inventory["rogue level skipper"] = game.inventory.get("rogue level skipper", 0) + max(0, val)
             ctx["dev_menu_target"] = None
             ctx["dev_menu_input"] = ""
             return
@@ -288,7 +304,7 @@ def _handle_name_input_key(ctx, event):
         ctx["game"] = game
         pygame.key.stop_text_input()
         ctx["cutscene_lines"] = [
-            "開局:你是一位博士，因為維什戴爾用多了，導致大腦放棄思考，被凱爾西丟入洞穴中歷練"
+            "開局：你是一位博士，因為維什戴爾用太多，導致大腦放棄思考，被凱爾希丟入洞穴中歷練。"
         ]
         ctx["cutscene_idx"] = 0
         ctx["state"] = "opening_cutscene"
@@ -362,9 +378,84 @@ def _handle_settings_key(ctx, event):
             ctx["state"] = "main_menu"
 
 
+def _handle_hotbar_menu_key(game, event):
+    if event.key == pygame.K_i:
+        game.hotbar_mode = "item"
+        game.hotbar_type_selected = 0
+        return
+    if event.key == pygame.K_o:
+        game.hotbar_mode = "magic"
+        game.hotbar_type_selected = 1
+        return
+    if event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
+        if game.hotbar_mode == "item":
+            game.item_hotbar_slots[game.hotbar_slot_selected] = None
+        else:
+            game.magic_hotbar_slots[game.hotbar_slot_selected] = None
+        return
+
+    stage = getattr(game, "hotbar_stage", "type")
+    if stage == "type":
+        if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+            game.hotbar_type_selected = 1 - int(getattr(game, "hotbar_type_selected", 0))
+            return
+        if event.key == pygame.K_RETURN:
+            game.hotbar_mode = "item" if int(getattr(game, "hotbar_type_selected", 0)) == 0 else "magic"
+            game.hotbar_stage = "slot"
+            game.hotbar_slot_selected = 0
+            return
+        if event.key == pygame.K_ESCAPE:
+            game.ui_mode = None
+            return
+
+    if stage == "slot":
+        if event.key in (pygame.K_UP, pygame.K_w):
+            game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
+            return
+        if event.key in (pygame.K_DOWN, pygame.K_s):
+            game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
+            return
+        if event.key == pygame.K_RETURN:
+            game.hotbar_stage = "item"
+            game.hotbar_list_selected = 0
+            return
+        if event.key == pygame.K_ESCAPE:
+            game.hotbar_stage = "type"
+            return
+
+    # stage == "item"
+    src = game.get_item_list() if game.hotbar_mode == "item" else [sp.get("name") for sp in game.spells]
+    if event.key in (pygame.K_UP, pygame.K_w):
+        if src:
+            game.hotbar_list_selected = max(0, game.hotbar_list_selected - 1)
+        return
+    if event.key in (pygame.K_DOWN, pygame.K_s):
+        if src:
+            game.hotbar_list_selected = min(len(src) - 1, game.hotbar_list_selected + 1)
+        return
+    if event.key == pygame.K_RETURN:
+        if src:
+            picked = src[game.hotbar_list_selected % len(src)]
+            if game.hotbar_mode == "item":
+                game.item_hotbar_slots[game.hotbar_slot_selected] = picked
+            else:
+                game.magic_hotbar_slots[game.hotbar_slot_selected] = picked
+        return
+    if event.key == pygame.K_ESCAPE:
+        game.hotbar_stage = "slot"
+        return
+
+
 def _handle_esc_menu_key(ctx, event):
     game = ctx["game"]
     if game.ui_mode:
+        if game.ui_mode == "hotbar":
+            _handle_hotbar_menu_key(game, event)
+            if game.request_close_esc_menu:
+                game.request_close_esc_menu = False
+                game.ui_mode = None
+                ctx["state"] = "game"
+            return
         if game.ui_mode in ("equip_root", "equip", "equip_category"):
             if event.key == pygame.K_q:
                 game.equip_best()
@@ -372,26 +463,66 @@ def _handle_esc_menu_key(ctx, event):
             if event.key == pygame.K_r:
                 game.unequip_all()
                 return
+        if game.ui_mode == "hotbar":
+            if event.key == pygame.K_i:
+                game.hotbar_mode = "item"
+                game.hotbar_list_selected = 0
+                return
+            if event.key == pygame.K_o:
+                game.hotbar_mode = "magic"
+                game.hotbar_list_selected = 0
+                return
+            if event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
+                if game.hotbar_mode == "item":
+                    game.item_hotbar_slots[game.hotbar_slot_selected] = None
+                else:
+                    game.magic_hotbar_slots[game.hotbar_slot_selected] = None
+                return
         if event.key in (pygame.K_UP, pygame.K_LEFT, pygame.K_w, pygame.K_a):
             if game.ui_mode == "save":
                 game.save_selected = (game.save_selected - 1) % 3
             elif game.ui_mode == "equip_root":
                 game.equip_root_selected = max(0, game.equip_root_selected - 1)
             elif game.ui_mode == "equip":
-                if event.key in (pygame.K_LEFT, pygame.K_a):
+                focus = getattr(game, "equip_focus", "tabs")
+                if focus == "tabs":
+                    game.equip_root_selected = max(0, game.equip_root_selected - 1)
+                elif focus == "slots":
                     cats = game.get_equip_categories()
                     if cats:
-                        game.equip_category_selected = (game.equip_category_selected - 1) % len(cats)
-                        game.equip_category = cats[game.equip_category_selected]
+                        idx = game.equip_category_selected % len(cats)
+                        if event.key in (pygame.K_LEFT, pygame.K_a):
+                            idx = max(0, idx - 1)
+                        else:
+                            idx = max(0, idx - 2)
+                        game.equip_category_selected = idx
+                        game.equip_category = cats[idx]
                         game.equip_selected = 0
-                else:
-                    game.equip_selected = max(0, game.equip_selected - 1)
+                else:  # items
+                    equipables = game.get_equipable_items()
+                    slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
+                    filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
+                    if not filtered:
+                        return
+                    idx = game.equip_selected % len(filtered)
+                    if event.key in (pygame.K_LEFT, pygame.K_a):
+                        idx = max(0, idx - 1)
+                    else:
+                        idx = max(0, idx - 2)
+                    game.equip_selected = idx
             elif game.ui_mode == "equip_category":
                 game.equip_category_selected = max(0, game.equip_category_selected - 1)
             elif game.ui_mode == "item":
-                game.item_selected = max(0, game.item_selected - 1)
-            elif game.ui_mode == "magic":
-                game.magic_selected = max(0, game.magic_selected - 1)
+                items = game.get_item_list()
+                if items:
+                    idx = game.item_selected % len(items)
+                    idx = max(0, idx - 1)
+                    game.item_selected = idx
+            elif game.ui_mode == "hotbar":
+                if event.key in (pygame.K_LEFT, pygame.K_a):
+                    game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
+                else:
+                    game.hotbar_list_selected = max(0, game.hotbar_list_selected - 1)
             elif game.ui_mode == "skill_tree":
                 game.skill_tree_selected = max(0, game.skill_tree_selected - 1)
             elif game.ui_mode == "leave_confirm":
@@ -404,21 +535,46 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "equip_root":
                 game.equip_root_selected = min(2, game.equip_root_selected + 1)
             elif game.ui_mode == "equip":
-                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                focus = getattr(game, "equip_focus", "tabs")
+                if focus == "tabs":
+                    game.equip_root_selected = min(2, game.equip_root_selected + 1)
+                elif focus == "slots":
                     cats = game.get_equip_categories()
                     if cats:
-                        game.equip_category_selected = (game.equip_category_selected + 1) % len(cats)
-                        game.equip_category = cats[game.equip_category_selected]
+                        idx = game.equip_category_selected % len(cats)
+                        if event.key in (pygame.K_RIGHT, pygame.K_d):
+                            idx = min(len(cats) - 1, idx + 1)
+                        else:
+                            idx = min(len(cats) - 1, idx + 2)
+                        game.equip_category_selected = idx
+                        game.equip_category = cats[idx]
                         game.equip_selected = 0
-                else:
-                    game.equip_selected = game.equip_selected + 1
+                else:  # items
+                    equipables = game.get_equipable_items()
+                    slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
+                    filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
+                    if not filtered:
+                        return
+                    idx = game.equip_selected % len(filtered)
+                    if event.key in (pygame.K_RIGHT, pygame.K_d):
+                        idx = min(len(filtered) - 1, idx + 1)
+                    else:
+                        idx = min(len(filtered) - 1, idx + 2)
+                    game.equip_selected = idx
             elif game.ui_mode == "equip_category":
                 max_idx = len(game.get_equip_categories()) - 1
                 game.equip_category_selected = min(max_idx, game.equip_category_selected + 1)
             elif game.ui_mode == "item":
-                game.item_selected = game.item_selected + 1
-            elif game.ui_mode == "magic":
-                game.magic_selected = game.magic_selected + 1
+                items = game.get_item_list()
+                if items:
+                    idx = game.item_selected % len(items)
+                    idx = min(len(items) - 1, idx + 1)
+                    game.item_selected = idx
+            elif game.ui_mode == "hotbar":
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                    game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
+                else:
+                    game.hotbar_list_selected = game.hotbar_list_selected + 1
             elif game.ui_mode == "skill_tree":
                 game.skill_tree_selected = game.skill_tree_selected + 1
             elif game.ui_mode == "leave_confirm":
@@ -427,7 +583,13 @@ def _handle_esc_menu_key(ctx, event):
                 game.change_level_skip_amount(1)
         elif event.key == pygame.K_ESCAPE:
             if game.ui_mode == "equip":
-                game.ui_mode = None
+                focus = getattr(game, "equip_focus", "tabs")
+                if focus == "items":
+                    game.equip_focus = "slots"
+                elif focus == "slots":
+                    game.equip_focus = "tabs"
+                else:
+                    game.ui_mode = None
             elif game.ui_mode == "equip_category":
                 game.ui_mode = None
             elif game.ui_mode == "level_skipper":
@@ -438,10 +600,17 @@ def _handle_esc_menu_key(ctx, event):
             if game.ui_mode == "save":
                 game.save_game()
             elif game.ui_mode == "equip":
-                if game.equip_root_selected == 1:
-                    game.equip_best()
-                elif game.equip_root_selected == 2:
-                    game.unequip_all()
+                focus = getattr(game, "equip_focus", "tabs")
+                if focus == "tabs":
+                    if game.equip_root_selected == 0:
+                        game.equip_focus = "slots"
+                    elif game.equip_root_selected == 1:
+                        game.equip_best()
+                    elif game.equip_root_selected == 2:
+                        game.unequip_all()
+                elif focus == "slots":
+                    game.equip_focus = "items"
+                    game.equip_selected = 0
                 else:
                     game.equip_selected_item()
             elif game.ui_mode == "equip_category":
@@ -457,8 +626,16 @@ def _handle_esc_menu_key(ctx, event):
                     game.unequip_all()
             elif game.ui_mode == "item":
                 game.use_item()
-            elif game.ui_mode == "magic":
-                game.cast_spell()
+            elif game.ui_mode == "hotbar":
+                if game.hotbar_mode == "item":
+                    items = game.get_item_list()
+                    if items:
+                        item = items[game.hotbar_list_selected % len(items)]
+                        game.item_hotbar_slots[game.hotbar_slot_selected] = item
+                else:
+                    if game.spells:
+                        sp = game.spells[game.hotbar_list_selected % len(game.spells)]
+                        game.magic_hotbar_slots[game.hotbar_slot_selected] = sp.get("name")
             elif game.ui_mode == "skill_tree":
                 game.unlock_selected_skill()
             elif game.ui_mode == "leave_confirm":
@@ -481,7 +658,11 @@ def _handle_esc_menu_key(ctx, event):
         if ctx["esc_selected"] == 0:
             game.ui_mode = "item"
         elif ctx["esc_selected"] == 1:
-            game.ui_mode = "magic"
+            game.ui_mode = "hotbar"
+            game.hotbar_stage = "type"
+            game.hotbar_type_selected = 0 if game.hotbar_mode == "item" else 1
+            game.hotbar_slot_selected = 0
+            game.hotbar_list_selected = 0
         elif ctx["esc_selected"] == 2:
             game.open_equip()
         elif ctx["esc_selected"] == 3:
@@ -500,6 +681,34 @@ def _handle_esc_menu_key(ctx, event):
 
 def _handle_game_key(ctx, event):
     game = ctx["game"]
+    if event.key == pygame.K_i:
+        game.active_hotbar = "item"
+    elif event.key == pygame.K_o:
+        game.active_hotbar = "magic"
+    elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_0):
+        if game.ui_mode is None:
+            slot = 9 if event.key == pygame.K_0 else (event.key - pygame.K_1)
+            if game.active_hotbar == "item":
+                name = game.item_hotbar_slots[slot]
+                if name:
+                    game.use_item_by_name(name)
+            else:
+                name = game.magic_hotbar_slots[slot]
+                if name:
+                    game.cast_spell_by_name(name)
+        return
+    if game.ui_mode == "interact_pick":
+        if event.key in (pygame.K_UP, pygame.K_w):
+            if game.interact_candidates:
+                game.interact_selected = (game.interact_selected - 1) % len(game.interact_candidates)
+        elif event.key in (pygame.K_DOWN, pygame.K_s):
+            if game.interact_candidates:
+                game.interact_selected = (game.interact_selected + 1) % len(game.interact_candidates)
+        elif event.key == pygame.K_RETURN:
+            game.confirm_interact_choice()
+        elif event.key == pygame.K_ESCAPE:
+            game.cancel_interact_choice()
+        return
     if game.ui_mode == "dialog":
         if event.key == pygame.K_UP:
             game.dialog_selected = max(0, game.dialog_selected - 1)
@@ -523,6 +732,21 @@ def _handle_game_key(ctx, event):
             game.buy_selected_item()
         elif event.key == pygame.K_ESCAPE:
             game.close_shop()
+        return
+    if game.ui_mode == "hotbar":
+        if event.key == pygame.K_i:
+            game.hotbar_mode = "item"
+            game.hotbar_type_selected = 0
+            game.hotbar_list_selected = 0
+        elif event.key == pygame.K_o:
+            game.hotbar_mode = "magic"
+            game.hotbar_type_selected = 1
+            game.hotbar_list_selected = 0
+        elif event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
+            if game.hotbar_mode == "item":
+                game.item_hotbar_slots[game.hotbar_slot_selected] = None
+            else:
+                game.magic_hotbar_slots[game.hotbar_slot_selected] = None
         return
 
     if event.key == pygame.K_ESCAPE:
@@ -601,15 +825,42 @@ def _handle_held_movement(ctx):
         game = ctx["game"]
         if not game.ui_mode:
             return
-        up = ctx["held_keys"]["w"] and now - ctx["press_time"]["w"] >= 0.2
-        down = ctx["held_keys"]["s"] and now - ctx["press_time"]["s"] >= 0.2
+        hold_delay = ctx.get("hold_repeat_delay", 0.08)
+        up = ctx["held_keys"]["w"] and now - ctx["press_time"]["w"] >= hold_delay
+        down = ctx["held_keys"]["s"] and now - ctx["press_time"]["s"] >= hold_delay
         if not up and not down:
             return
         delta = -1 if up else 1
         if game.ui_mode == "item":
-            game.item_selected = max(0, game.item_selected + delta) if delta < 0 else game.item_selected + 1
-        elif game.ui_mode == "magic":
-            game.magic_selected = max(0, game.magic_selected + delta) if delta < 0 else game.magic_selected + 1
+            items = game.get_item_list()
+            if items:
+                idx = game.item_selected % len(items)
+                if delta < 0:
+                    idx = max(0, idx - 2)
+                else:
+                    idx = min(len(items) - 1, idx + 2)
+                game.item_selected = idx
+        elif game.ui_mode == "hotbar":
+            stage = getattr(game, "hotbar_stage", "type")
+            if stage == "type":
+                game.hotbar_type_selected = 1 - int(getattr(game, "hotbar_type_selected", 0))
+            elif stage == "slot":
+                if delta < 0:
+                    game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
+                else:
+                    game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
+            else:
+                if game.hotbar_mode == "item":
+                    items = game.get_item_list()
+                    if items:
+                        idx = game.hotbar_list_selected % len(items)
+                        idx = max(0, idx - 1) if delta < 0 else min(len(items) - 1, idx + 1)
+                        game.hotbar_list_selected = idx
+                else:
+                    if game.spells:
+                        idx = game.hotbar_list_selected % len(game.spells)
+                        idx = max(0, idx - 1) if delta < 0 else min(len(game.spells) - 1, idx + 1)
+                        game.hotbar_list_selected = idx
         elif game.ui_mode == "skill_tree":
             game.skill_tree_selected = max(0, game.skill_tree_selected + delta) if delta < 0 else game.skill_tree_selected + 1
         elif game.ui_mode == "leave_confirm":
@@ -626,10 +877,11 @@ def _handle_held_movement(ctx):
     game = ctx["game"]
     if game.ui_mode:
         return
-    up = ctx["held_keys"]["w"] and now - ctx["press_time"]["w"] >= 0.2
-    down = ctx["held_keys"]["s"] and now - ctx["press_time"]["s"] >= 0.2
-    left = ctx["held_keys"]["a"] and now - ctx["press_time"]["a"] >= 0.2
-    right = ctx["held_keys"]["d"] and now - ctx["press_time"]["d"] >= 0.2
+    hold_delay = ctx.get("hold_repeat_delay", 0.08)
+    up = ctx["held_keys"]["w"] and now - ctx["press_time"]["w"] >= hold_delay
+    down = ctx["held_keys"]["s"] and now - ctx["press_time"]["s"] >= hold_delay
+    left = ctx["held_keys"]["a"] and now - ctx["press_time"]["a"] >= hold_delay
+    right = ctx["held_keys"]["d"] and now - ctx["press_time"]["d"] >= hold_delay
     dx = (1 if right else 0) - (1 if left else 0)
     dy = (1 if down else 0) - (1 if up else 0)
     if dx != 0 or dy != 0:
@@ -712,7 +964,11 @@ def _handle_mouse_esc_menu(ctx, pos):
             if idx == 0:
                 game.ui_mode = "item"
             elif idx == 1:
-                game.ui_mode = "magic"
+                game.ui_mode = "hotbar"
+                game.hotbar_stage = "type"
+                game.hotbar_type_selected = 0 if game.hotbar_mode == "item" else 1
+                game.hotbar_slot_selected = 0
+                game.hotbar_list_selected = 0
             elif idx == 2:
                 game.open_equip()
             elif idx == 3:
@@ -764,54 +1020,96 @@ def _handle_mouse_esc_menu(ctx, pos):
                     break
                 y += font.get_height() + 6
         elif game.ui_mode == "equip":
-            equipables = game.get_equipable_items()
-            slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
-            filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
-            col_w = (panel.width - 40) // 2
-            top_h = max(240, len(game.get_equip_categories()) * (font.get_height() + 6) + 60)
-            list_y = panel.y + top_h
-            for i, _ in enumerate(filtered):
-                col = i % 2
-                row = i // 2
-                rx = panel.x + 16 + col * (col_w + 8)
-                ry = list_y + row * (font.get_height() + 6)
-                rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 4)
-                if rect.collidepoint(mx, my):
-                    game.equip_selected = i
-                    if game.equip_root_selected == 1:
-                        game.equip_best()
-                    elif game.equip_root_selected == 2:
-                        game.unequip_all()
-                    else:
-                        game.equip_selected_item()
-                    break
-            # top tab clicks
-            tabs = [
-                pygame.Rect(panel.x + 16, panel.y + 48 - 2, (panel.width - 40) // 3, font.get_height() + 4),
-                pygame.Rect(panel.x + 20 + (panel.width - 40) // 3, panel.y + 48 - 2, (panel.width - 40) // 3, font.get_height() + 4),
-                pygame.Rect(panel.x + 24 + 2 * ((panel.width - 40) // 3), panel.y + 48 - 2, (panel.width - 40) // 3, font.get_height() + 4),
-            ]
+            tabs_y = panel.y + 48
+            tab_w = (panel.width - 40) // 3
+            tabs = []
+            for i in range(3):
+                rx = panel.x + 16 + i * (tab_w + 4)
+                tabs.append(pygame.Rect(rx, tabs_y - 2, tab_w, font.get_height() + 8))
             for i, r in enumerate(tabs):
                 if r.collidepoint(mx, my):
                     game.equip_root_selected = i
-                    break
+                    if i == 0:
+                        game.equip_focus = "items"
+                    elif i == 1:
+                        game.equip_best()
+                    else:
+                        game.unequip_all()
+                    return
+
+            cats = game.get_equip_categories()
+            non_rings = [c for c in cats if not c.startswith("ring")]
+            rings = sorted([c for c in cats if c.startswith("ring")], key=lambda s: int(s[4:]) if s[4:].isdigit() else 99)
+            cats = non_rings + rings
+            if not cats:
+                return
+            pair_w = (panel.width - 40) // 2
+            pair_gap = 8
+            slot_w = max(60, int(pair_w * 0.35))
+            val_w = pair_w - slot_w - pair_gap
+            row_h = font.get_height() + 8
+            cat_rows = (len(cats) + 1) // 2
+            cats_y = tabs_y + font.get_height() + 14
+
+            for r in range(cat_rows):
+                for c in range(2):
+                    idx = r * 2 + c
+                    if idx >= len(cats):
+                        continue
+                    base_x = panel.x + 16 + c * (pair_w + 8)
+                    ry = cats_y + r * row_h
+                    slot_rect = pygame.Rect(base_x, ry - 2, slot_w, font.get_height() + 6)
+                    val_rect = pygame.Rect(base_x + slot_w + pair_gap, ry - 2, val_w, font.get_height() + 6)
+                    if slot_rect.collidepoint(mx, my) or val_rect.collidepoint(mx, my):
+                        game.equip_category_selected = idx
+                        game.equip_category = cats[idx]
+                        game.equip_selected = 0
+                        game.equip_focus = "items"
+                        return
+
+            game.equip_category_selected = game.equip_category_selected % len(cats)
+            game.equip_category = cats[game.equip_category_selected]
+            equipables = game.get_equipable_items()
+            slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
+            filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
+            if not filtered:
+                return
+            list_y = cats_y + cat_rows * row_h + 10
+            col_w = (panel.width - 40) // 2
+            row_h2 = font.get_height() + 8
+            selected = game.equip_selected % len(filtered)
+            max_rows = max(1, (panel.bottom - list_y - 10) // row_h2)
+            per_page = max_rows * 2
+            page = selected // per_page
+            start = page * per_page
+            end = min(len(filtered), start + per_page)
+            for i in range(start, end):
+                li = i - start
+                col = li % 2
+                row = li // 2
+                rx = panel.x + 16 + col * (col_w + 8)
+                ry = list_y + row * row_h2
+                rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 6)
+                if rect.collidepoint(mx, my):
+                    game.equip_selected = i
+                    game.equip_focus = "items"
+                    game.equip_selected_item()
+                    return
         elif game.ui_mode == "item":
             items = game.get_item_list()
-            col_w = (panel.width - 44) // 2
             row_h = font.get_height() + 8
             max_rows = max(1, (panel.height - 70) // row_h)
             selected = game.item_selected % len(items) if items else 0
-            per_page = max_rows * 2
+            per_page = max_rows
             page = selected // per_page if per_page > 0 else 0
             start = page * per_page
             end = min(len(items), start + per_page)
             for i in range(start, end):
                 li = i - start
-                row = li // 2
-                col = li % 2
-                rx = panel.x + 16 + col * (col_w + 8)
+                row = li
+                rx = panel.x + 16
                 ry = y + row * row_h
-                rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 4)
+                rect = pygame.Rect(rx, ry - 2, panel.width - 32, font.get_height() + 4)
                 if rect.collidepoint(mx, my):
                     game.item_selected = i
                     game.use_item()
@@ -820,14 +1118,19 @@ def _handle_mouse_esc_menu(ctx, pos):
                         game.ui_mode = None
                         ctx["state"] = "game"
                     break
-        elif game.ui_mode == "magic":
-            for i, _ in enumerate(game.spells):
-                rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
-                if rect.collidepoint(mx, my):
-                    game.magic_selected = i
-                    game.cast_spell()
-                    break
-                y += font.get_height() + 6
+        elif game.ui_mode == "hotbar":
+            # minimal mouse support: click top half selects slot, bottom half selects source and assigns.
+            mode = game.hotbar_mode
+            tab_y = panel.y + 48
+            tab_w = (panel.width - 36) // 2
+            item_tab = pygame.Rect(panel.x + 16, tab_y - 2, tab_w, font.get_height() + 8)
+            magic_tab = pygame.Rect(panel.x + 20 + tab_w, tab_y - 2, tab_w, font.get_height() + 8)
+            if item_tab.collidepoint(mx, my):
+                game.hotbar_mode = "item"
+                return
+            if magic_tab.collidepoint(mx, my):
+                game.hotbar_mode = "magic"
+                return
         elif game.ui_mode == "skill_tree":
             nodes = game.get_skill_tree_nodes()
             for i, _ in enumerate(nodes):
@@ -908,7 +1211,7 @@ def _draw_name_input(ctx):
     body_font = _get_font(28)
     hint_font = _get_font(20)
     title = title_font.render("New Game", True, (220, 240, 255))
-    prompt = body_font.render("請輸入名字 (最多20字元)", True, (185, 220, 245))
+    prompt = body_font.render("隢撓?亙?摮?(?憭?0摮?)", True, (185, 220, 245))
     name = ctx.get("new_game_name", "")
     box_w, box_h = screen.get_width() - 140, 58
     box_x = (screen.get_width() - box_w) // 2
@@ -917,7 +1220,7 @@ def _draw_name_input(ctx):
     pygame.draw.rect(screen, (190, 230, 255), (box_x, box_y, box_w, box_h), 2, border_radius=8)
     display_name = name if name else "Doctor"
     name_surf = body_font.render(display_name, True, (255, 255, 255))
-    hint = hint_font.render("Enter 確認 / Esc 返回", True, (150, 180, 205))
+    hint = hint_font.render("Enter 蝣箄? / Esc 餈?", True, (150, 180, 205))
     screen.blit(title, ((screen.get_width() - title.get_width()) // 2, box_y - 100))
     screen.blit(prompt, ((screen.get_width() - prompt.get_width()) // 2, box_y - 45))
     screen.blit(name_surf, (box_x + 12, box_y + 13))
@@ -956,7 +1259,7 @@ def _draw_cutscene(ctx):
         surf = font.render(line, True, (225, 235, 245))
         screen.blit(surf, (text_x, y))
         y += font.get_height() + 6
-    hint = hint_font.render("Enter 繼續", True, (165, 185, 205))
+    hint = hint_font.render("Enter 蝜潛?", True, (165, 185, 205))
     screen.blit(hint, (panel.right - hint.get_width() - 16, panel.bottom - hint.get_height() - 10))
 
 
@@ -1021,3 +1324,4 @@ def _render(ctx):
     if ctx["game"].request_quit:
         ctx["running"] = False
     pygame.display.flip()
+

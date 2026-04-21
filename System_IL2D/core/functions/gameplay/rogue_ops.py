@@ -29,7 +29,7 @@ def enter_rogue_layer(game, new_entry=False):
         game.player.x, game.player.y = game.map.spawn
         game.entities = [
             e for e in game.entities
-            if e.eid == "player" or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral") or e.immortal
+            if e.eid == "player" or e.ai_type == "team" or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral") or e.immortal
         ]
         game.place_npcs_for_map()
         game.teleport_team_to_player()
@@ -70,7 +70,7 @@ def enter_next_rogue_layer(game):
 
 
 def open_level_skipper_ui(game):
-    available = game.inventory.get("rouge level skipper", 0)
+    available = game.inventory.get("rogue level skipper", 0)
     if available <= 0:
         game.push_message(tr(game.lang, "msg.no_items"))
         return
@@ -82,12 +82,12 @@ def open_level_skipper_ui(game):
 
 
 def change_level_skip_amount(game, delta):
-    available = max(1, game.inventory.get("rouge level skipper", 0))
+    available = max(1, game.inventory.get("rogue level skipper", 0))
     game.level_skip_amount = clamp(game.level_skip_amount + delta, 1, available)
 
 
 def confirm_level_skipper_use(game):
-    available = game.inventory.get("rouge level skipper", 0)
+    available = game.inventory.get("rogue level skipper", 0)
     if available <= 0:
         game.ui_mode = "item"
         game.push_message(tr(game.lang, "msg.no_items"))
@@ -97,11 +97,25 @@ def confirm_level_skipper_use(game):
         game.push_message(tr(game.lang, "msg.skipper_only_rogue"))
         return
     use_count = int(clamp(game.level_skip_amount, 1, available))
-    game.inventory["rouge level skipper"] = max(0, available - use_count)
+    game.inventory["rogue level skipper"] = max(0, available - use_count)
     game.rogue_layer = max(0, game.rogue_layer + use_count - 1)
     enter_next_rogue_layer(game)
     game.ui_mode = "item"
     game.push_message(tr(game.lang, "msg.skipper_used", count=use_count))
+
+
+def use_level_skipper_hotbar(game):
+    available = game.inventory.get("rogue level skipper", 0)
+    if available <= 0:
+        game.push_message(tr(game.lang, "msg.no_items"))
+        return
+    if game.map.name not in ("rogue", "rouge_options.json"):
+        game.push_message(tr(game.lang, "msg.skipper_only_rogue"))
+        return
+    game.inventory["rogue level skipper"] = max(0, available - 1)
+    game.rogue_layer = max(0, game.rogue_layer)
+    enter_next_rogue_layer(game)
+    game.push_message(tr(game.lang, "msg.skipper_used", count=1))
 
 
 def generate_rogue_map(game, w, h):
@@ -166,13 +180,20 @@ def generate_rogue_map(game, w, h):
         if placed >= target_blockades:
             break
         old = grid[y][x]
-        grid[y][x] = "06"
+        grid[y][x] = random.choice(["05", "06"])
         reachable = reachable_from_start()
         walkable_tiles = {(ix, iy) for (ix, iy) in interior if not is_block(grid[iy][ix])}
         if exit_pos not in reachable or not walkable_tiles.issubset(reachable):
             grid[y][x] = old
             continue
         placed += 1
+
+    # Add walkable decoration (flowers) without affecting connectivity.
+    flower_target = max(0, int(interior_count * 0.08))
+    flower_cells = [p for p in interior if p not in reserved and grid[p[1]][p[0]] == "01"]
+    random.shuffle(flower_cells)
+    for x, y in flower_cells[:flower_target]:
+        grid[y][x] = "09"
 
     exit_x, exit_y = exit_pos
     grid[exit_y][exit_x] = "04"
@@ -187,7 +208,7 @@ def generate_rogue_map(game, w, h):
 def spawn_rogue_mobs(game):
     game.entities = [
         e for e in game.entities
-        if e.eid == "player" or e.immortal or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral")
+        if e.eid == "player" or e.ai_type == "team" or e.immortal or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral")
     ]
     if game.rogue_is_boss:
         spawn_rogue_boss(game)
@@ -222,3 +243,4 @@ def spawn_rogue_boss(game):
     boss.size = 3
     boss.is_boss = True
     game.entities.append(boss)
+

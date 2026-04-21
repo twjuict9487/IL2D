@@ -10,24 +10,61 @@ from ..world.map import blocktypes, mobs_data, npc_data
 def player_interact(game):
     if game.is_ui_blocking():
         return
+    candidates = []
     for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
         nx, ny = game.player.x + dx, game.player.y + dy
         ent = game.entity_at(nx, ny)
         if ent and ent.eid != "player":
             ent_def = game.get_entity_def(ent.eid)
             if ent_def.get("ai_type") in ("friendly", "neutral"):
-                if game.map.name == "rouge_options.json" and ent.eid == "dev":
-                    game.open_rogue_rest_leave()
-                elif ent.eid == "carmen":
-                    game.open_dialog("carmen")
-                else:
-                    game.open_dialog(ent.eid)
-            return
+                candidates.append(ent.eid)
+    if candidates:
+        # keep order, unique
+        unique = []
+        seen = set()
+        for eid in candidates:
+            if eid not in seen:
+                seen.add(eid)
+                unique.append(eid)
+        if len(unique) == 1:
+            _open_interaction_for_npc(game, unique[0])
+        else:
+            game.interact_candidates = unique
+            game.interact_selected = 0
+            game.ui_mode = "interact_pick"
+        return
     bt = game.map.get_block(game.player.x, game.player.y)
     if bt and "on_step" in blocktypes[bt]:
         if blocktypes[bt]["on_step"] == "level_exit":
             game.start_blackout()
     game.try_harvest_bush()
+
+
+def _open_interaction_for_npc(game, npc_id):
+    if game.map.name == "rouge_options.json" and npc_id == "dev":
+        game.open_rogue_rest_leave()
+    elif npc_id == "carmen":
+        game.open_dialog("carmen")
+    else:
+        game.open_dialog(npc_id)
+
+
+def confirm_interact_choice(game):
+    if not getattr(game, "interact_candidates", None):
+        game.ui_mode = None
+        return
+    idx = game.interact_selected % len(game.interact_candidates)
+    npc_id = game.interact_candidates[idx]
+    game.interact_candidates = []
+    game.interact_selected = 0
+    _open_interaction_for_npc(game, npc_id)
+
+
+def cancel_interact_choice(game):
+    game.interact_candidates = []
+    game.interact_selected = 0
+    if game.ui_mode == "interact_pick":
+        game.ui_mode = None
 
 
 def try_harvest_bush(game):
@@ -39,8 +76,8 @@ def try_harvest_bush(game):
         bt = game.map.get_block(nx, ny)
         if bt == "07":
             count = random.randint(1, 3)
-            game.inventory["barry"] = game.inventory.get("barry", 0) + count
-            unit = "barry" if count == 1 else "barries"
+            game.inventory["berry"] = game.inventory.get("berry", 0) + count
+            unit = "berry" if count == 1 else "berries"
             game.push_message(tr(game.lang, "msg.harvested_berry", count=count, unit=unit))
             game.map.grid[ny][nx] = "08"
             key = (game.map.name, nx, ny)
@@ -338,7 +375,7 @@ def open_shop(game, shop_mode="default"):
     game.shop_mode = shop_mode
     if shop_mode == "dev":
         game.shop_base_items = [
-            i for i in game.shop_all_items if i.get("name", "").startswith("dev's super powerful") or i.get("name") == "rouge level skipper"
+            i for i in game.shop_all_items if i.get("name", "").startswith("dev's super powerful") or i.get("name") == "rogue level skipper"
         ]
     else:
         game.shop_base_items = [i for i in game.shop_all_items if not i.get("name", "").startswith("dev's super powerful")]
@@ -446,8 +483,9 @@ def buy_selected_item(game):
             return
     game.money -= price
     game.inventory[name] = game.inventory.get(name, 0) + 1
+    item_label = game.display_item_name(name)
     key = f"item.{name}"
-    item_label = tr(game.lang, key)
-    if item_label == key:
-        item_label = name
+    tr_label = tr(game.lang, key)
+    if tr_label != key:
+        item_label = tr_label
     game.push_message(tr(game.lang, "msg.bought_item", name=item_label, price=price))
