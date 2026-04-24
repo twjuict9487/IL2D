@@ -12,18 +12,21 @@ from ..support.utils import MAP_DIR, clamp
 def enter_rogue_layer(game, new_entry=False):
     if new_entry:
         game.rogue_layer = 0
+        game.environment_difficulty = 0.0
+        game.rogue_difficulty = 0.0
     game.rogue_layer += 1
-    mission = getattr(game, "kaltsit_mission", None)
-    if mission and not mission.get("done") and mission.get("type") == "reach_layer":
+    for mission in (game.get_active_missions() if hasattr(game, "get_active_missions") else []):
+        if mission.get("done") or mission.get("type") != "reach_layer":
+            continue
         mission["progress"] = min(mission["target"], game.rogue_layer)
         if mission["progress"] >= mission["target"]:
             mission["done"] = True
             game.push_message(tr(game.lang, "msg.mission_complete"))
-            game.on_kaltsit_mission_complete()
+            game.on_kaltsit_mission_complete(mission)
     cfg = getattr(game, "rogue_cfg", {})
-    special_layer = cfg.get("special_layer", 30)
+    special_layer = max(1, int(cfg.get("special_layer", 15)))
     special_map = cfg.get("special_map", "rouge_options.json")
-    if game.rogue_layer == special_layer:
+    if game.rogue_layer > 0 and game.rogue_layer % special_layer == 0:
         game.map = GameMap(os.path.join(MAP_DIR, special_map))
         game.map_max_h_mob = game.map.mob_limit
         game.player.x, game.player.y = game.map.spawn
@@ -98,6 +101,11 @@ def confirm_level_skipper_use(game):
         return
     use_count = int(clamp(game.level_skip_amount, 1, available))
     game.inventory["rogue level skipper"] = max(0, available - use_count)
+    diff = max(0.0, float(getattr(game, "environment_difficulty", 0.0)))
+    diff = min(1.2, diff + (0.2 * use_count))
+    game.environment_difficulty = diff
+    # Keep legacy field in sync for backward compatibility.
+    game.rogue_difficulty = diff
     game.rogue_layer = max(0, game.rogue_layer + use_count - 1)
     enter_next_rogue_layer(game)
     game.ui_mode = "item"
@@ -113,6 +121,11 @@ def use_level_skipper_hotbar(game):
         game.push_message(tr(game.lang, "msg.skipper_only_rogue"))
         return
     game.inventory["rogue level skipper"] = max(0, available - 1)
+    diff = max(0.0, float(getattr(game, "environment_difficulty", 0.0)))
+    diff = min(1.2, diff + 0.2)
+    game.environment_difficulty = diff
+    # Keep legacy field in sync for backward compatibility.
+    game.rogue_difficulty = diff
     game.rogue_layer = max(0, game.rogue_layer)
     enter_next_rogue_layer(game)
     game.push_message(tr(game.lang, "msg.skipper_used", count=1))
@@ -237,10 +250,15 @@ def spawn_rogue_boss(game):
     cfg = getattr(game, "rogue_cfg", {})
     hp_mult = cfg.get("boss_hp_mult", 5)
     atk_mult = cfg.get("boss_attack_mult", 3)
-    hp = int(base.get("hp", 30) * hp_mult * (1.0 + game.rogue_difficulty))
-    atk = int(base.get("attack", 10) * atk_mult * (1.0 + game.rogue_difficulty))
-    boss = Entity(base_id, bx, by, hp, base.get("mp", 0), atk, base.get("defence", 0), base.get("ai_type"))
+    env_mult = 1.0 + max(0.0, float(getattr(game, "environment_difficulty", 0.0)))
+    hp = int(base.get("hp", 30) * hp_mult * env_mult)
+    atk = int(base.get("attack", 10) * atk_mult * env_mult)
+    defence = int(base.get("defence", 0) * env_mult)
+    magic_attack = int(base.get("magic_attack", base.get("attack", 10)) * env_mult)
+    magic_defense = int(base.get("magic_defense", 0) * env_mult)
+    boss = Entity(base_id, bx, by, hp, base.get("mp", 0), atk, defence, base.get("ai_type"))
     boss.size = 3
     boss.is_boss = True
+    boss.magic_attack = magic_attack
+    boss.magic_defense = magic_defense
     game.entities.append(boss)
-

@@ -3,6 +3,36 @@ import random
 from ..support.i18n import tr
 from ..support.utils import clamp
 
+ITEM_CATEGORY_ORDER = ["item", "gift", "equipment", "special"]
+ITEM_CATEGORY_TYPES = {
+    "item": {"consumable"},
+    "gift": {"gift"},
+    "equipment": {"equipment"},
+    "special": {"special"},
+}
+
+
+def _normalize_item_category(value):
+    token = str(value or "item").lower()
+    return token if token in ITEM_CATEGORY_ORDER else "item"
+
+
+def get_item_categories(game):
+    return list(ITEM_CATEGORY_ORDER)
+
+
+def cycle_item_category(game, step):
+    categories = get_item_categories(game)
+    if not categories:
+        game.item_category = "item"
+        game.item_selected = 0
+        return
+    current = _normalize_item_category(getattr(game, "item_category", "item"))
+    idx = categories.index(current)
+    idx = (idx + int(step)) % len(categories)
+    game.item_category = categories[idx]
+    game.item_selected = 0
+
 
 def open_equip(game):
     game.ui_mode = "equip"
@@ -103,13 +133,15 @@ def equip_best(game):
 
 
 def get_item_list(game):
+    category = _normalize_item_category(getattr(game, "item_category", "item"))
+    allowed_types = ITEM_CATEGORY_TYPES.get(category, {"consumable"})
     items = []
     for name, count in game.inventory.items():
         if count <= 0:
             continue
         item_def = game.item_defs.get(name, {})
         item_type = item_def.get("type")
-        if item_type not in ("consumable", "special"):
+        if item_type not in allowed_types:
             continue
         items.append(name)
     return items

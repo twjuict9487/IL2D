@@ -1,0 +1,45 @@
+{
+  "start": "node_1",
+  "node_1": {
+    "text": "Want to try your luck?",
+    "text_zh": "要試試你的手氣嗎？",
+    "responses": [
+      {
+        "text": "Upgrade",
+        "text_zh": "強化",
+        "next": "upgrade"
+      },
+      {
+        "text": "Talk",
+        "text_zh": "聊聊",
+        "next": "carmen_talk"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ]
+  },
+  "upgrade": {
+    "text": "Choose a category.",
+    "text_zh": "請選擇要強化的屬性。",
+    "responses": [
+      {
+        "text": "HP",
+        "text_zh": "HP",
+        "next": "carmen_upgrade_hp"
+      },
+      {
+        "text": "MP",
+        "text_zh": "MP",
+        "next": "carmen_upgrade_mp"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ]
+  }
+}

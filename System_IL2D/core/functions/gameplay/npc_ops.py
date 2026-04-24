@@ -44,9 +44,9 @@ def _open_interaction_for_npc(game, npc_id):
     if game.map.name == "rouge_options.json" and npc_id == "dev":
         game.open_rogue_rest_leave()
     elif npc_id == "carmen":
-        game.open_dialog("carmen")
+        game.open_dialog("carmen", source="interaction")
     else:
-        game.open_dialog(npc_id)
+        game.open_dialog(npc_id, source="interaction")
 
 
 def confirm_interact_choice(game):
@@ -85,9 +85,9 @@ def try_harvest_bush(game):
             return
 
 
-def open_dialog(game, npc_id):
+def open_dialog(game, npc_id, source="script"):
     if npc_id in ("kaltsit", "ines"):
-        _open_kaltsit_mission_dialog(game, npc_id)
+        _open_kaltsit_mission_dialog(game, npc_id, source=source)
         return
     dialog_path = os.path.join(DIALOG_DIR, f"{npc_id}.json")
     if not os.path.isfile(dialog_path):
@@ -96,10 +96,11 @@ def open_dialog(game, npc_id):
     game.dialog_node = game.dialog_data.get("start")
     game.dialog_selected = 0
     game.active_npc = npc_id
+    game.dialog_source = source
     game.ui_mode = "dialog"
 
 
-def _open_kaltsit_mission_dialog(game, npc_id="kaltsit"):
+def _open_kaltsit_mission_dialog(game, npc_id="kaltsit", source="script"):
     if (
         getattr(game, "kaltsit_completed", 0) >= 10
         and npc_id == "kaltsit"
@@ -118,6 +119,7 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit"):
         game.dialog_node = "node_1"
         game.dialog_selected = 0
         game.active_npc = npc_id
+        game.dialog_source = source
         game.ui_mode = "dialog"
         return
     if (
@@ -138,6 +140,7 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit"):
         game.dialog_node = "node_1"
         game.dialog_selected = 0
         game.active_npc = npc_id
+        game.dialog_source = source
         game.ui_mode = "dialog"
         return
 
@@ -154,12 +157,18 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit"):
         game.dialog_node = "node_1"
         game.dialog_selected = 0
         game.active_npc = npc_id
+        game.dialog_source = source
         game.ui_mode = "dialog"
         return
-    mission = getattr(game, "kaltsit_mission", None)
+    mission = game.get_mission_by_giver(npc_id) if hasattr(game, "get_mission_by_giver") else None
     if not mission or mission.get("done"):
-        mission = _generate_kaltsit_mission(game)
-        game.kaltsit_mission = mission
+        mission = _generate_kaltsit_mission(game, giver=npc_id)
+        if hasattr(game, "add_active_mission"):
+            game.add_active_mission(mission)
+        else:
+            game.kaltsit_mission = mission
+    elif not mission.get("giver"):
+        mission["giver"] = npc_id
     text = _mission_text(game, mission)
     game.dialog_data = {
         "start": "node_1",
@@ -171,23 +180,24 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit"):
     game.dialog_node = "node_1"
     game.dialog_selected = 0
     game.active_npc = npc_id
+    game.dialog_source = source
     game.ui_mode = "dialog"
 
 
-def _generate_kaltsit_mission(game):
+def _generate_kaltsit_mission(game, giver="kaltsit"):
     types = ["kill_specific", "kill_any", "reach_layer"]
     mtype = random.choice(types)
     if mtype == "kill_specific":
         mob_ids = [k for k, v in mobs_data.items() if isinstance(v, dict) and v.get("ai_type") == "hostile"]
         mob_id = random.choice(mob_ids) if mob_ids else "slime"
         target = random.randint(1, 10)
-        return {"type": mtype, "mob": mob_id, "target": target, "progress": 0, "done": False}
+        return {"type": mtype, "mob": mob_id, "target": target, "progress": 0, "done": False, "giver": giver}
     if mtype == "kill_any":
         target = random.randint(1, 10)
-        return {"type": mtype, "target": target, "progress": 0, "done": False}
+        return {"type": mtype, "target": target, "progress": 0, "done": False, "giver": giver}
     target = random.randint(1, 10)
     target = min(target, 15)
-    return {"type": "reach_layer", "target": target, "progress": 0, "done": False}
+    return {"type": "reach_layer", "target": target, "progress": 0, "done": False, "giver": giver}
 
 
 def _mission_text(game, mission):
@@ -218,11 +228,15 @@ def _mission_text(game, mission):
 def open_rogue_rest_intro(game):
     game.dialog_data = {
         "start": "node_1",
-        "node_1": {"text": "come talk to me when you're ready.", "responses": [{"text": "okay", "next": "end"}]},
+        "node_1": {
+            "text": tr(game.lang, "dialog.rogue_rest_intro"),
+            "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+        },
     }
     game.dialog_node = "node_1"
     game.dialog_selected = 0
     game.active_npc = "dev"
+    game.dialog_source = "script"
     game.ui_mode = "dialog"
 
 
@@ -230,17 +244,21 @@ def open_rogue_rest_leave(game):
     game.dialog_data = {
         "start": "node_1",
         "node_1": {
-            "text": "you have been gone through alot in this rouge, perhaps its time to save and leave?",
-            "responses": [{"text": "okay", "next": "node_leave"}],
+            "text": tr(game.lang, "dialog.rogue_rest_prompt"),
+            "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "node_leave"}],
         },
         "node_leave": {
-            "text": "are you going to leave?",
-            "responses": [{"text": "yes", "next": "rogue_leave_yes"}, {"text": "no", "next": "rogue_leave_no"}],
+            "text": tr(game.lang, "dialog.rogue_rest_confirm"),
+            "responses": [
+                {"text": tr(game.lang, "dialog.yes"), "next": "rogue_leave_yes"},
+                {"text": tr(game.lang, "dialog.no"), "next": "rogue_leave_no"},
+            ],
         },
     }
     game.dialog_node = "node_1"
     game.dialog_selected = 0
     game.active_npc = "dev"
+    game.dialog_source = "script"
     game.ui_mode = "dialog"
 
 
@@ -283,7 +301,9 @@ def dialog_choose(game):
         return
     if next_node == "rogue_leave_no":
         game.close_dialog()
-        game.rogue_difficulty += 0.2
+        game.environment_difficulty = max(0.0, float(getattr(game, "environment_difficulty", 0.0)) + 0.2)
+        # Keep legacy field in sync for backward compatibility.
+        game.rogue_difficulty = game.environment_difficulty
         game.push_message(tr(game.lang, "msg.rogue_deeper_warn"))
         game.start_transition(game.enter_next_rogue_layer)
         return
@@ -303,7 +323,15 @@ def dialog_choose(game):
 
 def get_dialog_responses(game, node):
     responses = node.get("responses", [])
-    if game.active_npc and game.active_npc in npc_data:
+    allow_maps = {"map_1.json", "map_2.json", "map_3.json"}
+    can_gift = (
+        game.active_npc
+        and game.active_npc in npc_data
+        and getattr(game, "map", None) is not None
+        and game.map.name in allow_maps
+        and getattr(game, "dialog_source", None) == "interaction"
+    )
+    if can_gift:
         if not any(r.get("next") == "gift" for r in responses):
             responses = responses + [{"text": "gift", "next": "gift"}]
     return responses
@@ -314,6 +342,7 @@ def close_dialog(game):
     game.dialog_node = None
     game.dialog_selected = 0
     game.active_npc = None
+    game.dialog_source = None
     if game.ui_mode == "dialog":
         game.ui_mode = None
 
@@ -367,6 +396,7 @@ def maybe_startup_closure_greet(game):
     game.dialog_node = "node_1"
     game.dialog_selected = 0
     game.active_npc = "closure"
+    game.dialog_source = "script"
     game.ui_mode = "dialog"
     game.__class__.closure_greeted_this_run = True
 

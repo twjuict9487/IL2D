@@ -381,11 +381,9 @@ def _handle_settings_key(ctx, event):
 def _handle_hotbar_menu_key(game, event):
     if event.key == pygame.K_i:
         game.hotbar_mode = "item"
-        game.hotbar_type_selected = 0
         return
     if event.key == pygame.K_o:
         game.hotbar_mode = "magic"
-        game.hotbar_type_selected = 1
         return
     if event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
         if game.hotbar_mode == "item":
@@ -394,37 +392,43 @@ def _handle_hotbar_menu_key(game, event):
             game.magic_hotbar_slots[game.hotbar_slot_selected] = None
         return
 
-    stage = getattr(game, "hotbar_stage", "type")
-    if stage == "type":
-        if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
-            game.hotbar_type_selected = 1 - int(getattr(game, "hotbar_type_selected", 0))
-            return
-        if event.key == pygame.K_RETURN:
-            game.hotbar_mode = "item" if int(getattr(game, "hotbar_type_selected", 0)) == 0 else "magic"
-            game.hotbar_stage = "slot"
-            game.hotbar_slot_selected = 0
-            return
-        if event.key == pygame.K_ESCAPE:
-            game.ui_mode = None
-            return
+    stage = getattr(game, "hotbar_stage", "grid")
+    if stage not in ("grid", "pick"):
+        stage = "grid"
+        game.hotbar_stage = "grid"
 
-    if stage == "slot":
+    if stage == "grid":
         if event.key in (pygame.K_UP, pygame.K_w):
             game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
             return
         if event.key in (pygame.K_DOWN, pygame.K_s):
             game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
             return
+        if event.key in (pygame.K_LEFT, pygame.K_a):
+            game.hotbar_mode = "item"
+            return
+        if event.key in (pygame.K_RIGHT, pygame.K_d):
+            game.hotbar_mode = "magic"
+            return
         if event.key == pygame.K_RETURN:
-            game.hotbar_stage = "item"
+            game.hotbar_stage = "pick"
             game.hotbar_list_selected = 0
             return
         if event.key == pygame.K_ESCAPE:
-            game.hotbar_stage = "type"
+            game.ui_mode = None
             return
+        return
 
-    # stage == "item"
+    # stage == "pick"
     src = game.get_item_list() if game.hotbar_mode == "item" else [sp.get("name") for sp in game.spells]
+    if event.key in (pygame.K_LEFT, pygame.K_a):
+        game.hotbar_mode = "item"
+        game.hotbar_list_selected = 0
+        return
+    if event.key in (pygame.K_RIGHT, pygame.K_d):
+        game.hotbar_mode = "magic"
+        game.hotbar_list_selected = 0
+        return
     if event.key in (pygame.K_UP, pygame.K_w):
         if src:
             game.hotbar_list_selected = max(0, game.hotbar_list_selected - 1)
@@ -442,7 +446,7 @@ def _handle_hotbar_menu_key(game, event):
                 game.magic_hotbar_slots[game.hotbar_slot_selected] = picked
         return
     if event.key == pygame.K_ESCAPE:
-        game.hotbar_stage = "slot"
+        game.hotbar_stage = "grid"
         return
 
 
@@ -513,11 +517,18 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "equip_category":
                 game.equip_category_selected = max(0, game.equip_category_selected - 1)
             elif game.ui_mode == "item":
-                items = game.get_item_list()
-                if items:
-                    idx = game.item_selected % len(items)
-                    idx = max(0, idx - 1)
-                    game.item_selected = idx
+                if event.key in (pygame.K_LEFT, pygame.K_a):
+                    game.cycle_item_category(-1)
+                else:
+                    items = game.get_item_list()
+                    if items:
+                        idx = game.item_selected % len(items)
+                        idx = max(0, idx - 2)
+                        game.item_selected = idx
+            elif game.ui_mode == "objective":
+                missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
+                if missions:
+                    game.objective_selected = max(0, game.objective_selected - 1)
             elif game.ui_mode == "hotbar":
                 if event.key in (pygame.K_LEFT, pygame.K_a):
                     game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
@@ -565,11 +576,18 @@ def _handle_esc_menu_key(ctx, event):
                 max_idx = len(game.get_equip_categories()) - 1
                 game.equip_category_selected = min(max_idx, game.equip_category_selected + 1)
             elif game.ui_mode == "item":
-                items = game.get_item_list()
-                if items:
-                    idx = game.item_selected % len(items)
-                    idx = min(len(items) - 1, idx + 1)
-                    game.item_selected = idx
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                    game.cycle_item_category(1)
+                else:
+                    items = game.get_item_list()
+                    if items:
+                        idx = game.item_selected % len(items)
+                        idx = min(len(items) - 1, idx + 2)
+                        game.item_selected = idx
+            elif game.ui_mode == "objective":
+                missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
+                if missions:
+                    game.objective_selected = min(len(missions) - 1, game.objective_selected + 1)
             elif game.ui_mode == "hotbar":
                 if event.key in (pygame.K_RIGHT, pygame.K_d):
                     game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
@@ -626,6 +644,9 @@ def _handle_esc_menu_key(ctx, event):
                     game.unequip_all()
             elif game.ui_mode == "item":
                 game.use_item()
+            elif game.ui_mode == "objective":
+                if hasattr(game, "set_tracked_selected_mission"):
+                    game.set_tracked_selected_mission()
             elif game.ui_mode == "hotbar":
                 if game.hotbar_mode == "item":
                     items = game.get_item_list()
@@ -649,9 +670,9 @@ def _handle_esc_menu_key(ctx, event):
         return
 
     if event.key == pygame.K_UP:
-        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 9
+        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 8
     elif event.key == pygame.K_DOWN:
-        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 9
+        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 8
     elif event.key == pygame.K_ESCAPE:
         ctx["state"] = "game"
     elif event.key == pygame.K_RETURN:
@@ -659,8 +680,7 @@ def _handle_esc_menu_key(ctx, event):
             game.ui_mode = "item"
         elif ctx["esc_selected"] == 1:
             game.ui_mode = "hotbar"
-            game.hotbar_stage = "type"
-            game.hotbar_type_selected = 0 if game.hotbar_mode == "item" else 1
+            game.hotbar_stage = "grid"
             game.hotbar_slot_selected = 0
             game.hotbar_list_selected = 0
         elif ctx["esc_selected"] == 2:
@@ -669,18 +689,32 @@ def _handle_esc_menu_key(ctx, event):
             game.ui_mode = "team"
         elif ctx["esc_selected"] == 4:
             game.ui_mode = "objective"
+            game.objective_selected = 0
         elif ctx["esc_selected"] == 5:
-            game.ui_mode = "status"
-        elif ctx["esc_selected"] == 6:
             game.ui_mode = "skill_tree"
-        elif ctx["esc_selected"] == 7:
+        elif ctx["esc_selected"] == 6:
             game.open_save()
-        elif ctx["esc_selected"] == 8:
+        elif ctx["esc_selected"] == 7:
             game.open_leave_confirm()
 
 
 def _handle_game_key(ctx, event):
     game = ctx["game"]
+    if game.ui_mode == "death_menu":
+        if game.death_no_save_notice:
+            if event.key in (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE):
+                game.request_quit = True
+            return
+        if event.key in (pygame.K_UP, pygame.K_w):
+            game.death_menu_selected = max(0, game.death_menu_selected - 1)
+            return
+        if event.key in (pygame.K_DOWN, pygame.K_s):
+            game.death_menu_selected = min(1, game.death_menu_selected + 1)
+            return
+        if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+            game.handle_death_menu_confirm()
+            return
+        return
     if event.key == pygame.K_i:
         game.active_hotbar = "item"
     elif event.key == pygame.K_o:
@@ -959,14 +993,13 @@ def _handle_mouse_esc_menu(ctx, pos):
     item_h = font.get_height() + 6
     if mx < menu_w:
         idx = (my - 20) // item_h
-        if 0 <= idx < 9:
+        if 0 <= idx < 8:
             ctx["esc_selected"] = idx
             if idx == 0:
                 game.ui_mode = "item"
             elif idx == 1:
                 game.ui_mode = "hotbar"
-                game.hotbar_stage = "type"
-                game.hotbar_type_selected = 0 if game.hotbar_mode == "item" else 1
+                game.hotbar_stage = "grid"
                 game.hotbar_slot_selected = 0
                 game.hotbar_list_selected = 0
             elif idx == 2:
@@ -976,12 +1009,10 @@ def _handle_mouse_esc_menu(ctx, pos):
             elif idx == 4:
                 game.ui_mode = "objective"
             elif idx == 5:
-                game.ui_mode = "status"
-            elif idx == 6:
                 game.ui_mode = "skill_tree"
-            elif idx == 7:
+            elif idx == 6:
                 game.open_save()
-            elif idx == 8:
+            elif idx == 7:
                 game.open_leave_confirm()
     else:
         panel = pygame.Rect(menu_w, 0, screen.get_width() - menu_w, screen.get_height())
@@ -1096,20 +1127,36 @@ def _handle_mouse_esc_menu(ctx, pos):
                     game.equip_selected_item()
                     return
         elif game.ui_mode == "item":
+            cats = game.get_item_categories() if hasattr(game, "get_item_categories") else ["item", "gift", "equipment", "special"]
+            tab_h = font.get_height() + 8
+            tab_gap = 6
+            tab_w = max(80, (panel.width - 32 - (len(cats) - 1) * tab_gap) // max(1, len(cats)))
+            tab_y = panel.y + 48
+            for i, cat in enumerate(cats):
+                rx = panel.x + 16 + i * (tab_w + tab_gap)
+                rect = pygame.Rect(rx, tab_y - 2, tab_w, tab_h)
+                if rect.collidepoint(mx, my):
+                    game.item_category = cat
+                    game.item_selected = 0
+                    return
+
             items = game.get_item_list()
             row_h = font.get_height() + 8
-            max_rows = max(1, (panel.height - 70) // row_h)
+            list_start_y = tab_y + tab_h + 10
+            max_rows = max(1, (panel.bottom - list_start_y - 10) // row_h)
+            col_w = (panel.width - 40) // 2
             selected = game.item_selected % len(items) if items else 0
-            per_page = max_rows
+            per_page = max_rows * 2
             page = selected // per_page if per_page > 0 else 0
             start = page * per_page
             end = min(len(items), start + per_page)
             for i in range(start, end):
                 li = i - start
-                row = li
-                rx = panel.x + 16
-                ry = y + row * row_h
-                rect = pygame.Rect(rx, ry - 2, panel.width - 32, font.get_height() + 4)
+                row = li // 2
+                col = li % 2
+                rx = panel.x + 16 + col * (col_w + 8)
+                ry = list_start_y + row * row_h
+                rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 4)
                 if rect.collidepoint(mx, my):
                     game.item_selected = i
                     game.use_item()
@@ -1150,12 +1197,44 @@ def _handle_mouse_esc_menu(ctx, pos):
                     game.handle_leave_confirm()
                     break
                 y += font.get_height() + 6
+        elif game.ui_mode == "objective":
+            y = panel.y + 48
+            # Skip default objective lines area, click only on mission tracking list.
+            y += (font.get_height() + 6) * len(game.get_objective_lines())
+            y += 8 + font.get_height() + 6
+            missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
+            for i, _ in enumerate(missions):
+                rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
+                if rect.collidepoint(mx, my):
+                    game.objective_selected = i
+                    if hasattr(game, "set_tracked_selected_mission"):
+                        game.set_tracked_selected_mission()
+                    break
+                y += font.get_height() + 8
 
 
 def _handle_mouse_game(ctx, pos):
     mx, my = pos
     screen = ctx["screen"]
     game = ctx["game"]
+    if game.ui_mode == "death_menu":
+        menu_w = min(680, screen.get_width() - 120)
+        menu_h = 240
+        panel = pygame.Rect((screen.get_width() - menu_w) // 2, (screen.get_height() - menu_h) // 2, menu_w, menu_h)
+        if game.death_no_save_notice:
+            ok_rect = pygame.Rect(panel.x + panel.width // 2 - 90, panel.bottom - 54, 180, 34)
+            if ok_rect.collidepoint(mx, my):
+                game.request_quit = True
+            return
+        row_h = 36
+        start_y = panel.y + 96
+        for i in range(2):
+            rect = pygame.Rect(panel.x + 24, start_y + i * (row_h + 10), panel.width - 48, row_h)
+            if rect.collidepoint(mx, my):
+                game.death_menu_selected = i
+                game.handle_death_menu_confirm()
+                return
+        return
     if game.ui_mode == "dialog":
         panel_h = screen.get_height() // 3
         panel = pygame.Rect(0, screen.get_height() - panel_h - 12, screen.get_width(), panel_h)
@@ -1210,8 +1289,8 @@ def _draw_name_input(ctx):
     title_font = _get_font(42, bold=True)
     body_font = _get_font(28)
     hint_font = _get_font(20)
-    title = title_font.render("New Game", True, (220, 240, 255))
-    prompt = body_font.render("隢撓?亙?摮?(?憭?0摮?)", True, (185, 220, 245))
+    title = title_font.render("新遊戲", True, (220, 240, 255))
+    prompt = body_font.render("請輸入角色名稱（最多 20 字）", True, (185, 220, 245))
     name = ctx.get("new_game_name", "")
     box_w, box_h = screen.get_width() - 140, 58
     box_x = (screen.get_width() - box_w) // 2
@@ -1220,7 +1299,7 @@ def _draw_name_input(ctx):
     pygame.draw.rect(screen, (190, 230, 255), (box_x, box_y, box_w, box_h), 2, border_radius=8)
     display_name = name if name else "Doctor"
     name_surf = body_font.render(display_name, True, (255, 255, 255))
-    hint = hint_font.render("Enter 蝣箄? / Esc 餈?", True, (150, 180, 205))
+    hint = hint_font.render("Enter 確認 / Esc 取消", True, (150, 180, 205))
     screen.blit(title, ((screen.get_width() - title.get_width()) // 2, box_y - 100))
     screen.blit(prompt, ((screen.get_width() - prompt.get_width()) // 2, box_y - 45))
     screen.blit(name_surf, (box_x + 12, box_y + 13))
@@ -1259,7 +1338,8 @@ def _draw_cutscene(ctx):
         surf = font.render(line, True, (225, 235, 245))
         screen.blit(surf, (text_x, y))
         y += font.get_height() + 6
-    hint = hint_font.render("Enter 蝜潛?", True, (165, 185, 205))
+    hint_text = "Enter 繼續" if ctx["game"].lang == "zh" else "Press Enter to continue"
+    hint = hint_font.render(hint_text, True, (165, 185, 205))
     screen.blit(hint, (panel.right - hint.get_width() - 16, panel.bottom - hint.get_height() - 10))
 
 
@@ -1316,7 +1396,9 @@ def _render(ctx):
         draw_esc_menu(ctx["screen"], ctx["esc_selected"], ctx["game"])
     else:
         draw(ctx["game"], ctx["screen"])
-        draw_player_ui(ctx["game"], ctx["screen"])
+        # Keep dialog text readable: hide bottom status/hotbar while dialog is open.
+        if getattr(ctx["game"], "ui_mode", None) != "dialog":
+            draw_player_ui(ctx["game"], ctx["screen"])
     if ctx["game"].request_main_menu:
         ctx["game"].request_main_menu = False
         ctx["game"].ui_mode = None
@@ -1324,4 +1406,3 @@ def _render(ctx):
     if ctx["game"].request_quit:
         ctx["running"] = False
     pygame.display.flip()
-

@@ -71,6 +71,7 @@ class Game:
         self.dialog_node = None
         self.dialog_selected = 0
         self.active_npc = None
+        self.dialog_source = None
         self.interact_candidates = []
         self.interact_selected = 0
 
@@ -82,6 +83,7 @@ class Game:
         self.equip_focus = "tabs"
         self.equip_category = "weapon"
         self.item_selected = 0
+        self.item_category = "item"
         self.magic_selected = 0
         self.hotbar_mode = "item"  # item | magic
         self.hotbar_stage = "type"  # type | slot | item
@@ -96,6 +98,8 @@ class Game:
         self.request_quit = False
         self.request_main_menu = False
         self.carmen_selected = 0
+        self.death_menu_selected = 0
+        self.death_no_save_notice = ""
 
         self.money = 0
         self.inventory = {
@@ -118,6 +122,9 @@ class Game:
         }
         self.equip_categories = ["weapon", "armor", "ring1", "ring2", "ring3", "ring4", "ring5", "ring6"]
         self.objectives = ["Find the dev", "Try the shop"]
+        self.objective_selected = 0
+        self.tracked_mission = None
+        self.active_missions = []
         self.spells = []
         self.spell_last_cast = {}
         self.spell_cd_ticks = {}
@@ -142,6 +149,7 @@ class Game:
         self.rogue_layer = 0
         self.rogue_is_boss = False
         self.rogue_target_mobs = 0
+        self.environment_difficulty = 0.0
         self.rogue_difficulty = 0.0
         self.rogue_rest_intro_done = False
         self.transition_active = False
@@ -694,18 +702,18 @@ class Game:
         self.push_message_lines(lines)
         self.add_exp(int(mob.get("exp_reward", 10)))
 
-        # Kaltsit mission progress
-        mission = getattr(self, "kaltsit_mission", None)
-        if not mission or mission.get("done"):
-            return
-        mtype = mission.get("type")
-        if mtype == "kill_any":
-            mission["progress"] = min(mission["target"], mission.get("progress", 0) + 1)
-        elif mtype == "kill_specific" and ent.eid == mission.get("mob"):
-            mission["progress"] = min(mission["target"], mission.get("progress", 0) + 1)
-        if mission.get("progress", 0) >= mission.get("target", 0):
-            mission["done"] = True
-            self.on_kaltsit_mission_complete()
+        # Mission progress (multi-mission)
+        for mission in self.get_active_missions():
+            if mission.get("done"):
+                continue
+            mtype = mission.get("type")
+            if mtype == "kill_any":
+                mission["progress"] = min(mission["target"], mission.get("progress", 0) + 1)
+            elif mtype == "kill_specific" and ent.eid == mission.get("mob"):
+                mission["progress"] = min(mission["target"], mission.get("progress", 0) + 1)
+            if mission.get("progress", 0) >= mission.get("target", 0):
+                mission["done"] = True
+                self.on_kaltsit_mission_complete(mission)
 
     def push_message(self, text):
         self.message_queue.append({
@@ -748,21 +756,37 @@ class Game:
 
     def check_player_death(self):
         if self.player.hp <= 0:
+            if self.ui_mode == "death_menu":
+                return
             if self.map.name == "rogue":
                 rate = self.rogue_cfg.get("death_penalty_rate", 0.2)
                 self.money = int(self.money * (1 - rate))
                 self.return_from_rogue()
                 self.death_timer = None
                 return
-            if self.inventory.get('revive ring', 0) > 0:
-                self.inventory['revive ring'] -= 1
-                self.player.hp = self.player.max_hp
-                self.push_message(tr(self.lang, "msg.revive_ring_broken"))
-                self.death_timer = None
-                return
-            self.death_timer = 10.0
+            self.ui_mode = "death_menu"
+            self.death_menu_selected = 0
+            self.death_no_save_notice = ""
+            self.death_timer = None
         else:
             self.death_timer = None
+
+    def handle_death_menu_confirm(self):
+        if self.ui_mode != "death_menu":
+            return
+        if self.death_no_save_notice:
+            self.request_quit = True
+            return
+        if self.death_menu_selected == 0:
+            self.money = int(self.money * 0.5)
+            self.player.hp = self.player.max_hp
+            self.player.mp = self.player.max_mp
+            self.ui_mode = None
+            return
+        if self.load_latest_save():
+            self.ui_mode = None
+            return
+        self.death_no_save_notice = "welp, looks like you dont have any saves, adios then"
 
     def start_blackout(self):
         self.blackout = 1
@@ -868,8 +892,8 @@ class Game:
                 continue
             ent.x, ent.y = tx, ty
 
-    def on_kaltsit_mission_complete(self):
-        mission = self.kaltsit_mission or {}
+    def on_kaltsit_mission_complete(self, mission=None):
+        mission = mission or self.kaltsit_mission or {}
         if mission.get("rewarded"):
             return
         mission["rewarded"] = True
@@ -1110,37 +1134,118 @@ class Game:
 
     def get_objective_lines(self):
         lines = list(self.objectives)
-        mission = getattr(self, "kaltsit_mission", None)
-        if not mission:
+        missions = self.get_active_missions()
+        if not missions:
             return lines
+        for mission in missions:
+            giver = str(mission.get("giver", "kaltsit"))
+            giver_name = giver.capitalize()
+            text = self._mission_text_short(mission)
+            if text:
+                lines.append(f"{giver_name}: {text}")
+        return lines
+
+    def get_trackable_missions(self):
+        missions = []
+        for mission in self.get_active_missions():
+            giver = str(mission.get("giver", "kaltsit"))
+            missions.append({
+                "id": giver,
+                "name": giver.capitalize(),
+                "text": self._mission_text_short(mission),
+                "done": bool(mission.get("done", False)),
+            })
+        return missions
+
+    def _mission_text_short(self, mission):
         mtype = mission.get("type")
         if mtype == "kill_specific":
-            text = tr(
+            return tr(
                 self.lang,
                 "mission.kill_specific",
                 mob=mission.get("mob", "slime"),
                 progress=mission.get("progress", 0),
                 target=mission.get("target", 1),
             )
-        elif mtype == "kill_any":
-            text = tr(
+        if mtype == "kill_any":
+            return tr(
                 self.lang,
                 "mission.kill_any",
                 progress=mission.get("progress", 0),
                 target=mission.get("target", 1),
             )
-        elif mtype == "reach_layer":
-            text = tr(
+        if mtype == "reach_layer":
+            return tr(
                 self.lang,
                 "mission.reach_layer",
                 progress=mission.get("progress", 0),
                 target=mission.get("target", 1),
             )
-        else:
-            text = ""
-        if text:
-            lines.append(f"Kaltsit: {text}")
-        return lines
+        return ""
+
+    def set_tracked_selected_mission(self):
+        missions = self.get_trackable_missions()
+        if not missions:
+            self.tracked_mission = None
+            return
+        idx = max(0, min(len(missions) - 1, int(getattr(self, "objective_selected", 0))))
+        mid = missions[idx].get("id")
+        self.tracked_mission = mid
+
+    def toggle_track_selected_mission(self):
+        # Backward-compatible alias: tracking is a reminder target, not a toggle.
+        self.set_tracked_selected_mission()
+
+    def get_tracking_summary_lines(self):
+        missions = self.get_trackable_missions()
+        tracked = getattr(self, "tracked_mission", None)
+        if missions and not any(m.get("id") == tracked for m in missions):
+            tracked = missions[0].get("id")
+            self.tracked_mission = tracked
+        for row in missions:
+            if row.get("id") != tracked:
+                continue
+            text = row.get("text", "")
+            if not text:
+                return []
+            return [f"{row.get('name', 'Mission')}: {text}"]
+        return []
+
+    def _ensure_active_missions(self):
+        pool = getattr(self, "active_missions", None)
+        if not isinstance(pool, list):
+            pool = []
+            self.active_missions = pool
+        legacy = getattr(self, "kaltsit_mission", None)
+        if isinstance(legacy, dict):
+            giver = str(legacy.get("giver", "kaltsit"))
+            if not any(isinstance(m, dict) and str(m.get("giver", "kaltsit")) == giver and not m.get("done") for m in pool):
+                pool.append(legacy)
+        return pool
+
+    def get_active_missions(self):
+        pool = self._ensure_active_missions()
+        out = [m for m in pool if isinstance(m, dict) and not m.get("done")]
+        # Keep legacy pointer consistent for old call sites/save compatibility.
+        self.kaltsit_mission = out[0] if out else None
+        return out
+
+    def get_mission_by_giver(self, giver):
+        giver = str(giver or "kaltsit")
+        for m in self.get_active_missions():
+            if str(m.get("giver", "kaltsit")) == giver:
+                return m
+        return None
+
+    def add_active_mission(self, mission):
+        if not isinstance(mission, dict):
+            return
+        mission["giver"] = str(mission.get("giver", "kaltsit"))
+        pool = self._ensure_active_missions()
+        pool.append(mission)
+        if not getattr(self, "tracked_mission", None):
+            self.tracked_mission = mission.get("giver")
+        self.kaltsit_mission = mission
 
     def get_skill_tree_nodes(self):
         return [
@@ -1211,11 +1316,19 @@ class Game:
             self.teleport_team_to_player()
             self.player.hp = self.player.max_hp
             self.inventory["retreat item"] = 0
+            self.environment_difficulty = 0.0
+            # Keep legacy field in sync for backward compatibility.
+            self.rogue_difficulty = 0.0
             self.push_message(tr(self.lang, "msg.retreat_cleared"))
         self.start_transition(do_return)
 
     def enter_rogue_layer(self, new_entry=False):
         return game_rogue_ops.enter_rogue_layer(self, new_entry)
+
+    def get_env_tier(self):
+        step = 0.20
+        value = max(0.0, float(getattr(self, "environment_difficulty", 0.0)))
+        return int(min(6, (value + 1e-9) / step))
 
     def enter_next_rogue_layer(self):
         return game_rogue_ops.enter_next_rogue_layer(self)
@@ -1253,13 +1366,19 @@ class Game:
                 continue
             hp = mob['hp']
             atk = mob.get('attack', 10)
+            defence = mob.get('defence', 0)
+            magic_attack = mob.get("magic_attack", atk)
+            magic_defense = mob.get("magic_defense", 0)
             if self.map.name == "rogue":
-                mult = 1.0 + self.rogue_difficulty
+                mult = 1.0 + max(0.0, float(getattr(self, "environment_difficulty", 0.0)))
                 hp = int(hp * mult)
                 atk = int(atk * mult)
-            ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, mob.get('defence', 0), mob.get('ai_type'), mob.get('immortal', False))
-            ent.magic_attack = int(mob.get("magic_attack", ent.attack))
-            ent.magic_defense = int(mob.get("magic_defense", 0))
+                defence = int(defence * mult)
+                magic_attack = int(magic_attack * mult)
+                magic_defense = int(magic_defense * mult)
+            ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, defence, mob.get('ai_type'), mob.get('immortal', False))
+            ent.magic_attack = int(magic_attack)
+            ent.magic_defense = int(magic_defense)
             self.entities.append(ent)
             return True
         return False
@@ -1357,8 +1476,8 @@ class Game:
     def try_harvest_bush(self):
         return game_npc_ops.try_harvest_bush(self)
 
-    def open_dialog(self, npc_id):
-        return game_npc_ops.open_dialog(self, npc_id)
+    def open_dialog(self, npc_id, source="script"):
+        return game_npc_ops.open_dialog(self, npc_id, source=source)
 
     def open_rogue_rest_intro(self):
         return game_npc_ops.open_rogue_rest_intro(self)
@@ -1456,6 +1575,12 @@ class Game:
     def get_item_list(self):
         return game_inventory_ops.get_item_list(self)
 
+    def get_item_categories(self):
+        return game_inventory_ops.get_item_categories(self)
+
+    def cycle_item_category(self, step):
+        return game_inventory_ops.cycle_item_category(self, step)
+
     def use_item(self):
         return game_inventory_ops.use_item(self)
 
@@ -1467,12 +1592,24 @@ class Game:
         if name == "rogue level skipper":
             self.use_level_skipper_hotbar()
             return
+        item_type = self.item_defs.get(name, {}).get("type")
+        type_to_cat = {
+            "consumable": "item",
+            "gift": "gift",
+            "equipment": "equipment",
+            "special": "special",
+        }
+        old_category = getattr(self, "item_category", "item")
+        if item_type in type_to_cat:
+            self.item_category = type_to_cat[item_type]
         items = self.get_item_list()
         if name not in items:
+            self.item_category = old_category
             self.push_message(tr(self.lang, "msg.no_items"))
             return
         self.item_selected = items.index(name)
         self.use_item()
+        self.item_category = old_category
 
     def use_level_skipper_hotbar(self):
         return game_rogue_ops.use_level_skipper_hotbar(self)

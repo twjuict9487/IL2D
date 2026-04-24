@@ -33,6 +33,9 @@ def save_game(game):
         "objectives": game.objectives,
         "relations": game.relations,
         "kaltsit_mission": game.kaltsit_mission,
+        "active_missions": getattr(game, "active_missions", []),
+        "tracked_mission": getattr(game, "tracked_mission", None),
+        "objective_selected": int(getattr(game, "objective_selected", 0)),
         "kaltsit_intro_done": game.kaltsit_intro_done,
         "ines_intro_done": game.ines_intro_done,
         "kaltsit_completed": game.kaltsit_completed,
@@ -97,6 +100,11 @@ def load_save(game, slot):
     game.lang = data.get("lang", game.lang)
     game.relations = data.get("relations", {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)})
     game.kaltsit_mission = data.get("kaltsit_mission", game.kaltsit_mission)
+    loaded_active = data.get("active_missions", None)
+    if isinstance(loaded_active, list):
+        game.active_missions = [m for m in loaded_active if isinstance(m, dict)]
+    game.tracked_mission = data.get("tracked_mission", getattr(game, "tracked_mission", None))
+    game.objective_selected = int(data.get("objective_selected", getattr(game, "objective_selected", 0)))
     game.kaltsit_intro_done = data.get("kaltsit_intro_done", game.kaltsit_intro_done)
     game.ines_intro_done = data.get("ines_intro_done", game.ines_intro_done)
     game.kaltsit_completed = data.get("kaltsit_completed", game.kaltsit_completed)
