@@ -14,7 +14,34 @@
     "text": "Even in the darkest hour, I will remain by your side. The path ahead is harsh, but we can endure it together.",
     "text_zh": "即使在最黑暗的時刻，我也會在你身旁。前方的路很艱難，但我們可以一起走下去。",
     "responses": [
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_3" },
       { "text": "Back", "text_zh": "返回", "next": "node_1" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_3": {
+    "text": "I believe our bond goes beyond the boundaries of time and space.",
+    "text_zh": "我相信我們之間的聯繫會超越時間與空間。",
+    "responses": [
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_4" },
+      { "text": "Back", "text_zh": "返回", "next": "node_2" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_4": {
+    "text": "Everything is dead silent here... It’s too quiet... Don’t leave me behind...",
+    "text_zh": "這裡萬籟俱寂......太安静了......别留下我......",
+    "responses": [
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_5" },
+      { "text": "Back", "text_zh": "返回", "next": "node_3" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_5": {
+    "text": "Doctor, I forbid you from forgetting me.",
+    "text_zh": "博士，不准忘記我。",
+    "responses": [
+      { "text": "Back", "text_zh": "返回", "next": "node_4" },
       { "text": "Leave", "text_zh": "離開", "next": "end" }
     ]
   }
