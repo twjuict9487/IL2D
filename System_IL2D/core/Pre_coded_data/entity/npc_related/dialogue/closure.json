@@ -6,6 +6,42 @@
     "text_zh": "歡迎來到我的 Clostore！",
     "responses": [
       { "text": "Shop", "text_zh": "商店", "next": "shop" },
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_2" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_2": {
+    "text": "Doctor! You smell so good!",
+    "text_zh": "博士!你身上有一股很香的味道",
+    "responses": [
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_3" },
+      { "text": "Back", "text_zh": "返回", "next": "node_1" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_3": {
+    "text": "You know what? I prefer the smell of engine oil over blood!",
+    "text_zh": "你知道嗎!比起鮮血我更喜歡機油的味道!",
+    "responses": [
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_4" },
+      { "text": "Back", "text_zh": "返回", "next": "node_2" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_4": {
+    "text": "Once, there was an engine oil-scented blood bag available. I was a big fan, but they stopped making it because it didn't sell well.",
+    "text_zh": "曾經市面上有一款機油味血袋，我挺喜歡的，可是後來因為銷量不佳而停產了。",
+    "responses": [
+      { "text": "Talk", "text_zh": "聊聊", "next": "node_5" },
+      { "text": "Back", "text_zh": "返回", "next": "node_3" },
+      { "text": "Leave", "text_zh": "離開", "next": "end" }
+    ]
+  },
+  "node_5": {
+    "text": "As a blood demon, I always feel out of place among my own kind. Maybe that's why I keep dreaming about that engine oil-scented blood bag...",
+    "text_zh": "身為一位血魔，我感覺我跟我的同胞總是格格不入，或許是因為這樣，我總是夢見那個機油味的血袋......",
+    "responses": [
+      { "text": "Back", "text_zh": "返回", "next": "node_4" },
       { "text": "Leave", "text_zh": "離開", "next": "end" }
     ]
   }
