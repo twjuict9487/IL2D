@@ -52,6 +52,8 @@ def save_game(game):
         "item_hotbar_slots": game.item_hotbar_slots,
         "magic_hotbar_slots": game.magic_hotbar_slots,
         "active_hotbar": game.active_hotbar,
+        "team_equipment": getattr(game, "team_equipment", {}),
+        "level_stat_pending": int(getattr(game, "level_stat_pending", 0)),
     }
     with open(save_path, "w", encoding="utf-8") as f:
         import json
@@ -113,6 +115,7 @@ def load_save(game, slot):
     game.monst3r_unlocked = data.get("monst3r_unlocked", game.monst3r_unlocked)
     game.wisadel_unlocked = data.get("wisadel_unlocked", game.wisadel_unlocked)
     game.team_members = data.get("team_members", game.team_members)
+    game._normalize_team_equipment(data.get("team_equipment", getattr(game, "team_equipment", {})))
     game.rogue_layer = data.get("rogue_layer", game.rogue_layer)
     game.player_level = int(data.get("level", game.player_level))
     game.player_exp = int(data.get("exp", game.player_exp))
@@ -128,6 +131,8 @@ def load_save(game, slot):
         game.magic_hotbar_slots = [(game.canonical_spell_name(v) if v else None) for v in (magic_slots + [None] * 10)[:10]]
     active = data.get("active_hotbar", "item")
     game.active_hotbar = "magic" if active == "magic" else "item"
+    game.level_stat_pending = int(data.get("level_stat_pending", getattr(game, "level_stat_pending", 0)))
+    game.level_stat_selected = 0
     # Loading an existing save should not auto-open startup NPC dialog.
     game.ui_mode = None
     game.dialog_data = None
@@ -137,6 +142,8 @@ def load_save(game, slot):
     game.ensure_monst3r_entity()
     game.ensure_wisadel_entity()
     game.recalculate_stats()
+    if game.level_stat_pending > 0:
+        game.ui_mode = "level_stat_choice"
     game.last_saved = True
     game.last_save_slot = slot
     return True
