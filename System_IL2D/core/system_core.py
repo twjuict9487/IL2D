@@ -7,6 +7,7 @@ from core.functions.rendering.draw import draw, draw_main_menu, draw_esc_menu, d
 from core.functions.world.map import npc_data
 
 _UI_IMG_CACHE = {}
+_TUTORIAL_STATE_FILE = os.path.join(SAVE_DIR, "tutorial_state.json")
 
 
 def _get_font(size, bold=False):
@@ -88,6 +89,26 @@ def _set_always_on_top():
         pass
 
 
+def _has_seen_start_tutorial():
+    try:
+        if not os.path.isfile(_TUTORIAL_STATE_FILE):
+            return False
+        data = load_json(_TUTORIAL_STATE_FILE)
+        return bool(data.get("start_tutorial_seen", False)) if isinstance(data, dict) else False
+    except Exception:
+        return False
+
+
+def _mark_start_tutorial_seen():
+    try:
+        os.makedirs(SAVE_DIR, exist_ok=True)
+        with open(_TUTORIAL_STATE_FILE, "w", encoding="utf-8") as f:
+            import json
+            json.dump({"start_tutorial_seen": True}, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
 def init_context():
     pygame.init()
     win_w = TILE_SIZE * VIEWPORT
@@ -108,6 +129,8 @@ def init_context():
         "cutscene_idx": 0,
         "tutorial_lines": [],
         "tutorial_idx": 0,
+        "tutorial_return_state": "game",
+        "tutorial_mode": "start",
         "menu_selected": 0,
         "settings_selected": 0,
         "settings_sub": None,
@@ -124,6 +147,8 @@ def init_context():
         "last_move_time": 0.0,
         "move_interval": 0.133,
         "hold_repeat_delay": 0.08,
+        "world_tick_interval": 0.5,
+        "world_tick_accum": 0.0,
     }
     try:
         cfg = load_json(CONFIG_FILE)
@@ -307,9 +332,14 @@ def _handle_name_input_key(ctx, event):
         game.player_name = player_name
         ctx["game"] = game
         pygame.key.stop_text_input()
-        ctx["tutorial_lines"] = _build_tutorial_lines(game.lang)
-        ctx["tutorial_idx"] = 0
-        ctx["state"] = "tutorial"
+        if _has_seen_start_tutorial():
+            ctx["state"] = "game"
+        else:
+            ctx["tutorial_mode"] = "start"
+            ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="start")
+            ctx["tutorial_idx"] = 0
+            ctx["tutorial_return_state"] = "game"
+            ctx["state"] = "tutorial"
         return
 
 
@@ -332,26 +362,40 @@ def _handle_cutscene_key(ctx, event):
             ctx["state"] = "game"
 
 
-def _build_tutorial_lines(lang):
-    return [
-        tr(lang, "tutorial.step.1"),
-        tr(lang, "tutorial.step.2"),
-        tr(lang, "tutorial.step.3"),
-        tr(lang, "tutorial.step.4"),
-        tr(lang, "tutorial.step.5"),
-        tr(lang, "tutorial.step.6"),
-    ]
+def _build_tutorial_lines(lang, mode="start"):
+    if mode == "manual":
+        keys = [
+            "manual.step.1",
+            "manual.step.2",
+            "manual.step.3",
+            "manual.step.4",
+            "manual.step.5",
+            "manual.step.6",
+        ]
+    else:
+        keys = [
+            "tutorial.step.1",
+            "tutorial.step.2",
+            "tutorial.step.3",
+            "tutorial.step.4",
+            "tutorial.step.5",
+            "tutorial.step.6",
+        ]
+    return [tr(lang, k) for k in keys]
 
 
 def _handle_tutorial_key(ctx, event):
     if event.key in (pygame.K_RETURN, pygame.K_SPACE):
         ctx["tutorial_idx"] = ctx.get("tutorial_idx", 0) + 1
         if ctx["tutorial_idx"] >= len(ctx.get("tutorial_lines", [])):
-            ctx["state"] = "game"
+            if ctx.get("tutorial_mode", "start") == "start":
+                _mark_start_tutorial_seen()
+            ctx["state"] = ctx.get("tutorial_return_state", "game")
         return
     if event.key == pygame.K_ESCAPE:
-        # Allow quick skip for repeat runs while keeping default flow instructional.
-        ctx["state"] = "game"
+        if ctx.get("tutorial_mode", "start") == "start":
+            _mark_start_tutorial_seen()
+        ctx["state"] = ctx.get("tutorial_return_state", "game")
 
 
 def _handle_continue_menu_key(ctx, event):
@@ -588,13 +632,17 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "team_equip_category":
                 game.team_equip_slot_selected = max(0, game.team_equip_slot_selected - 1)
             elif game.ui_mode == "item":
-                if event.key in (pygame.K_LEFT, pygame.K_a):
+                focus = getattr(game, "item_focus", "tabs")
+                if focus == "tabs":
                     game.cycle_item_category(-1)
                 else:
                     items = game.get_item_list()
                     if items:
                         idx = game.item_selected % len(items)
-                        idx = max(0, idx - 2)
+                        if event.key in (pygame.K_LEFT, pygame.K_a):
+                            idx = max(0, idx - 1)
+                        else:
+                            idx = max(0, idx - 2)
                         game.item_selected = idx
             elif game.ui_mode == "objective":
                 missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
@@ -679,13 +727,17 @@ def _handle_esc_menu_key(ctx, event):
                 max_idx = len(game.get_team_equip_categories()) - 1
                 game.team_equip_slot_selected = min(max_idx, game.team_equip_slot_selected + 1)
             elif game.ui_mode == "item":
-                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                focus = getattr(game, "item_focus", "tabs")
+                if focus == "tabs":
                     game.cycle_item_category(1)
                 else:
                     items = game.get_item_list()
                     if items:
                         idx = game.item_selected % len(items)
-                        idx = min(len(items) - 1, idx + 2)
+                        if event.key in (pygame.K_RIGHT, pygame.K_d):
+                            idx = min(len(items) - 1, idx + 1)
+                        else:
+                            idx = min(len(items) - 1, idx + 2)
                         game.item_selected = idx
             elif game.ui_mode == "objective":
                 missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
@@ -725,6 +777,11 @@ def _handle_esc_menu_key(ctx, event):
                 game.ui_mode = "team"
             elif game.ui_mode == "team_equip_root":
                 game.ui_mode = "team"
+            elif game.ui_mode == "item":
+                if getattr(game, "item_focus", "tabs") == "items":
+                    game.item_focus = "tabs"
+                else:
+                    game.ui_mode = None
             elif game.ui_mode == "level_skipper":
                 game.ui_mode = "item"
             else:
@@ -783,7 +840,11 @@ def _handle_esc_menu_key(ctx, event):
                 elif game.team_equip_root_selected == 2:
                     game.team_unequip_all()
             elif game.ui_mode == "item":
-                game.use_item()
+                if getattr(game, "item_focus", "tabs") == "tabs":
+                    game.item_focus = "items"
+                    game.item_selected = 0
+                else:
+                    game.use_item()
             elif game.ui_mode == "objective":
                 if hasattr(game, "set_tracked_selected_mission"):
                     game.set_tracked_selected_mission()
@@ -818,6 +879,7 @@ def _handle_esc_menu_key(ctx, event):
     elif event.key == pygame.K_RETURN:
         if ctx["esc_selected"] == 0:
             game.ui_mode = "item"
+            game.item_focus = "tabs"
         elif ctx["esc_selected"] == 1:
             game.ui_mode = "hotbar"
             game.hotbar_stage = "grid"
@@ -828,8 +890,10 @@ def _handle_esc_menu_key(ctx, event):
         elif ctx["esc_selected"] == 3:
             game.ui_mode = "team"
         elif ctx["esc_selected"] == 4:
-            ctx["tutorial_lines"] = _build_tutorial_lines(game.lang)
+            ctx["tutorial_mode"] = "manual"
+            ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
             ctx["tutorial_idx"] = 0
+            ctx["tutorial_return_state"] = "esc_menu"
             game.ui_mode = None
             ctx["state"] = "tutorial"
         elif ctx["esc_selected"] == 5:
@@ -1153,6 +1217,7 @@ def _handle_mouse_esc_menu(ctx, pos):
             ctx["esc_selected"] = idx
             if idx == 0:
                 game.ui_mode = "item"
+                game.item_focus = "tabs"
             elif idx == 1:
                 game.ui_mode = "hotbar"
                 game.hotbar_stage = "grid"
@@ -1163,8 +1228,10 @@ def _handle_mouse_esc_menu(ctx, pos):
             elif idx == 3:
                 game.ui_mode = "team"
             elif idx == 4:
-                ctx["tutorial_lines"] = _build_tutorial_lines(game.lang)
+                ctx["tutorial_mode"] = "manual"
+                ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
                 ctx["tutorial_idx"] = 0
+                ctx["tutorial_return_state"] = "esc_menu"
                 game.ui_mode = None
                 ctx["state"] = "tutorial"
             elif idx == 5:
@@ -1299,6 +1366,7 @@ def _handle_mouse_esc_menu(ctx, pos):
                 if rect.collidepoint(mx, my):
                     game.item_category = cat
                     game.item_selected = 0
+                    game.item_focus = "tabs"
                     return
 
             items = game.get_item_list()
@@ -1320,6 +1388,7 @@ def _handle_mouse_esc_menu(ctx, pos):
                 rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 4)
                 if rect.collidepoint(mx, my):
                     game.item_selected = i
+                    game.item_focus = "items"
                     game.use_item()
                     if game.request_close_esc_menu:
                         game.request_close_esc_menu = False
@@ -1544,6 +1613,14 @@ def _update(ctx, dt):
             ctx["running"] = False
             return
     if ctx["state"] == "game" and getattr(game, 'death_timer', None) is None:
+        ctx["world_tick_accum"] = float(ctx.get("world_tick_accum", 0.0)) + float(dt)
+        tick_interval = float(ctx.get("world_tick_interval", 0.5))
+        max_step = 4
+        step_count = 0
+        while ctx["world_tick_accum"] >= tick_interval and step_count < max_step:
+            game.update(player_tick=True)
+            ctx["world_tick_accum"] -= tick_interval
+            step_count += 1
         game.update(player_tick=False)
         game.update_time(dt)
 
@@ -1551,7 +1628,9 @@ def _update(ctx, dt):
 def _handle_tutorial_mouse(ctx):
     ctx["tutorial_idx"] = ctx.get("tutorial_idx", 0) + 1
     if ctx["tutorial_idx"] >= len(ctx.get("tutorial_lines", [])):
-        ctx["state"] = "game"
+        if ctx.get("tutorial_mode", "start") == "start":
+            _mark_start_tutorial_seen()
+        ctx["state"] = ctx.get("tutorial_return_state", "game")
 
 
 def _draw_name_input(ctx):
@@ -1630,8 +1709,12 @@ def _draw_tutorial(ctx):
     pygame.draw.rect(screen, (12, 22, 35), panel, border_radius=10)
     pygame.draw.rect(screen, (130, 180, 220), panel, 2, border_radius=10)
 
-    title_text = tr(ctx["game"].lang, "tutorial.title")
-    step_text = tr(ctx["game"].lang, "tutorial.progress", now=idx + 1, total=total)
+    mode = ctx.get("tutorial_mode", "start")
+    title_key = "manual.title" if mode == "manual" else "tutorial.title"
+    progress_key = "manual.progress" if mode == "manual" else "tutorial.progress"
+    hint_key = "manual.hint" if mode == "manual" else "tutorial.hint"
+    title_text = tr(ctx["game"].lang, title_key)
+    step_text = tr(ctx["game"].lang, progress_key, now=idx + 1, total=total)
     title = title_font.render(title_text, True, (230, 245, 255))
     step = hint_font.render(step_text, True, (170, 205, 230))
     screen.blit(title, (panel.x + 20, panel.y + 16))
@@ -1644,7 +1727,7 @@ def _draw_tutorial(ctx):
         screen.blit(surf, (panel.x + 20, y))
         y += body_font.get_height() + 10
 
-    hint_text = tr(ctx["game"].lang, "tutorial.hint")
+    hint_text = tr(ctx["game"].lang, hint_key)
     hint = hint_font.render(hint_text, True, (165, 190, 210))
     screen.blit(hint, (panel.right - hint.get_width() - 20, panel.bottom - hint.get_height() - 16))
 

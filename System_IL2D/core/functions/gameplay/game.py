@@ -28,6 +28,15 @@ except ImportError:
 
 class Game:
     closure_greeted_this_run = False
+    DEFAULT_WEAPON_ATTACK_TYPE = {
+        "dev's super powerful sword": "P",
+        "iron sword": "P",
+        "diamond sword": "P",
+        "emerald sword": "P",
+        "netherite sword": "P",
+        "wand": "M",
+        "staff": "M",
+    }
 
     def __init__(self):
         pdata = player_data
@@ -84,6 +93,7 @@ class Game:
         self.equip_category = "weapon"
         self.item_selected = 0
         self.item_category = "item"
+        self.item_focus = "tabs"
         self.magic_selected = 0
         self.hotbar_mode = "item"  # item | magic
         self.hotbar_stage = "type"  # type | slot | item
@@ -423,7 +433,11 @@ class Game:
             if ent is None:
                 data = npc_data.get(npc_id, {})
                 ent = Entity(npc_id, 0, 0, data.get('hp', 1), data.get('mp', 0), data.get('attack', 0), data.get('defence', 0), data.get('ai_type'), data.get('immortal', False))
+                ent.magic_attack = int(data.get("magic_attack", data.get("attack", 0)))
+                ent.magic_defense = float(data.get("magic_defense", 0.0))
+                ent.attack_type = str(data.get("attack_type", "P")).upper()
                 self.entities.append(ent)
+            self._ensure_entity_combat_profile(ent)
             if i < len(spots):
                 ent.x, ent.y = spots[i]
             elif self.map.name in ("rogue", "rouge_options.json"):
@@ -480,6 +494,16 @@ class Game:
             self.entities.append(
                 Entity('ines', 9, 8, idata.get('hp', 1), idata.get('mp', 0), idata.get('attack', 0), idata.get('defence', 0), idata.get('ai_type'), idata.get('immortal', False))
             )
+        for ent in self.entities:
+            self._ensure_entity_combat_profile(ent)
+
+    def _ensure_entity_combat_profile(self, ent):
+        if not hasattr(ent, "magic_attack"):
+            ent.magic_attack = int(getattr(ent, "attack", 0))
+        if not hasattr(ent, "magic_defense"):
+            ent.magic_defense = 0.0
+        if not hasattr(ent, "attack_type"):
+            ent.attack_type = "P"
 
     def _populate_runtime_deco(self):
         # Rebuild decor on normal maps so they don't look empty.
@@ -607,12 +631,12 @@ class Game:
                 self.player.x, self.player.y = tx, ty
                 self.player_move_anim = {"from": (oldx, oldy), "to": (tx, ty), "start": time.time(), "duration": self.move_anim_duration}
                 self.state_cleanup()
-                self.update(player_tick=True)
+                self.update(player_tick=False)
                 return True
             if getattr(target, "immortal", False):
                 return False
-            player_damage = max(0, int(self.player.attack * (1 - target.defence / 100)))
-            enemy_damage, reflect = self.compute_player_damage(target.attack, target)
+            player_damage = self.compute_outgoing_damage(self.player, target)
+            enemy_damage, reflect = self.compute_player_damage(target, self.player)
             target.hp -= player_damage
             if target.hp <= 0:
                 target.hp = -1
@@ -620,7 +644,7 @@ class Game:
                 self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
                 self.on_enemy_death(target)
                 self.state_cleanup()
-                self.update(player_tick=True)
+                self.update(player_tick=False)
                 return True
             self.player.hp -= enemy_damage
             if reflect > 0 and target.hp > 0:
@@ -639,7 +663,7 @@ class Game:
             elif blocktypes[bt]['on_step'] == 'level_exit':
                 self.handle_exit_tile()
         self.state_cleanup()
-        self.update(player_tick=True)
+        self.update(player_tick=False)
         return True
 
     def handle_portal_at(self, x, y):
@@ -1638,7 +1662,9 @@ class Game:
                 magic_defense = int(magic_defense * mult)
             ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, defence, mob.get('ai_type'), mob.get('immortal', False))
             ent.magic_attack = int(magic_attack)
-            ent.magic_defense = int(magic_defense)
+            ent.magic_defense = float(magic_defense)
+            ent.attack_type = str(mob.get("attack_type", "P")).upper()
+            self._ensure_entity_combat_profile(ent)
             self.entities.append(ent)
             return True
         return False
@@ -1660,11 +1686,13 @@ class Game:
         if mob.get('ai_type') in ('friendly', 'neutral'):
             return
         force_detect = self.has_attention_ring()
+        detect_range = int(mob.get("detect_range", 0))
+        attack_range = int(mob.get("attack_range", 1 if ent.eid != "soldier" else 2))
         if getattr(ent, "is_boss", False):
             px, py = self.player.x, self.player.y
             dist = abs(ent.x - px) + abs(ent.y - py)
             if dist <= 1:
-                enemy_damage, reflect = self.compute_player_damage(ent.attack, ent)
+                enemy_damage, reflect = self.compute_player_damage(ent, self.player)
                 self.player.hp -= enemy_damage
                 if reflect > 0 and ent.hp > 0:
                     ent.hp -= reflect
@@ -1676,20 +1704,23 @@ class Game:
             return
         px, py = self.player.x, self.player.y
         dist = abs(ent.x - px) + abs(ent.y - py)
-        if ent.eid == 'soldier':
-            if dist <= mob.get('attack_range', 2):
-                enemy_damage, reflect = self.compute_player_damage(ent.attack, ent)
-                self.player.hp -= enemy_damage
-                if reflect > 0 and ent.hp > 0:
-                    ent.hp -= reflect
-                    if ent.hp <= 0:
-                        self.on_enemy_death(ent)
-                self.check_player_death()
-                return
-            if force_detect or dist <= mob.get('detect_range', 6):
-                self.move_enemy_toward(ent, (px, py))
+        ent.aggro_active = bool(getattr(ent, "aggro_active", False))
+        if force_detect or dist <= detect_range:
+            ent.aggro_active = True
+        elif dist > detect_range:
+            ent.aggro_active = False
+        if not ent.aggro_active:
             return
-        if force_detect or dist <= mob.get('detect_range', 0):
+        if dist <= attack_range:
+            enemy_damage, reflect = self.compute_player_damage(ent, self.player)
+            self.player.hp -= enemy_damage
+            if reflect > 0 and ent.hp > 0:
+                ent.hp -= reflect
+                if ent.hp <= 0:
+                    self.on_enemy_death(ent)
+            self.check_player_death()
+            return
+        if force_detect or dist <= detect_range or ent.aggro_active:
             self.move_enemy_toward(ent, (px, py))
 
     def move_enemy_toward(self, ent, goal):
@@ -1699,13 +1730,54 @@ class Game:
             if not self.entity_at(nx, ny):
                 ent.x, ent.y = nx, ny
 
-    def compute_player_damage(self, incoming, attacker=None):
-        defence = self.player.defence
-        if defence <= 100:
-            return max(0, int(incoming * (1 - defence / 100))), 0
-        # reverse damage when defence exceeds 100
-        reflect = int(incoming * ((defence - 100) / 100))
-        return 0, max(0, reflect)
+    def _clamp_md(self, value):
+        try:
+            return max(0.0, min(1.0, float(value)))
+        except Exception:
+            return 0.0
+
+    def _compute_physical_damage(self, pa, pd):
+        pa = max(0.0, float(pa))
+        pd = max(0.0, float(pd))
+        if pa > pd:
+            return int(pa)
+        if pa == pd:
+            return int(pa * 0.5)
+        return int(pa * 0.2)
+
+    def _compute_magic_damage(self, ma, md):
+        ma = max(0.0, float(ma))
+        md = self._clamp_md(md)
+        return int(ma * (1.0 - md))
+
+    def _entity_attack_type(self, attacker):
+        if attacker is None:
+            return "P"
+        if attacker.eid == "player":
+            weapon = self.equipment.get("weapon")
+            if not weapon:
+                return "P"
+            idef = self.item_defs.get(weapon, {})
+            at = str(idef.get("weapon_attack_type", idef.get("attack_type", ""))).upper()
+            if at in ("P", "M"):
+                return at
+            return self.DEFAULT_WEAPON_ATTACK_TYPE.get(weapon, "P")
+        return str(getattr(attacker, "attack_type", "P")).upper() if str(getattr(attacker, "attack_type", "P")).upper() in ("P", "M") else "P"
+
+    def compute_outgoing_damage(self, attacker, defender):
+        atk_type = self._entity_attack_type(attacker)
+        pa = float(getattr(attacker, "attack", 0))
+        pd = float(getattr(defender, "defence", 0))
+        ma = float(getattr(attacker, "magic_attack", getattr(attacker, "attack", 0)))
+        md = getattr(defender, "magic_defense", 0)
+        if atk_type == "M":
+            return self._compute_magic_damage(ma, md)
+        return self._compute_physical_damage(pa, pd)
+
+    def compute_player_damage(self, attacker, defender=None):
+        if defender is None:
+            defender = self.player
+        return self.compute_outgoing_damage(attacker, defender), 0
 
     def find_path(self, start, goal):
         queue = deque()

@@ -678,6 +678,9 @@ def draw_menu_detail(screen, panel, game):
     if game.ui_mode == "item":
         categories = game.get_item_categories() if hasattr(game, "get_item_categories") else ["item", "gift", "equipment", "special"]
         current_category = getattr(game, "item_category", "item")
+        focus = getattr(game, "item_focus", "tabs")
+        if focus not in ("tabs", "items"):
+            focus = "tabs"
         if current_category not in categories:
             current_category = "item"
             game.item_category = current_category
@@ -689,9 +692,14 @@ def draw_menu_detail(screen, panel, game):
             rx = panel.x + 16 + i * (tab_w + tab_gap)
             rect = pygame.Rect(rx, tab_y - 2, tab_w, tab_h)
             is_selected = (cat == current_category)
-            _draw_readability_row(screen, rect, selected=is_selected)
+            tab_active = is_selected and focus == "tabs"
+            _draw_readability_row(screen, rect, selected=tab_active)
+            if is_selected and focus == "items":
+                pygame.draw.rect(screen, (55, 55, 55), rect, border_radius=4)
+                pygame.draw.rect(screen, (165, 165, 165), rect, 2, border_radius=4)
             label = _fit_text(font, _tr_item_category(game, cat), tab_w - 10)
-            _draw_text_outline(screen, font, label, (255, 247, 170) if is_selected else (230, 230, 230), (0, 0, 0), (rx + 6, tab_y), thickness=2)
+            color = (255, 247, 170) if tab_active else (230, 230, 230)
+            _draw_text_outline(screen, font, label, color, (0, 0, 0), (rx + 6, tab_y), thickness=2)
         y += tab_h + 10
 
         items = game.get_item_list()
@@ -716,8 +724,9 @@ def draw_menu_detail(screen, panel, game):
             rx = panel.x + 16 + col * (col_w + 8)
             ry = y + row * row_h
             rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 6)
-            _draw_readability_row(screen, rect, selected=(abs_i == selected))
-            color = (255, 247, 170) if abs_i == selected else (230, 230, 230)
+            item_active = abs_i == selected and focus == "items"
+            _draw_readability_row(screen, rect, selected=item_active)
+            color = (255, 247, 170) if item_active else (230, 230, 230)
             _draw_text_outline(screen, font, _fit_text(font, line, col_w - 10), color, (0, 0, 0), (rx + 6, ry), thickness=2)
     elif game.ui_mode == "hotbar":
         mode = getattr(game, "hotbar_mode", "item")

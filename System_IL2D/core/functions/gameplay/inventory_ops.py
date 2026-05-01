@@ -271,10 +271,11 @@ def find_nearest_enemy_in_range(game, caster, target_range):
 
 
 def compute_magic_damage(caster, target, base_damage, magic_ratio):
-    atk = int(getattr(caster, "magic_attack", getattr(caster, "attack", 0)))
-    mdef = int(getattr(target, "magic_defense", 0))
-    raw = int(base_damage) + int(atk * float(magic_ratio)) - mdef
-    return max(1, raw)
+    atk = float(getattr(caster, "magic_attack", getattr(caster, "attack", 0)))
+    md = float(getattr(target, "magic_defense", 0))
+    md = max(0.0, min(1.0, md))
+    ma = float(int(base_damage) + int(atk * float(magic_ratio)))
+    return int(ma * (1.0 - md))
 
 
 def cast_spell_by_name(game, spell_name):
