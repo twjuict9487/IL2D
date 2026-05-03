@@ -347,7 +347,9 @@ def _is_left_menu_entered(game, label):
     if label == "equipments":
         return mode in ("equip_root", "equip", "equip_category")
     if label == "team":
-        return mode == "team"
+        return mode in ("team", "team_equip_root", "team_equip", "team_equip_category")
+    if label == "tutorial":
+        return False
     if label == "objective":
         return mode == "objective"
     if label == "skill_tree":
@@ -490,7 +492,7 @@ def draw_settings_menu(screen, selected, sub_mode, lang_selected, lang="zh"):
 def draw_esc_menu(screen, selected, game=None):
     font = _get_font(18, bold=True)
     font2 = _get_font(16, bold=True)
-    opts = ['item', 'hotbar', 'equipments', 'team', 'objective', 'skill_tree', 'save', 'leave']
+    opts = ['item', 'hotbar', 'equipments', 'team', 'tutorial', 'objective', 'skill_tree', 'save', 'leave']
     # requested blue
     screen.fill((14, 26, 48))
     menu_w = screen.get_width() // 4
@@ -564,7 +566,7 @@ def draw_esc_menu(screen, selected, game=None):
         _draw_text_outline(screen, font2, line1, (255, 235, 210), (255, 255, 255), (right_x - line1_surf.get_width(), header_rect.y + 32))
         _draw_text_outline(screen, font2, line2, (210, 235, 255), (255, 255, 255), (right_x - line2_surf.get_width(), header_rect.y + 48))
 
-    if game.ui_mode in ("save", "equip_root", "equip", "equip_category", "item", "hotbar", "team", "objective", "skill_tree", "leave_confirm", "level_skipper"):
+    if game.ui_mode in ("save", "equip_root", "equip", "equip_category", "item", "hotbar", "team", "team_equip_root", "team_equip", "team_equip_category", "objective", "skill_tree", "leave_confirm", "level_skipper"):
         draw_menu_detail(screen, content_rect, game)
     else:
         label = opts[selected]
@@ -590,7 +592,7 @@ def _draw_menu_selected_like_detail(screen, panel, game, label):
 
 def draw_menu_preview(screen, panel, game, selected):
     font = _get_font(16)
-    opts = ['item', 'hotbar', 'equipments', 'team', 'objective', 'skill_tree', 'save', 'leave']
+    opts = ['item', 'hotbar', 'equipments', 'team', 'tutorial', 'objective', 'skill_tree', 'save', 'leave']
     label = opts[selected]
     lines = []
     if label == "item":
@@ -626,6 +628,9 @@ def draw_menu_preview(screen, panel, game, selected):
         else:
             for m in members[:6]:
                 lines.append(m)
+    elif label == "tutorial":
+        lines.append(tr(game.lang, "preview.tutorial"))
+        lines.append(tr(game.lang, "preview.tutorial_desc"))
     elif label == "objective":
         lines.append(tr(game.lang, "preview.objectives"))
         lines.extend(game.objectives[:4])
@@ -673,6 +678,9 @@ def draw_menu_detail(screen, panel, game):
     if game.ui_mode == "item":
         categories = game.get_item_categories() if hasattr(game, "get_item_categories") else ["item", "gift", "equipment", "special"]
         current_category = getattr(game, "item_category", "item")
+        focus = getattr(game, "item_focus", "tabs")
+        if focus not in ("tabs", "items"):
+            focus = "tabs"
         if current_category not in categories:
             current_category = "item"
             game.item_category = current_category
@@ -684,9 +692,14 @@ def draw_menu_detail(screen, panel, game):
             rx = panel.x + 16 + i * (tab_w + tab_gap)
             rect = pygame.Rect(rx, tab_y - 2, tab_w, tab_h)
             is_selected = (cat == current_category)
-            _draw_readability_row(screen, rect, selected=is_selected)
+            tab_active = is_selected and focus == "tabs"
+            _draw_readability_row(screen, rect, selected=tab_active)
+            if is_selected and focus == "items":
+                pygame.draw.rect(screen, (55, 55, 55), rect, border_radius=4)
+                pygame.draw.rect(screen, (165, 165, 165), rect, 2, border_radius=4)
             label = _fit_text(font, _tr_item_category(game, cat), tab_w - 10)
-            _draw_text_outline(screen, font, label, (255, 247, 170) if is_selected else (230, 230, 230), (0, 0, 0), (rx + 6, tab_y), thickness=2)
+            color = (255, 247, 170) if tab_active else (230, 230, 230)
+            _draw_text_outline(screen, font, label, color, (0, 0, 0), (rx + 6, tab_y), thickness=2)
         y += tab_h + 10
 
         items = game.get_item_list()
@@ -711,8 +724,9 @@ def draw_menu_detail(screen, panel, game):
             rx = panel.x + 16 + col * (col_w + 8)
             ry = y + row * row_h
             rect = pygame.Rect(rx, ry - 2, col_w, font.get_height() + 6)
-            _draw_readability_row(screen, rect, selected=(abs_i == selected))
-            color = (255, 247, 170) if abs_i == selected else (230, 230, 230)
+            item_active = abs_i == selected and focus == "items"
+            _draw_readability_row(screen, rect, selected=item_active)
+            color = (255, 247, 170) if item_active else (230, 230, 230)
             _draw_text_outline(screen, font, _fit_text(font, line, col_w - 10), color, (0, 0, 0), (rx + 6, ry), thickness=2)
     elif game.ui_mode == "hotbar":
         mode = getattr(game, "hotbar_mode", "item")
@@ -938,14 +952,159 @@ def draw_menu_detail(screen, panel, game):
         if not members:
             _draw_text_outline(screen, font, tr(game.lang, "team.none"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
         else:
-            for m in members:
+            selected = int(getattr(game, "team_selected", 0))
+            for i, m in enumerate(members):
                 line = m
                 if m == "monst3r":
                     line = f"Monst3r  ({tr(game.lang, 'team.detect')}: 4)"
                 elif m == "wisadel":
                     line = f"Wisadel  ({tr(game.lang, 'team.detect')}: 8, {tr(game.lang, 'team.range')}: 5)"
-                _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
-                y += font.get_height() + 6
+                rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
+                _draw_readability_row(screen, rect, selected=(i == selected))
+                color = (255, 247, 170) if i == selected else (230, 230, 230)
+                _draw_text_outline(screen, font, _fit_text(font, line, panel.width - 52), color, (0, 0, 0), (panel.x + 24, y), thickness=2)
+                y += font.get_height() + 8
+            y += 8
+            _draw_text_outline(screen, font, tr(game.lang, "team.hint_open_equip"), (200, 220, 240), (255, 255, 255), (panel.x + 20, y))
+    elif game.ui_mode == "team_equip_root":
+        options = [
+            tr(game.lang, "equip.change"),
+            tr(game.lang, "equip.best"),
+            tr(game.lang, "equip.put_down_all"),
+        ]
+        selected = getattr(game, "team_equip_root_selected", 0) % len(options)
+        for i, line in enumerate(options):
+            rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4)
+            pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
+            if i == selected:
+                pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
+            _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 24, y))
+            y += font.get_height() + 6
+    elif game.ui_mode == "team_equip":
+        tabs = [
+            tr(game.lang, "equip.change"),
+            tr(game.lang, "equip.best"),
+            tr(game.lang, "equip.put_down_all"),
+        ]
+        members = game.get_team_member_ids() if hasattr(game, "get_team_member_ids") else []
+        if not members:
+            _draw_text_outline(screen, font, tr(game.lang, "team.none"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+            return
+        m_idx = int(getattr(game, "team_equip_member_selected", 0)) % len(members)
+        member = members[m_idx]
+        _draw_text_outline(screen, font, tr(game.lang, "team.equip_title", member=member), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+        y += font.get_height() + 10
+        tab_w = (panel.width - 40) // 3
+        tab_y = y
+        for i, t in enumerate(tabs):
+            rx = panel.x + 16 + i * (tab_w + 4)
+            rect = pygame.Rect(rx, tab_y - 2, tab_w, font.get_height() + 8)
+            tab_selected = (i == game.team_equip_root_selected)
+            tab_active = tab_selected and getattr(game, "team_equip_focus", "tabs") == "tabs"
+            _draw_readability_row(screen, rect, selected=tab_active)
+            if tab_selected and not tab_active and getattr(game, "team_equip_focus", "tabs") in ("slots", "items"):
+                pygame.draw.rect(screen, (55, 55, 55), rect, border_radius=4)
+                pygame.draw.rect(screen, (165, 165, 165), rect, 2, border_radius=4)
+                tab_color = (230, 230, 230)
+            else:
+                tab_color = (255, 247, 170) if tab_selected else (230, 230, 230)
+            _draw_text_outline(screen, font, _fit_text(font, t, tab_w - 10), tab_color, (0, 0, 0), (rx + 6, tab_y), thickness=2)
+        y += font.get_height() + 14
+        categories = game.get_team_equip_categories()
+        pair_w = (panel.width - 40) // 2
+        pair_gap = 8
+        slot_w = max(60, int(pair_w * 0.35))
+        val_w = pair_w - slot_w - pair_gap
+        row_h = font.get_height() + 8
+        cat_rows = (len(categories) + 1) // 2
+
+        for r in range(cat_rows):
+            for c in range(2):
+                idx = r * 2 + c
+                if idx >= len(categories):
+                    continue
+                name = categories[idx]
+                base_x = panel.x + 16 + c * (pair_w + 8)
+                ry = y + r * row_h
+                slot_rect = pygame.Rect(base_x, ry - 2, slot_w, font.get_height() + 6)
+                val_rect = pygame.Rect(base_x + slot_w + pair_gap, ry - 2, val_w, font.get_height() + 6)
+                is_sel = idx == (game.team_equip_slot_selected % len(categories))
+                is_active = is_sel and getattr(game, "team_equip_focus", "tabs") == "slots"
+                _draw_readability_row(screen, slot_rect, selected=is_active)
+                _draw_readability_row(screen, val_rect, selected=is_active)
+                if is_sel and not is_active and getattr(game, "team_equip_focus", "tabs") == "items":
+                    pygame.draw.rect(screen, (55, 55, 55), slot_rect, border_radius=4)
+                    pygame.draw.rect(screen, (55, 55, 55), val_rect, border_radius=4)
+                    pygame.draw.rect(screen, (165, 165, 165), slot_rect, 2, border_radius=4)
+                    pygame.draw.rect(screen, (165, 165, 165), val_rect, 2, border_radius=4)
+                label = tr(game.lang, f"team.slot.{name}")
+                equipped = game.get_team_equipment_item(member, name) if hasattr(game, "get_team_equipment_item") else None
+                equip_label = _tr_item_name(game, equipped) if equipped else tr(game.lang, "label.none")
+                slot_color = (230, 230, 230) if (is_sel and not is_active and getattr(game, "team_equip_focus", "tabs") == "items") else ((255, 247, 170) if is_sel else (230, 230, 230))
+                _draw_text_outline(screen, font, _fit_text(font, label, slot_w - 10), slot_color, (0, 0, 0), (slot_rect.x + 6, ry), thickness=2)
+                _draw_text_outline(screen, font, _fit_text(font, equip_label, val_w - 10), (230, 230, 230), (0, 0, 0), (val_rect.x + 6, ry), thickness=2)
+
+        y += cat_rows * row_h + 10
+        if categories:
+            game.team_equip_slot_selected = game.team_equip_slot_selected % len(categories)
+            game.team_equip_category = categories[game.team_equip_slot_selected]
+        equipables = game.get_team_equipable_items()
+        slot_key = "ring" if game.team_equip_category.startswith("ring") else game.team_equip_category
+        filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
+        if not filtered:
+            surf = font.render(tr(game.lang, "msg.no_items_category"), True, (230, 230, 230))
+            screen.blit(surf, (panel.x + 20, y))
+            return
+        list_x = panel.x + 16
+        list_y = y
+        col_w2 = (panel.width - 40) // 2
+        row_h2 = font.get_height() + 8
+        selected = game.team_equip_item_selected % len(filtered)
+        max_rows = max(1, (panel.bottom - list_y - 10) // row_h2)
+        per_page = max_rows * 2
+        page = selected // per_page
+        start = page * per_page
+        end = min(len(filtered), start + per_page)
+        for i in range(start, end):
+            name = filtered[i]
+            li = i - start
+            col = li % 2
+            row = (i - start) // 2
+            color = (255, 255, 0) if i == selected else (230, 230, 230)
+            count = game.inventory.get(name, 0)
+            label = f"{_tr_item_name(game, name)} x{count}"
+            rx = list_x + col * (col_w2 + 8)
+            ry = list_y + row * row_h2
+            rect = pygame.Rect(rx, ry - 2, col_w2, font.get_height() + 6)
+            item_active = (i == selected and getattr(game, "team_equip_focus", "tabs") == "items")
+            _draw_readability_row(screen, rect, selected=item_active)
+            _draw_text_outline(screen, font, _fit_text(font, label, col_w2 - 10), color, (0, 0, 0), (rx + 8, ry))
+    elif game.ui_mode == "team_equip_category":
+        members = game.get_team_member_ids() if hasattr(game, "get_team_member_ids") else []
+        if not members:
+            _draw_text_outline(screen, font, tr(game.lang, "team.none"), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+            return
+        m_idx = int(getattr(game, "team_equip_member_selected", 0)) % len(members)
+        member = members[m_idx]
+        _draw_text_outline(screen, font, tr(game.lang, "team.equip_title", member=member), (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
+        y += font.get_height() + 10
+        categories = game.get_team_equip_categories()
+        col_w = (panel.width - 40) // 2
+        for i, name in enumerate(categories):
+            is_sel = i == game.team_equip_slot_selected
+            color = (255, 255, 0) if is_sel else (230, 230, 230)
+            label = tr(game.lang, f"team.slot.{name}")
+            left_rect = pygame.Rect(panel.x + 16, y - 2, col_w, font.get_height() + 4)
+            right_rect = pygame.Rect(panel.x + 24 + col_w, y - 2, col_w, font.get_height() + 4)
+            pygame.draw.rect(screen, (255, 255, 255), left_rect, 1, border_radius=4)
+            pygame.draw.rect(screen, (255, 255, 255), right_rect, 1, border_radius=4)
+            if is_sel:
+                pygame.draw.rect(screen, _flicker_color(), left_rect, 2, border_radius=4)
+            equipped = game.get_team_equipment_item(member, name) if hasattr(game, "get_team_equipment_item") else None
+            equip_label = _tr_item_name(game, equipped) if equipped else tr(game.lang, "label.none")
+            _draw_text_outline(screen, font, label, color, (255, 255, 255), (left_rect.x + 8, y))
+            _draw_text_outline(screen, font, equip_label, (230, 230, 230), (255, 255, 255), (right_rect.x + 8, y))
+            y += font.get_height() + 6
     elif game.ui_mode == "objective":
         for line in game.get_objective_lines():
             _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
@@ -1285,6 +1444,39 @@ def draw_death_menu(game, screen):
         _draw_text_outline(screen, font, _fit_text(font, text, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 8), thickness=2)
 
 
+def draw_level_stat_choice(game, screen):
+    if getattr(game, "ui_mode", None) != "level_stat_choice":
+        return
+    options = game.get_level_stat_options() if hasattr(game, "get_level_stat_options") else []
+    if not options:
+        return
+    font = _get_font(20, bold=True)
+    font2 = _get_font(18)
+    box_w = min(760, screen.get_width() - 80)
+    box_h = min(460, screen.get_height() - 100)
+    box = pygame.Rect((screen.get_width() - box_w) // 2, (screen.get_height() - box_h) // 2, box_w, box_h)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 150))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (10, 24, 40), box, border_radius=10)
+    pygame.draw.rect(screen, (180, 225, 255), box, 2, border_radius=10)
+    title = tr(game.lang, "level_stat.title")
+    sub = tr(game.lang, "level_stat.pending", count=getattr(game, "level_stat_pending", 0))
+    _draw_text_outline(screen, font, title, (235, 245, 255), (0, 0, 0), (box.x + 20, box.y + 18), thickness=2)
+    _draw_text_outline(screen, font2, sub, (190, 220, 245), (255, 255, 255), (box.x + 20, box.y + 50), thickness=2)
+    y = box.y + 95
+    selected = int(getattr(game, "level_stat_selected", 0)) % len(options)
+    for i, op in enumerate(options):
+        line = tr(game.lang, "level_stat.row", name=op.get("name", ""), value=op.get("value", 0))
+        rect = pygame.Rect(box.x + 16, y - 2, box.width - 32, font2.get_height() + 10)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, font2, line, color, (0, 0, 0), (box.x + 24, y), thickness=2)
+        y += font2.get_height() + 14
+    hint = tr(game.lang, "level_stat.hint")
+    _draw_text_outline(screen, font2, hint, (180, 205, 225), (255, 255, 255), (box.x + 20, box.bottom - 34), thickness=2)
+
+
 def _wrap_text(font, text, max_width):
     words = text.split(' ')
     lines = []
@@ -1459,6 +1651,7 @@ def draw(game, screen):
     draw_shop(game, screen)
     draw_interact_picker(game, screen)
     draw_death_menu(game, screen)
+    draw_level_stat_choice(game, screen)
 
     if getattr(game, "banner", None):
         banner = game.banner

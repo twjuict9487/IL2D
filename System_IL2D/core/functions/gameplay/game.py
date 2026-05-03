@@ -28,6 +28,15 @@ except ImportError:
 
 class Game:
     closure_greeted_this_run = False
+    DEFAULT_WEAPON_ATTACK_TYPE = {
+        "dev's super powerful sword": "P",
+        "iron sword": "P",
+        "diamond sword": "P",
+        "emerald sword": "P",
+        "netherite sword": "P",
+        "wand": "M",
+        "staff": "M",
+    }
 
     def __init__(self):
         pdata = player_data
@@ -84,6 +93,7 @@ class Game:
         self.equip_category = "weapon"
         self.item_selected = 0
         self.item_category = "item"
+        self.item_focus = "tabs"
         self.magic_selected = 0
         self.hotbar_mode = "item"  # item | magic
         self.hotbar_stage = "type"  # type | slot | item
@@ -133,6 +143,17 @@ class Game:
         self.player_skill_points = int(pdata.get("skill_points", 3))
         self.skill_tree = {"harvest_barries": False}
         self.skill_tree_selected = 0
+        self.team_selected = 0
+        self.team_equip_member_selected = 0
+        self.team_equip_slot_selected = 0
+        self.team_equip_item_selected = 0
+        self.team_equip_root_selected = 0
+        self.team_equip_focus = "tabs"
+        self.team_equip_category = "weapon"
+        self.team_equipment = {}
+        self.team_sync_ratio_base = {"monst3r": 0.2, "wisadel": 0.4}
+        self.level_stat_pending = 0
+        self.level_stat_selected = 0
         self.item_defs = {}
         self.item_alias = {}
         self.item_display = {}
@@ -412,7 +433,11 @@ class Game:
             if ent is None:
                 data = npc_data.get(npc_id, {})
                 ent = Entity(npc_id, 0, 0, data.get('hp', 1), data.get('mp', 0), data.get('attack', 0), data.get('defence', 0), data.get('ai_type'), data.get('immortal', False))
+                ent.magic_attack = int(data.get("magic_attack", data.get("attack", 0)))
+                ent.magic_defense = float(data.get("magic_defense", 0.0))
+                ent.attack_type = str(data.get("attack_type", "P")).upper()
                 self.entities.append(ent)
+            self._ensure_entity_combat_profile(ent)
             if i < len(spots):
                 ent.x, ent.y = spots[i]
             elif self.map.name in ("rogue", "rouge_options.json"):
@@ -469,6 +494,16 @@ class Game:
             self.entities.append(
                 Entity('ines', 9, 8, idata.get('hp', 1), idata.get('mp', 0), idata.get('attack', 0), idata.get('defence', 0), idata.get('ai_type'), idata.get('immortal', False))
             )
+        for ent in self.entities:
+            self._ensure_entity_combat_profile(ent)
+
+    def _ensure_entity_combat_profile(self, ent):
+        if not hasattr(ent, "magic_attack"):
+            ent.magic_attack = int(getattr(ent, "attack", 0))
+        if not hasattr(ent, "magic_defense"):
+            ent.magic_defense = 0.0
+        if not hasattr(ent, "attack_type"):
+            ent.attack_type = "P"
 
     def _populate_runtime_deco(self):
         # Rebuild decor on normal maps so they don't look empty.
@@ -596,12 +631,12 @@ class Game:
                 self.player.x, self.player.y = tx, ty
                 self.player_move_anim = {"from": (oldx, oldy), "to": (tx, ty), "start": time.time(), "duration": self.move_anim_duration}
                 self.state_cleanup()
-                self.update(player_tick=True)
+                self.update(player_tick=False)
                 return True
             if getattr(target, "immortal", False):
                 return False
-            player_damage = max(0, int(self.player.attack * (1 - target.defence / 100)))
-            enemy_damage, reflect = self.compute_player_damage(target.attack, target)
+            player_damage = self.compute_outgoing_damage(self.player, target)
+            enemy_damage, reflect = self.compute_player_damage(target, self.player)
             target.hp -= player_damage
             if target.hp <= 0:
                 target.hp = -1
@@ -609,7 +644,7 @@ class Game:
                 self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
                 self.on_enemy_death(target)
                 self.state_cleanup()
-                self.update(player_tick=True)
+                self.update(player_tick=False)
                 return True
             self.player.hp -= enemy_damage
             if reflect > 0 and target.hp > 0:
@@ -628,7 +663,7 @@ class Game:
             elif blocktypes[bt]['on_step'] == 'level_exit':
                 self.handle_exit_tile()
         self.state_cleanup()
-        self.update(player_tick=True)
+        self.update(player_tick=False)
         return True
 
     def handle_portal_at(self, x, y):
@@ -748,8 +783,262 @@ class Game:
             self.player_skill_points += gained
             leveled += 1
             self.push_message(tr(self.lang, "msg.level_up", level=self.player_level, sp=gained))
+            if self.player_level % 5 == 0:
+                self.level_stat_pending += 1
         if leveled == 0:
             self.push_message(tr(self.lang, "msg.exp_gain", amount=amount))
+        elif self.level_stat_pending > 0 and self.ui_mode is None:
+            self.ui_mode = "level_stat_choice"
+            self.level_stat_selected = 0
+
+    def _team_entity_for(self, member_id):
+        return next((e for e in self.entities if e.eid == member_id), None)
+
+    def get_team_member_ids(self):
+        return [m for m in self.team_members if isinstance(m, str)]
+
+    def _team_slot_label(self, slot):
+        if slot == "weapon":
+            return tr(self.lang, "label.weapon")
+        if slot == "armor":
+            return tr(self.lang, "label.armor")
+        if slot == "ring":
+            return tr(self.lang, "team.slot.ring")
+        return slot
+
+    def get_team_slot_keys(self):
+        return ["weapon", "armor", "ring"]
+
+    def _team_member_for_equip(self):
+        members = self.get_team_member_ids()
+        if not members:
+            return None
+        idx = max(0, min(len(members) - 1, int(getattr(self, "team_equip_member_selected", 0))))
+        return members[idx]
+
+    def get_team_equip_categories(self):
+        return list(self.get_team_slot_keys())
+
+    def open_team_equip(self, member_idx=None):
+        members = self.get_team_member_ids()
+        if not members:
+            self.ui_mode = "team"
+            return
+        if member_idx is None:
+            member_idx = int(getattr(self, "team_selected", 0))
+        self.team_equip_member_selected = max(0, min(len(members) - 1, int(member_idx)))
+        self.team_selected = self.team_equip_member_selected
+        self.team_equip_root_selected = 0
+        self.team_equip_focus = "tabs"
+        self.team_equip_slot_selected = 0
+        self.team_equip_item_selected = 0
+        categories = self.get_team_equip_categories()
+        self.team_equip_category = categories[0] if categories else "weapon"
+        self.ui_mode = "team_equip"
+
+    def open_team_equip_items(self):
+        self.ui_mode = "team_equip"
+        self.team_equip_focus = "items"
+
+    def get_team_equipable_items(self):
+        return self.get_equipable_items()
+
+    def team_equip_selected_item(self):
+        member = self._team_member_for_equip()
+        if not member:
+            return
+        equipables = self.get_team_equipable_items()
+        slot_key = "ring" if self.team_equip_category.startswith("ring") else self.team_equip_category
+        filtered = [n for n in equipables if self.item_defs.get(n, {}).get("slot") == slot_key]
+        if not filtered:
+            self.push_message(tr(self.lang, "msg.no_items_category"))
+            return
+        idx = self.team_equip_item_selected % len(filtered)
+        picked = filtered[idx]
+        self.equip_item_to_team_member(member, self.team_equip_category, picked)
+
+    def team_unequip_all(self):
+        member = self._team_member_for_equip()
+        if not member:
+            return
+        row = self._ensure_team_equipment_for_member(member)
+        for slot in self.get_team_slot_keys():
+            row[slot] = None
+        self.sync_team_stats()
+        self.push_message(tr(self.lang, "msg.unequipped_all"))
+
+    def team_equip_best(self):
+        member = self._team_member_for_equip()
+        if not member:
+            return
+        changed = False
+        row = self._ensure_team_equipment_for_member(member)
+        for slot in self.get_team_slot_keys():
+            slot_key = "ring" if slot.startswith("ring") else slot
+            candidates = []
+            for name in self.get_team_equipable_items():
+                item_def = self.item_defs.get(name, {})
+                if item_def.get("slot") != slot_key:
+                    continue
+                if self.inventory.get(name, 0) <= 0:
+                    continue
+                candidates.append(name)
+            if not candidates:
+                continue
+            best = max(candidates, key=lambda n: self._item_power_score(self.item_defs.get(n, {})))
+            if row.get(slot) != best:
+                row[slot] = best
+                changed = True
+        self.sync_team_stats()
+        if changed:
+            self.push_message(tr(self.lang, "msg.equip_best_done"))
+        else:
+            self.push_message(tr(self.lang, "msg.equip_best_no_change"))
+
+    def _team_slot_by_idx(self, idx):
+        slots = self.get_team_slot_keys()
+        if not slots:
+            return "weapon"
+        return slots[idx % len(slots)]
+
+    def _normalize_team_equipment(self, raw):
+        out = {}
+        src = raw if isinstance(raw, dict) else {}
+        for member in self.get_team_member_ids():
+            row = src.get(member, {})
+            if not isinstance(row, dict):
+                row = {}
+            fixed = {}
+            for slot in self.get_team_slot_keys():
+                name = row.get(slot)
+                fixed[slot] = self.canonical_item_name(name) if name else None
+            out[member] = fixed
+        self.team_equipment = out
+
+    def _ensure_team_equipment_for_member(self, member_id):
+        if member_id not in self.team_equipment:
+            self.team_equipment[member_id] = {slot: None for slot in self.get_team_slot_keys()}
+        row = self.team_equipment.get(member_id, {})
+        for slot in self.get_team_slot_keys():
+            row.setdefault(slot, None)
+        self.team_equipment[member_id] = row
+        return row
+
+    def get_team_equipment_item(self, member_id, slot):
+        row = self._ensure_team_equipment_for_member(member_id)
+        return row.get(slot)
+
+    def get_team_equipable_items_for_slot(self, slot):
+        out = []
+        want = "ring" if slot == "ring" else slot
+        for name in self.get_equipable_items():
+            idef = self.item_defs.get(name, {})
+            if idef.get("slot") == want:
+                out.append(name)
+        return out
+
+    def equip_item_to_team_member(self, member_id, slot, item_name):
+        if member_id not in self.get_team_member_ids():
+            return False
+        row = self._ensure_team_equipment_for_member(member_id)
+        if not item_name:
+            row[slot] = None
+            self.sync_team_stats()
+            return True
+        item_id = self.canonical_item_name(item_name)
+        idef = self.item_defs.get(item_id, {})
+        if idef.get("type") != "equipment":
+            return False
+        if idef.get("slot") != ("ring" if slot == "ring" else slot):
+            return False
+        if self.inventory.get(item_id, 0) <= 0:
+            self.push_message(tr(self.lang, "msg.not_enough_items"))
+            return False
+        row[slot] = item_id
+        self.sync_team_stats()
+        self.push_message(
+            tr(
+                self.lang,
+                "msg.team_item_equipped",
+                member=member_id,
+                item=self.display_item_name(item_id),
+                slot=self._team_slot_label(slot),
+            )
+        )
+        return True
+
+    def apply_team_member_bonus(self, ent):
+        if ent is None or ent.eid not in ("monst3r", "wisadel"):
+            return
+        member_id = ent.eid
+        row = self._ensure_team_equipment_for_member(member_id)
+        base_ratio = float(self.team_sync_ratio_base.get(member_id, 0.2))
+        equipped_count = sum(1 for v in row.values() if v)
+        ratio = base_ratio + 0.1 * equipped_count
+        max_ratio = 0.6 if member_id == "monst3r" else 0.8
+        ratio = max(0.0, min(max_ratio, ratio))
+
+        bonus_hp = 0
+        bonus_mp = 0
+        bonus_atk = 0
+        bonus_def = 0
+        for _, name in row.items():
+            if not name:
+                continue
+            idef = self.item_defs.get(name, {})
+            bonus_hp += int(idef.get("hp", 0))
+            bonus_mp += int(idef.get("mp", 0))
+            bonus_atk += int(idef.get("attack", 0))
+            bonus_def += int(idef.get("defence", 0))
+
+        ent.max_hp = max(1, int(self.player.max_hp * ratio) + bonus_hp)
+        ent.max_mp = max(0, int(self.player.max_mp * ratio) + bonus_mp)
+        ent.attack = max(1, int(self.player.attack * ratio) + bonus_atk)
+        ent.defence = max(0, int(self.player.defence * ratio) + bonus_def)
+        if ent.hp > ent.max_hp:
+            ent.hp = ent.max_hp
+        if ent.mp > ent.max_mp:
+            ent.mp = ent.max_mp
+
+    def sync_team_stats(self):
+        self._normalize_team_equipment(self.team_equipment)
+        self.apply_team_member_bonus(self._team_entity_for("monst3r"))
+        self.apply_team_member_bonus(self._team_entity_for("wisadel"))
+
+    def get_level_stat_options(self):
+        return [
+            {"id": "hp", "name": tr(self.lang, "level_stat.hp"), "value": 80},
+            {"id": "mp", "name": tr(self.lang, "level_stat.mp"), "value": 40},
+            {"id": "attack", "name": tr(self.lang, "level_stat.attack"), "value": 8},
+            {"id": "defence", "name": tr(self.lang, "level_stat.defence"), "value": 3},
+        ]
+
+    def choose_level_stat(self, idx):
+        opts = self.get_level_stat_options()
+        if self.level_stat_pending <= 0 or not opts:
+            return False
+        pick = opts[idx % len(opts)]
+        sid = pick["id"]
+        val = int(pick["value"])
+        if sid == "hp":
+            self.player.max_hp += val
+            self.player.hp = self.player.max_hp
+        elif sid == "mp":
+            self.player.max_mp += val
+            self.player.mp = self.player.max_mp
+        elif sid == "attack":
+            self.player.base_attack += val
+        elif sid == "defence":
+            self.player.base_defence += val
+        self.level_stat_pending = max(0, self.level_stat_pending - 1)
+        self.recalculate_stats()
+        self.push_message(tr(self.lang, "msg.level_stat_chosen", name=pick["name"], value=val))
+        if self.level_stat_pending > 0:
+            self.ui_mode = "level_stat_choice"
+            self.level_stat_selected = 0
+        elif self.ui_mode == "level_stat_choice":
+            self.ui_mode = None
+        return True
 
     def state_cleanup(self):
         self.entities = [e for e in self.entities if e.eid == 'player' or e.immortal or e.hp > 0]
@@ -861,6 +1150,8 @@ class Game:
         self.entities.append(mon)
         if "monst3r" not in self.team_members:
             self.team_members.append("monst3r")
+        self._ensure_team_equipment_for_member("monst3r")
+        self.apply_team_member_bonus(mon)
 
     def _find_team_spawn_near_player(self, ignore_eid=None):
         candidates = [
@@ -923,16 +1214,14 @@ class Game:
         self.entities.append(wis)
         if "wisadel" not in self.team_members:
             self.team_members.append("wisadel")
+        self._ensure_team_equipment_for_member("wisadel")
+        self.apply_team_member_bonus(wis)
 
     def update_wisadel(self, player_tick=False):
         wis = next((e for e in self.entities if e.eid == "wisadel"), None)
         if wis is None:
             return
-        wis.attack = max(1, int(self.player.attack * 0.4))
-        wis.defence = max(0, int(self.player.defence * 0.4))
-        wis.max_hp = max(1, int(self.player.max_hp * 0.4))
-        if wis.hp > wis.max_hp:
-            wis.hp = wis.max_hp
+        self.apply_team_member_bonus(wis)
         if not player_tick:
             return
         if time.time() >= self.wisadel_anim_until:
@@ -976,12 +1265,7 @@ class Game:
         mon = next((e for e in self.entities if e.eid == "monst3r"), None)
         if mon is None:
             return
-        # Sync 20% of current player combat stats.
-        mon.attack = max(1, int(self.player.attack * 0.2))
-        mon.defence = max(0, int(self.player.defence * 0.2))
-        mon.max_hp = max(1, int(self.player.max_hp * 0.2))
-        if mon.hp > mon.max_hp:
-            mon.hp = mon.max_hp
+        self.apply_team_member_bonus(mon)
         if not player_tick:
             return
         if time.time() >= self.monst3r_anim_until:
@@ -1378,7 +1662,9 @@ class Game:
                 magic_defense = int(magic_defense * mult)
             ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, defence, mob.get('ai_type'), mob.get('immortal', False))
             ent.magic_attack = int(magic_attack)
-            ent.magic_defense = int(magic_defense)
+            ent.magic_defense = float(magic_defense)
+            ent.attack_type = str(mob.get("attack_type", "P")).upper()
+            self._ensure_entity_combat_profile(ent)
             self.entities.append(ent)
             return True
         return False
@@ -1400,11 +1686,13 @@ class Game:
         if mob.get('ai_type') in ('friendly', 'neutral'):
             return
         force_detect = self.has_attention_ring()
+        detect_range = int(mob.get("detect_range", 0))
+        attack_range = int(mob.get("attack_range", 1 if ent.eid != "soldier" else 2))
         if getattr(ent, "is_boss", False):
             px, py = self.player.x, self.player.y
             dist = abs(ent.x - px) + abs(ent.y - py)
             if dist <= 1:
-                enemy_damage, reflect = self.compute_player_damage(ent.attack, ent)
+                enemy_damage, reflect = self.compute_player_damage(ent, self.player)
                 self.player.hp -= enemy_damage
                 if reflect > 0 and ent.hp > 0:
                     ent.hp -= reflect
@@ -1416,20 +1704,23 @@ class Game:
             return
         px, py = self.player.x, self.player.y
         dist = abs(ent.x - px) + abs(ent.y - py)
-        if ent.eid == 'soldier':
-            if dist <= mob.get('attack_range', 2):
-                enemy_damage, reflect = self.compute_player_damage(ent.attack, ent)
-                self.player.hp -= enemy_damage
-                if reflect > 0 and ent.hp > 0:
-                    ent.hp -= reflect
-                    if ent.hp <= 0:
-                        self.on_enemy_death(ent)
-                self.check_player_death()
-                return
-            if force_detect or dist <= mob.get('detect_range', 6):
-                self.move_enemy_toward(ent, (px, py))
+        ent.aggro_active = bool(getattr(ent, "aggro_active", False))
+        if force_detect or dist <= detect_range:
+            ent.aggro_active = True
+        elif dist > detect_range:
+            ent.aggro_active = False
+        if not ent.aggro_active:
             return
-        if force_detect or dist <= mob.get('detect_range', 0):
+        if dist <= attack_range:
+            enemy_damage, reflect = self.compute_player_damage(ent, self.player)
+            self.player.hp -= enemy_damage
+            if reflect > 0 and ent.hp > 0:
+                ent.hp -= reflect
+                if ent.hp <= 0:
+                    self.on_enemy_death(ent)
+            self.check_player_death()
+            return
+        if force_detect or dist <= detect_range or ent.aggro_active:
             self.move_enemy_toward(ent, (px, py))
 
     def move_enemy_toward(self, ent, goal):
@@ -1439,13 +1730,54 @@ class Game:
             if not self.entity_at(nx, ny):
                 ent.x, ent.y = nx, ny
 
-    def compute_player_damage(self, incoming, attacker=None):
-        defence = self.player.defence
-        if defence <= 100:
-            return max(0, int(incoming * (1 - defence / 100))), 0
-        # reverse damage when defence exceeds 100
-        reflect = int(incoming * ((defence - 100) / 100))
-        return 0, max(0, reflect)
+    def _clamp_md(self, value):
+        try:
+            return max(0.0, min(1.0, float(value)))
+        except Exception:
+            return 0.0
+
+    def _compute_physical_damage(self, pa, pd):
+        pa = max(0.0, float(pa))
+        pd = max(0.0, float(pd))
+        if pa > pd:
+            return int(pa)
+        if pa == pd:
+            return int(pa * 0.5)
+        return int(pa * 0.2)
+
+    def _compute_magic_damage(self, ma, md):
+        ma = max(0.0, float(ma))
+        md = self._clamp_md(md)
+        return int(ma * (1.0 - md))
+
+    def _entity_attack_type(self, attacker):
+        if attacker is None:
+            return "P"
+        if attacker.eid == "player":
+            weapon = self.equipment.get("weapon")
+            if not weapon:
+                return "P"
+            idef = self.item_defs.get(weapon, {})
+            at = str(idef.get("weapon_attack_type", idef.get("attack_type", ""))).upper()
+            if at in ("P", "M"):
+                return at
+            return self.DEFAULT_WEAPON_ATTACK_TYPE.get(weapon, "P")
+        return str(getattr(attacker, "attack_type", "P")).upper() if str(getattr(attacker, "attack_type", "P")).upper() in ("P", "M") else "P"
+
+    def compute_outgoing_damage(self, attacker, defender):
+        atk_type = self._entity_attack_type(attacker)
+        pa = float(getattr(attacker, "attack", 0))
+        pd = float(getattr(defender, "defence", 0))
+        ma = float(getattr(attacker, "magic_attack", getattr(attacker, "attack", 0)))
+        md = getattr(defender, "magic_defense", 0)
+        if atk_type == "M":
+            return self._compute_magic_damage(ma, md)
+        return self._compute_physical_damage(pa, pd)
+
+    def compute_player_damage(self, attacker, defender=None):
+        if defender is None:
+            defender = self.player
+        return self.compute_outgoing_damage(attacker, defender), 0
 
     def find_path(self, start, goal):
         queue = deque()
@@ -1621,7 +1953,9 @@ class Game:
         return game_inventory_ops.update_spell_cooldowns_tick(self)
 
     def recalculate_stats(self):
-        return game_inventory_ops.recalculate_stats(self)
+        game_inventory_ops.recalculate_stats(self)
+        self.sync_team_stats()
+        return None
 
     def get_equipable_items(self):
         return game_inventory_ops.get_equipable_items(self)
