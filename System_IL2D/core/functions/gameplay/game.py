@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import json
 from collections import deque
 try:
     from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
@@ -199,6 +200,7 @@ class Game:
         self.monst3r_anim_until = 0.0
         self.wisadel_anim_state = "move"
         self.wisadel_anim_until = 0.0
+        self._anim_frame_count_cache = {}
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
@@ -1224,6 +1226,8 @@ class Game:
         self.apply_team_member_bonus(wis)
         if not player_tick:
             return
+        if self._is_anim_locked("wisadel"):
+            return
         if time.time() >= self.wisadel_anim_until:
             self.wisadel_anim_state = "move"
         hostiles = [e for e in self.entities if self._is_hostile_entity(e)]
@@ -1248,8 +1252,7 @@ class Game:
         if best_dist <= 5:
             dmg = max(1, int(wis.attack * (1 - target.defence / 100)))
             target.hp -= dmg
-            self.wisadel_anim_state = "skill3"
-            self.wisadel_anim_until = time.time() + 0.6
+            self._play_entity_action_anim("wisadel", "skill3", fallback_seconds=0.6)
             if target.hp <= 0:
                 self.on_enemy_death(target)
                 self.state_cleanup()
@@ -1267,6 +1270,8 @@ class Game:
             return
         self.apply_team_member_bonus(mon)
         if not player_tick:
+            return
+        if self._is_anim_locked("monst3r"):
             return
         if time.time() >= self.monst3r_anim_until:
             self.monst3r_anim_state = "move"
@@ -1293,9 +1298,8 @@ class Game:
         if best_dist <= 1:
             dmg = max(1, int(mon.attack * (1 - target.defence / 100)))
             target.hp -= dmg
+            self._play_entity_action_anim("monst3r", "skill3", fallback_seconds=1.0)
             if target.hp <= 0:
-                self.monst3r_anim_state = "skill3"
-                self.monst3r_anim_until = time.time() + 1.0
                 self.on_enemy_death(target)
                 self.state_cleanup()
             return
@@ -1945,6 +1949,93 @@ class Game:
 
     def use_level_skipper_hotbar(self):
         return game_rogue_ops.use_level_skipper_hotbar(self)
+
+    def _clips_base_dir(self):
+        return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "clips")
+
+    def _anim_folder_for_state(self, ent_id, state):
+        if ent_id == "wisadel":
+            if state == "skill3":
+                return "nobg_wisadel_attack"
+            return "nobg_wisadel_walk"
+        if ent_id == "monst3r":
+            if state == "skill3":
+                return "nobg_mons3r_attack"
+            return "nobg_monst3r_walk"
+        return None
+
+    def _anim_fps_for(self, ent_id):
+        ent_def = npc_data.get(ent_id, {})
+        try:
+            return max(1, int(ent_def.get("anim_fps", 12)))
+        except Exception:
+            return 12
+
+    def _anim_frame_count(self, folder_name):
+        if not folder_name:
+            return 0
+        cache = getattr(self, "_anim_frame_count_cache", {})
+        if folder_name in cache:
+            return cache[folder_name]
+        clips_dir = self._clips_base_dir()
+        atlas_dir = os.path.join(clips_dir, "atlas")
+        total = 0
+        base_meta = os.path.join(atlas_dir, f"{folder_name}_atlas.json")
+        if os.path.isfile(base_meta):
+            meta_files = [base_meta]
+            page_idx = 2
+            while True:
+                page_meta = os.path.join(atlas_dir, f"{folder_name}_atlas_p{page_idx:02d}.json")
+                if not os.path.isfile(page_meta):
+                    break
+                meta_files.append(page_meta)
+                page_idx += 1
+            for mp in meta_files:
+                try:
+                    data = json.loads(open(mp, "r", encoding="utf-8").read())
+                    frames = data.get("frames", [])
+                    if isinstance(frames, list):
+                        total += len(frames)
+                except Exception:
+                    continue
+        else:
+            folder = os.path.join(clips_dir, folder_name)
+            if os.path.isdir(folder):
+                total = len([n for n in os.listdir(folder) if n.lower().endswith(".png")])
+        cache[folder_name] = total
+        self._anim_frame_count_cache = cache
+        return total
+
+    def _compute_anim_end_time(self, ent_id, state, fallback_seconds=0.5):
+        folder = self._anim_folder_for_state(ent_id, state)
+        frames = self._anim_frame_count(folder)
+        fps = self._anim_fps_for(ent_id)
+        if frames > 0 and fps > 0:
+            duration = max(float(fallback_seconds), float(frames) / float(fps))
+        else:
+            duration = float(fallback_seconds)
+        return time.time() + duration
+
+    def _is_anim_locked(self, ent_id):
+        now = time.time()
+        if ent_id == "wisadel":
+            st = getattr(self, "wisadel_anim_state", "move")
+            until = float(getattr(self, "wisadel_anim_until", 0.0))
+            return st not in ("move", "idle") and now < until
+        if ent_id == "monst3r":
+            st = getattr(self, "monst3r_anim_state", "move")
+            until = float(getattr(self, "monst3r_anim_until", 0.0))
+            return st not in ("move", "idle") and now < until
+        return False
+
+    def _play_entity_action_anim(self, ent_id, state, fallback_seconds=0.5):
+        end_time = self._compute_anim_end_time(ent_id, state, fallback_seconds=fallback_seconds)
+        if ent_id == "wisadel":
+            self.wisadel_anim_state = state
+            self.wisadel_anim_until = end_time
+        elif ent_id == "monst3r":
+            self.monst3r_anim_state = state
+            self.monst3r_anim_until = end_time
 
     def cast_spell_by_name(self, name):
         return game_inventory_ops.cast_spell_by_name(self, name)

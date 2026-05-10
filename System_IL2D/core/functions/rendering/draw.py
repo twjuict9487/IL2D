@@ -1,6 +1,7 @@
 ﻿import os
 import math
 import time
+import json
 import pygame
 try:
     from ..support.utils import clamp
@@ -76,6 +77,57 @@ def _load_anim_frames(folder_name, size=None):
         return _ANIM_CACHE[cache_key]
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     clips_dir = os.path.join(base_dir, "clips")
+    atlas_dir = os.path.join(clips_dir, "atlas")
+
+    # Atlas-first: clips/atlas/<folder_name>_atlas.json (+ optional _pNN pages)
+    atlas_frames = []
+    atlas_meta_files = []
+    base_meta = os.path.join(atlas_dir, f"{folder_name}_atlas.json")
+    if os.path.isfile(base_meta):
+        atlas_meta_files.append(base_meta)
+        page_idx = 2
+        while True:
+            page_meta = os.path.join(atlas_dir, f"{folder_name}_atlas_p{page_idx:02d}.json")
+            if not os.path.isfile(page_meta):
+                break
+            atlas_meta_files.append(page_meta)
+            page_idx += 1
+    if atlas_meta_files:
+        for meta_path in atlas_meta_files:
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                atlas_name = meta.get("atlas")
+                frame_defs = meta.get("frames", [])
+                if not atlas_name or not isinstance(frame_defs, list):
+                    continue
+                atlas_path = os.path.join(atlas_dir, atlas_name)
+                if not os.path.isfile(atlas_path):
+                    continue
+                atlas_img = pygame.image.load(atlas_path).convert_alpha()
+                for fr in frame_defs:
+                    try:
+                        x = int(fr.get("x", 0))
+                        y = int(fr.get("y", 0))
+                        w = int(fr.get("w", 0))
+                        h = int(fr.get("h", 0))
+                        if w <= 0 or h <= 0:
+                            continue
+                        sub = atlas_img.subsurface(pygame.Rect(x, y, w, h)).copy()
+                        if size:
+                            sub = pygame.transform.smoothscale(sub, (int(size[0]), int(size[1])))
+                        atlas_frames.append(sub)
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+        if len(atlas_frames) > MAX_ANIM_FRAMES:
+            step = max(1, len(atlas_frames) // MAX_ANIM_FRAMES)
+            atlas_frames = atlas_frames[::step][:MAX_ANIM_FRAMES]
+        _ANIM_CACHE[cache_key] = atlas_frames
+        return atlas_frames
+
+    # Legacy fallback: clips/<folder_name>/frame_*.png
     folder = os.path.join(clips_dir, folder_name)
     if not os.path.isdir(folder):
         _ANIM_CACHE[cache_key] = []
@@ -123,6 +175,11 @@ def _get_entity_render_image(game, ent, ent_def, size):
     if render_mode == "animated":
         state = _get_entity_anim_state(game, ent)
         fps = int(ent_def.get("anim_fps", 12) or 12)
+        state_key = f"anim_{state}"
+        if state not in ("move", "idle") and ent_def.get(state_key):
+            img = _get_anim_frame(ent_def.get(state_key), size=size, fps=fps)
+            if img is not None:
+                return img
         if state == "skill3" and ent_def.get("anim_skill3"):
             img = _get_anim_frame(ent_def.get("anim_skill3"), size=size, fps=fps)
             if img is not None:
@@ -1690,3 +1747,4 @@ def draw(game, screen):
         y = 12
         screen.blit(box, (x, y))
         screen.blit(surf, (x + 10, y + 5))
+
