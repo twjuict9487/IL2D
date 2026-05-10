@@ -201,10 +201,15 @@ class Game:
         self.wisadel_anim_state = "move"
         self.wisadel_anim_until = 0.0
         self._anim_frame_count_cache = {}
+        self.explored_maps = set()
+        self.world_map_nodes = {}
+        self.world_map_edges = []
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
         self.load_game_data()
+        self._build_world_map_graph()
+        self.mark_map_explored(self.map.name)
         self.relations = {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)}
         self.maybe_startup_closure_greet()
 
@@ -418,6 +423,58 @@ class Game:
         if self.map.name == "rouge_options.json":
             self.rogue_rest_intro_done = False
             self.open_rogue_rest_intro()
+        self.mark_map_explored(self.map.name)
+
+    def mark_map_explored(self, map_name):
+        if not map_name:
+            return
+        if not isinstance(getattr(self, "explored_maps", None), set):
+            self.explored_maps = set()
+        self.explored_maps.add(map_name)
+
+    def _normalize_map_ref(self, name):
+        if not name:
+            return ""
+        if name == "rogue":
+            return "rogue"
+        return name if name.endswith(".json") else f"{name}.json"
+
+    def _build_world_map_graph(self):
+        nodes = {}
+        edges = set()
+        try:
+            for fname in os.listdir(MAP_DIR):
+                if not fname.lower().endswith(".json"):
+                    continue
+                fpath = os.path.join(MAP_DIR, fname)
+                try:
+                    data = load_json(fpath)
+                except Exception:
+                    continue
+                grid = data.get("grid", [])
+                h = len(grid)
+                w = len(grid[0]) if h > 0 and isinstance(grid[0], list) else 0
+                if w <= 0 or h <= 0:
+                    continue
+                key = self._normalize_map_ref(fname)
+                nodes[key] = {"w": int(w), "h": int(h)}
+                for p in data.get("portals", []):
+                    target = self._normalize_map_ref(p.get("target_map", ""))
+                    if not target:
+                        continue
+                    a, b = sorted([key, target])
+                    edges.add((a, b))
+            if "rogue" not in nodes:
+                nodes["rogue"] = {"w": 20, "h": 20}
+            for a, b in list(edges):
+                if a not in nodes:
+                    nodes[a] = {"w": 20, "h": 20}
+                if b not in nodes:
+                    nodes[b] = {"w": 20, "h": 20}
+        except Exception:
+            pass
+        self.world_map_nodes = nodes
+        self.world_map_edges = sorted(list(edges))
 
     def place_npcs_for_map(self):
         positions = {

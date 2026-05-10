@@ -54,6 +54,7 @@ def save_game(game):
         "active_hotbar": game.active_hotbar,
         "team_equipment": getattr(game, "team_equipment", {}),
         "level_stat_pending": int(getattr(game, "level_stat_pending", 0)),
+        "explored_maps": sorted(list(getattr(game, "explored_maps", set()))),
     }
     with open(save_path, "w", encoding="utf-8") as f:
         import json
@@ -132,6 +133,11 @@ def load_save(game, slot):
     active = data.get("active_hotbar", "item")
     game.active_hotbar = "magic" if active == "magic" else "item"
     game.level_stat_pending = int(data.get("level_stat_pending", getattr(game, "level_stat_pending", 0)))
+    loaded_explored = data.get("explored_maps", None)
+    if isinstance(loaded_explored, list):
+        game.explored_maps = set([str(v) for v in loaded_explored if isinstance(v, str)])
+    if hasattr(game, "mark_map_explored"):
+        game.mark_map_explored(game.map.name)
     game.level_stat_selected = 0
     # Loading an existing save should not auto-open startup NPC dialog.
     game.ui_mode = None

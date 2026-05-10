@@ -871,9 +871,9 @@ def _handle_esc_menu_key(ctx, event):
         return
 
     if event.key == pygame.K_UP:
-        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 9
+        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 10
     elif event.key == pygame.K_DOWN:
-        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 9
+        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 10
     elif event.key == pygame.K_ESCAPE:
         ctx["state"] = "game"
     elif event.key == pygame.K_RETURN:
@@ -897,13 +897,15 @@ def _handle_esc_menu_key(ctx, event):
             game.ui_mode = None
             ctx["state"] = "tutorial"
         elif ctx["esc_selected"] == 5:
+            game.ui_mode = "map"
+        elif ctx["esc_selected"] == 6:
             game.ui_mode = "objective"
             game.objective_selected = 0
-        elif ctx["esc_selected"] == 6:
-            game.ui_mode = "skill_tree"
         elif ctx["esc_selected"] == 7:
-            game.open_save()
+            game.ui_mode = "skill_tree"
         elif ctx["esc_selected"] == 8:
+            game.open_save()
+        elif ctx["esc_selected"] == 9:
             game.open_leave_confirm()
 
 
@@ -1213,7 +1215,7 @@ def _handle_mouse_esc_menu(ctx, pos):
     item_h = font.get_height() + 6
     if mx < menu_w:
         idx = (my - 20) // item_h
-        if 0 <= idx < 9:
+        if 0 <= idx < 10:
             ctx["esc_selected"] = idx
             if idx == 0:
                 game.ui_mode = "item"
@@ -1235,12 +1237,14 @@ def _handle_mouse_esc_menu(ctx, pos):
                 game.ui_mode = None
                 ctx["state"] = "tutorial"
             elif idx == 5:
-                game.ui_mode = "objective"
+                game.ui_mode = "map"
             elif idx == 6:
-                game.ui_mode = "skill_tree"
+                game.ui_mode = "objective"
             elif idx == 7:
-                game.open_save()
+                game.ui_mode = "skill_tree"
             elif idx == 8:
+                game.open_save()
+            elif idx == 9:
                 game.open_leave_confirm()
     else:
         panel = pygame.Rect(menu_w, 0, screen.get_width() - menu_w, screen.get_height())

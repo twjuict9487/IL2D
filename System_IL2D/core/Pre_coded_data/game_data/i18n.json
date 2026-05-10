@@ -230,7 +230,12 @@
     "level_stat.mp": "MP",
     "level_stat.attack": "Attack",
     "level_stat.defence": "Defence",
-    "msg.level_stat_chosen": "{name} +{value}"
+    "msg.level_stat_chosen": "{name} +{value}",
+    "esc.map": "map",
+    "preview.map": "Map",
+    "preview.map_desc": "View explored maps and routes.",
+    "map.unexplored": "Unexplored",
+    "map.current": "Current"
   },
   "zh": {
     "menu.new_game": "新遊戲",
@@ -463,7 +468,11 @@
     "level_stat.mp": "MP",
     "level_stat.attack": "攻擊",
     "level_stat.defence": "防禦",
-    "msg.level_stat_chosen": "{name} +{value}"
+    "msg.level_stat_chosen": "{name} +{value}",
+    "esc.map": "地圖",
+    "preview.map": "地圖",
+    "preview.map_desc": "查看已探索地圖與連線。",
+    "map.unexplored": "未探索",
+    "map.current": "目前"
   }
 }
-

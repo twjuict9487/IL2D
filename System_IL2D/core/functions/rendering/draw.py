@@ -409,6 +409,8 @@ def _is_left_menu_entered(game, label):
         return False
     if label == "objective":
         return mode == "objective"
+    if label == "map":
+        return mode == "map"
     if label == "skill_tree":
         return mode == "skill_tree"
     if label == "save":
@@ -549,7 +551,7 @@ def draw_settings_menu(screen, selected, sub_mode, lang_selected, lang="zh"):
 def draw_esc_menu(screen, selected, game=None):
     font = _get_font(18, bold=True)
     font2 = _get_font(16, bold=True)
-    opts = ['item', 'hotbar', 'equipments', 'team', 'tutorial', 'objective', 'skill_tree', 'save', 'leave']
+    opts = ['item', 'hotbar', 'equipments', 'team', 'tutorial', 'map', 'objective', 'skill_tree', 'save', 'leave']
     # requested blue
     screen.fill((14, 26, 48))
     menu_w = screen.get_width() // 4
@@ -623,11 +625,11 @@ def draw_esc_menu(screen, selected, game=None):
         _draw_text_outline(screen, font2, line1, (255, 235, 210), (255, 255, 255), (right_x - line1_surf.get_width(), header_rect.y + 32))
         _draw_text_outline(screen, font2, line2, (210, 235, 255), (255, 255, 255), (right_x - line2_surf.get_width(), header_rect.y + 48))
 
-    if game.ui_mode in ("save", "equip_root", "equip", "equip_category", "item", "hotbar", "team", "team_equip_root", "team_equip", "team_equip_category", "objective", "skill_tree", "leave_confirm", "level_skipper"):
+    if game.ui_mode in ("save", "equip_root", "equip", "equip_category", "item", "hotbar", "team", "team_equip_root", "team_equip", "team_equip_category", "map", "objective", "skill_tree", "leave_confirm", "level_skipper"):
         draw_menu_detail(screen, content_rect, game)
     else:
         label = opts[selected]
-        if label in ("item", "hotbar", "equipments", "objective"):
+        if label in ("item", "hotbar", "equipments", "map", "objective"):
             _draw_menu_selected_like_detail(screen, content_rect, game, label)
         else:
             draw_menu_preview(screen, content_rect, game, selected)
@@ -649,7 +651,7 @@ def _draw_menu_selected_like_detail(screen, panel, game, label):
 
 def draw_menu_preview(screen, panel, game, selected):
     font = _get_font(16)
-    opts = ['item', 'hotbar', 'equipments', 'team', 'tutorial', 'objective', 'skill_tree', 'save', 'leave']
+    opts = ['item', 'hotbar', 'equipments', 'team', 'tutorial', 'map', 'objective', 'skill_tree', 'save', 'leave']
     label = opts[selected]
     lines = []
     if label == "item":
@@ -688,6 +690,9 @@ def draw_menu_preview(screen, panel, game, selected):
     elif label == "tutorial":
         lines.append(tr(game.lang, "preview.tutorial"))
         lines.append(tr(game.lang, "preview.tutorial_desc"))
+    elif label == "map":
+        lines.append(tr(game.lang, "preview.map"))
+        lines.append(tr(game.lang, "preview.map_desc"))
     elif label == "objective":
         lines.append(tr(game.lang, "preview.objectives"))
         lines.extend(game.objectives[:4])
@@ -732,6 +737,9 @@ def draw_menu_detail(screen, panel, game):
     body = pygame.Surface((panel.width - 24, panel.height - 56), pygame.SRCALPHA)
     body.fill((6, 14, 26, 110))
     screen.blit(body, (panel.x + 12, panel.y + 40))
+    if game.ui_mode == "map":
+        _draw_world_map(screen, panel, game, font)
+        return
     if game.ui_mode == "item":
         categories = game.get_item_categories() if hasattr(game, "get_item_categories") else ["item", "gift", "equipment", "special"]
         current_category = getattr(game, "item_category", "item")
@@ -1327,6 +1335,124 @@ def draw_messages(game, screen):
             y -= font.get_height() + 4
             screen.blit(surf, (x, y))
         y -= 6
+
+def _draw_world_map(screen, panel, game, font):
+    nodes_all = dict(getattr(game, "world_map_nodes", {}) or {})
+    edges_all = list(getattr(game, "world_map_edges", []) or [])
+    core_names = ("map_1.json", "map_2.json", "map_3.json", "rogue")
+    nodes = {k: v for k, v in nodes_all.items() if k in core_names}
+    edges = [e for e in edges_all if e[0] in nodes and e[1] in nodes]
+    if not nodes:
+        return
+    explored = set(getattr(game, "explored_maps", set()) or set())
+    cur = game.map.name if game.map.name in nodes else ("rogue" if game.map.name == "rogue" else game.map.name)
+    if cur not in nodes and game.map.name == "rogue":
+        nodes["rogue"] = {"w": max(1, int(getattr(game.map, "w", 20))), "h": max(1, int(getattr(game.map, "h", 20)))}
+        cur = "rogue"
+    if cur:
+        explored.add(cur)
+
+    # Strictly clip drawing to the current ESC sublayer panel.
+    old_clip = screen.get_clip()
+    screen.set_clip(panel)
+
+    map_rect = pygame.Rect(panel.x + 18, panel.y + 48, panel.width - 36, panel.height - 72)
+    centers = {}
+    rects = {}
+
+    # Base organization:
+    # map_1 left, map_2 middle, map_3 right, rogue up.
+    anchor_base = {
+        "map_1.json": (0.16, 0.55),
+        "map_2.json": (0.50, 0.55),
+        "map_3.json": (0.84, 0.55),
+        "rogue": (0.50, 0.20),
+    }
+    # Recenter whole graph so current map is the visual focus.
+    focus = cur if cur in anchor_base else "map_2.json"
+    focus_src = anchor_base.get(focus, (0.50, 0.55))
+    focus_dst = (0.50, 0.55)
+    dx = focus_dst[0] - focus_src[0]
+    dy = focus_dst[1] - focus_src[1]
+    anchor = {}
+    for k, (rx, ry) in anchor_base.items():
+        anchor[k] = (rx + dx, ry + dy)
+
+    for name, meta in nodes.items():
+        mw = max(1.0, float(meta.get("w", 20)))
+        mh = max(1.0, float(meta.get("h", 20)))
+        # Bigger map cards for readability.
+        box_w = max(52, min(190, int(mw * 2.4)))
+        box_h = max(36, min(130, int(mh * 2.4)))
+        rx, ry = anchor.get(name, (0.5, 0.5))
+        cx = int(map_rect.x + map_rect.width * rx)
+        cy = int(map_rect.y + map_rect.height * ry)
+        r = pygame.Rect(0, 0, box_w, box_h)
+        r.center = (cx, cy)
+        rects[name] = r
+        centers[name] = (cx, cy)
+
+    for a, b in edges:
+        if a in centers and b in centers:
+            pygame.draw.line(screen, (105, 125, 145), centers[a], centers[b], 2)
+
+    for name, r in rects.items():
+        known = name in explored
+        fill = (68, 78, 88) if not known else (30, 62, 86)
+        border = (0, 0, 0) if not known else (170, 210, 235)
+        pygame.draw.rect(screen, fill, r)
+        pygame.draw.rect(screen, border, r, 2)
+        if known:
+            raw = name.replace(".json", "")
+            if raw == "map_1":
+                label = "map1"
+            elif raw == "map_2":
+                label = "map2"
+            elif raw == "map_3":
+                label = "map3"
+            elif raw == "rogue":
+                label = f"rogue L{int(getattr(game, 'rogue_layer', 0))}"
+            else:
+                label = raw
+            # Name directly on map area (can overflow as requested).
+            _draw_text_outline(screen, font, label, (235, 245, 255), (0, 0, 0), (r.x - 2, r.y - 18))
+        else:
+            _draw_text_outline(screen, font, "???", (180, 180, 180), (0, 0, 0), (r.x + 2, r.y - 18))
+
+    if cur in rects:
+        r = rects[cur]
+        dot = pygame.Rect(0, 0, 8, 8)
+        dot.center = r.center
+        pygame.draw.rect(screen, (45, 155, 255), dot)
+        pygame.draw.rect(screen, (220, 245, 255), dot, 1)
+
+    # Compass + legend top-right
+    lg_font = _get_font(20, bold=True)
+    lg_x = panel.right - 170
+    lg_y = panel.y + 20
+    cx = lg_x + 58
+    cy = lg_y + 36
+    pygame.draw.circle(screen, (170, 210, 235), (cx, cy), 24, 2)
+    pygame.draw.line(screen, (170, 210, 235), (cx, cy - 24), (cx, cy + 24), 2)
+    pygame.draw.line(screen, (170, 210, 235), (cx - 24, cy), (cx + 24, cy), 2)
+    _draw_text_outline(screen, lg_font, "N", (235, 235, 235), (0, 0, 0), (cx - 7, cy - 41))
+    _draw_text_outline(screen, lg_font, "S", (235, 235, 235), (0, 0, 0), (cx - 7, cy + 24))
+    _draw_text_outline(screen, lg_font, "W", (235, 235, 235), (0, 0, 0), (cx - 41, cy - 10))
+    _draw_text_outline(screen, lg_font, "E", (235, 235, 235), (0, 0, 0), (cx + 25, cy - 10))
+
+    leg_font = _get_font(18, bold=True)
+    u = pygame.Rect(lg_x, lg_y + 82, 24, 18)
+    pygame.draw.rect(screen, (68, 78, 88), u)
+    pygame.draw.rect(screen, (0, 0, 0), u, 2)
+    _draw_text_outline(screen, leg_font, tr(game.lang, "map.unexplored"), (220, 220, 220), (0, 0, 0), (u.right + 10, u.y - 2))
+    c = pygame.Rect(lg_x, lg_y + 110, 24, 18)
+    pygame.draw.rect(screen, (30, 62, 86), c)
+    pygame.draw.rect(screen, (170, 210, 235), c, 2)
+    b = pygame.Rect(0, 0, 8, 8)
+    b.center = c.center
+    pygame.draw.rect(screen, (45, 155, 255), b)
+    _draw_text_outline(screen, leg_font, tr(game.lang, "map.current"), (220, 220, 220), (0, 0, 0), (c.right + 10, c.y - 2))
+    screen.set_clip(old_clip)
 
 
 def draw_dialog(game, screen):

@@ -28,6 +28,8 @@ def enter_rogue_layer(game, new_entry=False):
     special_map = cfg.get("special_map", "rouge_options.json")
     if game.rogue_layer > 0 and game.rogue_layer % special_layer == 0:
         game.map = GameMap(os.path.join(MAP_DIR, special_map))
+        if hasattr(game, "mark_map_explored"):
+            game.mark_map_explored(game.map.name)
         game.map_max_h_mob = game.map.mob_limit
         game.player.x, game.player.y = game.map.spawn
         game.entities = [
@@ -48,6 +50,8 @@ def enter_rogue_layer(game, new_entry=False):
     w, h = size[0], size[1]
     data = generate_rogue_map(game, w, h)
     game.map = GameMap.from_data("rogue", data)
+    if hasattr(game, "mark_map_explored"):
+        game.mark_map_explored(game.map.name)
     game.map_max_h_mob = game.map.mob_limit
     game.player.x, game.player.y = game.map.spawn
     game.place_npcs_for_map()
