@@ -5,6 +5,36 @@ from core.functions.support.i18n import tr
 from core.functions.gameplay.game import Game
 from core.functions.rendering.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, draw_dev_menu, draw_continue_menu, TILE_SIZE, VIEWPORT, FPS
 from core.functions.world.map import npc_data
+from core.functions.ui.tutorial_flow import (
+    build_tutorial_lines as _ui_build_tutorial_lines,
+    handle_tutorial_key as _ui_handle_tutorial_key,
+    handle_tutorial_mouse as _ui_handle_tutorial_mouse,
+)
+from core.functions.ui.continue_flow import (
+    get_save_slots as _ui_get_save_slots,
+    handle_continue_menu_key as _ui_handle_continue_menu_key,
+    handle_mouse_continue_menu as _ui_handle_mouse_continue_menu,
+)
+from core.functions.ui.main_menu_flow import (
+    handle_main_menu_key as _ui_handle_main_menu_key,
+    handle_mouse_main_menu as _ui_handle_mouse_main_menu,
+)
+from core.functions.ui.settings_flow import (
+    handle_settings_key as _ui_handle_settings_key,
+    handle_mouse_settings as _ui_handle_mouse_settings,
+)
+from core.functions.ui.name_input_flow import (
+    open_new_game_name_input as _ui_open_new_game_name_input,
+    handle_name_input_key as _ui_handle_name_input_key,
+    handle_text_input as _ui_handle_text_input,
+)
+from core.functions.ui.dev_menu_flow import handle_dev_menu_key as _ui_handle_dev_menu_key
+from core.functions.input.held_movement import (
+    update_held_keys as _input_update_held_keys,
+    press_move as _input_press_move,
+    handle_held_movement as _input_handle_held_movement,
+)
+from core.functions.input.game_key_flow import handle_game_key as _input_handle_game_key
 
 _UI_IMG_CACHE = {}
 _TUTORIAL_STATE_FILE = os.path.join(SAVE_DIR, "tutorial_state.json")
@@ -234,125 +264,27 @@ def _check_dev_secret(ctx, event):
 
 
 def _handle_dev_menu_key(ctx, event):
-    game = ctx["game"]
-    opts = ["pre_dev_set", "max_hp", "max_mp", "add_money", "add_skipper", "get_dev_set", "exit"]
-    if ctx["dev_menu_target"] is None:
-        if event.key in (pygame.K_UP, pygame.K_w):
-            ctx["dev_menu_selected"] = (ctx["dev_menu_selected"] - 1) % len(opts)
-        elif event.key in (pygame.K_DOWN, pygame.K_s):
-            ctx["dev_menu_selected"] = (ctx["dev_menu_selected"] + 1) % len(opts)
-        elif event.key == pygame.K_RETURN:
-            choice = opts[ctx["dev_menu_selected"]]
-            if choice == "exit":
-                ctx["state"] = "game"
-            elif choice == "pre_dev_set":
-                game.grant_pre_dev_set()
-            elif choice == "get_dev_set":
-                game.grant_dev_set()
-            else:
-                ctx["dev_menu_target"] = choice
-                ctx["dev_menu_input"] = ""
-        elif event.key == pygame.K_ESCAPE:
-            ctx["state"] = "game"
-    else:
-        if event.key == pygame.K_ESCAPE:
-            ctx["dev_menu_target"] = None
-            ctx["dev_menu_input"] = ""
-            return
-        if event.key == pygame.K_BACKSPACE:
-            ctx["dev_menu_input"] = ctx["dev_menu_input"][:-1]
-            return
-        if event.key == pygame.K_RETURN:
-            if ctx["dev_menu_input"].isdigit():
-                val = int(ctx["dev_menu_input"])
-                if ctx["dev_menu_target"] == "max_hp":
-                    game.player.max_hp = max(1, val)
-                    game.player.hp = game.player.max_hp
-                elif ctx["dev_menu_target"] == "max_mp":
-                    game.player.max_mp = max(0, val)
-                    game.player.mp = game.player.max_mp
-                elif ctx["dev_menu_target"] == "add_money":
-                    game.money += max(0, val)
-                elif ctx["dev_menu_target"] == "add_skipper":
-                    game.inventory["rogue level skipper"] = game.inventory.get("rogue level skipper", 0) + max(0, val)
-            ctx["dev_menu_target"] = None
-            ctx["dev_menu_input"] = ""
-            return
-        if event.unicode and event.unicode.isdigit():
-            ctx["dev_menu_input"] += event.unicode
+    _ui_handle_dev_menu_key(ctx, event)
 
 
 def _handle_main_menu_key(ctx, event):
-    menu_count = 5
-    if event.key == pygame.K_UP:
-        ctx["menu_selected"] = (ctx["menu_selected"] - 1) % menu_count
-    elif event.key == pygame.K_DOWN:
-        ctx["menu_selected"] = (ctx["menu_selected"] + 1) % menu_count
-    elif event.key == pygame.K_RETURN:
-        if ctx["menu_selected"] == 0:
-            _open_new_game_name_input(ctx)
-        elif ctx["menu_selected"] == 1:
-            ctx["continue_slots"] = _get_save_slots()
-            ctx["continue_selected"] = 0
-            ctx["state"] = "continue_menu"
-        elif ctx["menu_selected"] == 2:
-            ctx["state"] = "settings"
-        elif ctx["menu_selected"] == 3:
-            ctx["running"] = False
-        elif ctx["menu_selected"] == 4:
-            pass
+    _ui_handle_main_menu_key(ctx, event, _open_new_game_name_input, _get_save_slots)
 
 
 def _get_save_slots():
-    slots = []
-    for i in range(1, 4):
-        path = os.path.join(SAVE_DIR, f"slot_{i}.json")
-        slots.append({"slot": i, "exists": os.path.isfile(path)})
-    return slots
+    return _ui_get_save_slots()
 
 
 def _open_new_game_name_input(ctx):
-    ctx["new_game_name"] = ""
-    pygame.key.start_text_input()
-    ctx["state"] = "name_input"
+    _ui_open_new_game_name_input(ctx)
 
 
 def _handle_name_input_key(ctx, event):
-    if event.key == pygame.K_ESCAPE:
-        pygame.key.stop_text_input()
-        ctx["state"] = "main_menu"
-        return
-    if event.key == pygame.K_BACKSPACE:
-        ctx["new_game_name"] = ctx.get("new_game_name", "")[:-1]
-        return
-    if event.key == pygame.K_RETURN:
-        raw_name = (ctx.get("new_game_name", "") or "").strip()
-        player_name = raw_name[:20] if raw_name else "Doctor"
-        game = Game()
-        game.player_name = player_name
-        ctx["game"] = game
-        pygame.key.stop_text_input()
-        if _has_seen_start_tutorial():
-            ctx["state"] = "game"
-        else:
-            ctx["tutorial_mode"] = "start"
-            ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="start")
-            ctx["tutorial_idx"] = 0
-            ctx["tutorial_return_state"] = "game"
-            ctx["state"] = "tutorial"
-        return
+    _ui_handle_name_input_key(ctx, event, _has_seen_start_tutorial, _build_tutorial_lines)
 
 
 def _handle_text_input(ctx, text):
-    if ctx.get("state") != "name_input":
-        return
-    current = ctx.get("new_game_name", "")
-    for ch in text:
-        if ch.isprintable() and ch not in ("\r", "\n", "\t"):
-            if len(current) >= 20:
-                break
-            current += ch
-    ctx["new_game_name"] = current
+    _ui_handle_text_input(ctx, text)
 
 
 def _handle_cutscene_key(ctx, event):
@@ -363,87 +295,19 @@ def _handle_cutscene_key(ctx, event):
 
 
 def _build_tutorial_lines(lang, mode="start"):
-    if mode == "manual":
-        keys = [
-            "manual.step.1",
-            "manual.step.2",
-            "manual.step.3",
-            "manual.step.4",
-            "manual.step.5",
-            "manual.step.6",
-        ]
-    else:
-        keys = [
-            "tutorial.step.1",
-            "tutorial.step.2",
-            "tutorial.step.3",
-            "tutorial.step.4",
-            "tutorial.step.5",
-            "tutorial.step.6",
-        ]
-    return [tr(lang, k) for k in keys]
+    return _ui_build_tutorial_lines(lang, mode=mode)
 
 
 def _handle_tutorial_key(ctx, event):
-    if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-        ctx["tutorial_idx"] = ctx.get("tutorial_idx", 0) + 1
-        if ctx["tutorial_idx"] >= len(ctx.get("tutorial_lines", [])):
-            if ctx.get("tutorial_mode", "start") == "start":
-                _mark_start_tutorial_seen()
-            ctx["state"] = ctx.get("tutorial_return_state", "game")
-        return
-    if event.key == pygame.K_ESCAPE:
-        if ctx.get("tutorial_mode", "start") == "start":
-            _mark_start_tutorial_seen()
-        ctx["state"] = ctx.get("tutorial_return_state", "game")
+    _ui_handle_tutorial_key(ctx, event, _mark_start_tutorial_seen)
 
 
 def _handle_continue_menu_key(ctx, event):
-    slots = ctx.get("continue_slots", [])
-    if not slots:
-        if event.key == pygame.K_ESCAPE:
-            ctx["state"] = "main_menu"
-        return
-    if event.key in (pygame.K_UP, pygame.K_w):
-        ctx["continue_selected"] = (ctx["continue_selected"] - 1) % len(slots)
-    elif event.key in (pygame.K_DOWN, pygame.K_s):
-        ctx["continue_selected"] = (ctx["continue_selected"] + 1) % len(slots)
-    elif event.key == pygame.K_RETURN:
-        slot = slots[ctx["continue_selected"]]["slot"]
-        if ctx["game"].load_save(slot):
-            ctx["state"] = "game"
-        else:
-            # stay in menu if empty
-            pass
-    elif event.key == pygame.K_ESCAPE:
-        ctx["state"] = "main_menu"
+    _ui_handle_continue_menu_key(ctx, event)
 
 
 def _handle_settings_key(ctx, event):
-    if event.key == pygame.K_ESCAPE:
-        if ctx["settings_sub"] == "language":
-            ctx["settings_sub"] = None
-        else:
-            ctx["state"] = "main_menu"
-        return
-    if ctx["settings_sub"] == "language":
-        if event.key == pygame.K_UP:
-            ctx["lang_selected"] = (ctx["lang_selected"] - 1) % 2
-        elif event.key == pygame.K_DOWN:
-            ctx["lang_selected"] = (ctx["lang_selected"] + 1) % 2
-        elif event.key == pygame.K_RETURN:
-            ctx["game"].lang = "zh" if ctx["lang_selected"] == 0 else "en"
-            ctx["settings_sub"] = None
-        return
-    if event.key == pygame.K_UP:
-        ctx["settings_selected"] = (ctx["settings_selected"] - 1) % 2
-    elif event.key == pygame.K_DOWN:
-        ctx["settings_selected"] = (ctx["settings_selected"] + 1) % 2
-    elif event.key == pygame.K_RETURN:
-        if ctx["settings_selected"] == 0:
-            ctx["settings_sub"] = "language"
-        elif ctx["settings_selected"] == 1:
-            ctx["state"] = "main_menu"
+    _ui_handle_settings_key(ctx, event)
 
 
 def _handle_hotbar_menu_key(game, event):
@@ -910,120 +774,7 @@ def _handle_esc_menu_key(ctx, event):
 
 
 def _handle_game_key(ctx, event):
-    game = ctx["game"]
-    if game.ui_mode == "death_menu":
-        if game.death_no_save_notice:
-            if event.key in (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE):
-                game.request_quit = True
-            return
-        if event.key in (pygame.K_UP, pygame.K_w):
-            game.death_menu_selected = max(0, game.death_menu_selected - 1)
-            return
-        if event.key in (pygame.K_DOWN, pygame.K_s):
-            game.death_menu_selected = min(1, game.death_menu_selected + 1)
-            return
-        if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-            game.handle_death_menu_confirm()
-            return
-        return
-    if game.ui_mode == "level_stat_choice":
-        options = game.get_level_stat_options() if hasattr(game, "get_level_stat_options") else []
-        if not options:
-            game.ui_mode = None
-            return
-        if event.key in (pygame.K_UP, pygame.K_w):
-            game.level_stat_selected = (game.level_stat_selected - 1) % len(options)
-            return
-        if event.key in (pygame.K_DOWN, pygame.K_s):
-            game.level_stat_selected = (game.level_stat_selected + 1) % len(options)
-            return
-        if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-            game.choose_level_stat(game.level_stat_selected)
-            return
-        return
-    if event.key == pygame.K_i and game.ui_mode is None:
-        game.active_hotbar = "magic" if game.active_hotbar == "item" else "item"
-    elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_0):
-        if game.ui_mode is None:
-            slot = 9 if event.key == pygame.K_0 else (event.key - pygame.K_1)
-            if game.active_hotbar == "item":
-                name = game.item_hotbar_slots[slot]
-                if name:
-                    game.use_item_by_name(name)
-            else:
-                name = game.magic_hotbar_slots[slot]
-                if name:
-                    game.cast_spell_by_name(name)
-        return
-    if game.ui_mode == "interact_pick":
-        if event.key in (pygame.K_UP, pygame.K_w):
-            if game.interact_candidates:
-                game.interact_selected = (game.interact_selected - 1) % len(game.interact_candidates)
-        elif event.key in (pygame.K_DOWN, pygame.K_s):
-            if game.interact_candidates:
-                game.interact_selected = (game.interact_selected + 1) % len(game.interact_candidates)
-        elif event.key == pygame.K_RETURN:
-            game.confirm_interact_choice()
-        elif event.key == pygame.K_ESCAPE:
-            game.cancel_interact_choice()
-        return
-    if game.ui_mode == "dialog":
-        if event.key == pygame.K_UP:
-            game.dialog_selected = max(0, game.dialog_selected - 1)
-        elif event.key == pygame.K_DOWN:
-            game.dialog_selected = game.dialog_selected + 1
-        elif event.key == pygame.K_RETURN:
-            game.dialog_choose()
-        elif event.key == pygame.K_ESCAPE:
-            game.close_dialog()
-        return
-    if game.ui_mode == "shop":
-        if event.key == pygame.K_UP and game.shop_items:
-            game.shop_selected = (game.shop_selected - 1) % len(game.shop_items)
-        elif event.key == pygame.K_DOWN and game.shop_items:
-            game.shop_selected = (game.shop_selected + 1) % len(game.shop_items)
-        elif event.key in (pygame.K_LEFT, pygame.K_a):
-            game.cycle_shop_category(-1)
-        elif event.key in (pygame.K_RIGHT, pygame.K_d):
-            game.cycle_shop_category(1)
-        elif event.key == pygame.K_RETURN:
-            game.buy_selected_item()
-        elif event.key == pygame.K_ESCAPE:
-            game.close_shop()
-        return
-    if game.ui_mode == "hotbar":
-        if event.key == pygame.K_i:
-            game.hotbar_mode = "magic" if game.hotbar_mode == "item" else "item"
-            game.hotbar_type_selected = 0 if game.hotbar_mode == "item" else 1
-            game.hotbar_list_selected = 0
-        elif event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
-            if game.hotbar_mode == "item":
-                game.item_hotbar_slots[game.hotbar_slot_selected] = None
-            else:
-                game.magic_hotbar_slots[game.hotbar_slot_selected] = None
-        return
-
-    if event.key == pygame.K_ESCAPE:
-        ctx["state"] = "esc_menu"
-    if event.key == pygame.K_F12:
-        ctx["fullscreen"] = not ctx["fullscreen"]
-        win_w = TILE_SIZE * VIEWPORT
-        win_h = TILE_SIZE * (VIEWPORT + 1)
-        if ctx["fullscreen"]:
-            ctx["screen"] = pygame.display.set_mode((win_w, win_h), pygame.FULLSCREEN)
-        else:
-            ctx["screen"] = pygame.display.set_mode((win_w, win_h))
-        _set_always_on_top()
-    if event.key == pygame.K_w:
-        _press_move(ctx, "w", 0, -1)
-    elif event.key == pygame.K_s:
-        _press_move(ctx, "s", 0, 1)
-    elif event.key == pygame.K_a:
-        _press_move(ctx, "a", -1, 0)
-    elif event.key == pygame.K_d:
-        _press_move(ctx, "d", 1, 0)
-    elif event.key == pygame.K_e:
-        game.player_interact()
+    _input_handle_game_key(ctx, event, _press_move, _set_always_on_top, TILE_SIZE, VIEWPORT)
 
 
 def _handle_mouse(ctx, pos):
@@ -1043,167 +794,27 @@ def _handle_mouse(ctx, pos):
 
 
 def _update_held_keys(ctx, event, is_down):
-    if event.key == pygame.K_w:
-        ctx["held_keys"]["w"] = is_down
-    elif event.key == pygame.K_s:
-        ctx["held_keys"]["s"] = is_down
-    elif event.key == pygame.K_a:
-        ctx["held_keys"]["a"] = is_down
-    elif event.key == pygame.K_d:
-        ctx["held_keys"]["d"] = is_down
+    _input_update_held_keys(ctx, event, is_down)
 
 
 def _press_move(ctx, key, dx, dy):
-    now = pygame.time.get_ticks() / 1000.0
-    ctx["press_time"][key] = now
-    moved = False
-    held = ctx["held_keys"]
-    # Allow instant diagonal step when two directions are held.
-    if key in ("w", "s"):
-        side_dx = (1 if held["d"] else 0) - (1 if held["a"] else 0)
-        if side_dx != 0:
-            moved = ctx["game"].request_player_move(side_dx, dy)
-    elif key in ("a", "d"):
-        side_dy = (1 if held["s"] else 0) - (1 if held["w"] else 0)
-        if side_dy != 0:
-            moved = ctx["game"].request_player_move(dx, side_dy)
-    if not moved:
-        moved = ctx["game"].request_player_move(dx, dy)
-    if moved:
-        ctx["last_move_time"] = now
+    _input_press_move(ctx, key, dx, dy)
 
 
 def _handle_held_movement(ctx):
-    now = pygame.time.get_ticks() / 1000.0
-    if now - ctx["last_move_time"] < ctx["move_interval"]:
-        return
-    if ctx["state"] == "esc_menu":
-        game = ctx["game"]
-        if not game.ui_mode:
-            return
-        hold_delay = ctx.get("hold_repeat_delay", 0.08)
-        up = ctx["held_keys"]["w"] and now - ctx["press_time"]["w"] >= hold_delay
-        down = ctx["held_keys"]["s"] and now - ctx["press_time"]["s"] >= hold_delay
-        if not up and not down:
-            return
-        delta = -1 if up else 1
-        if game.ui_mode == "item":
-            items = game.get_item_list()
-            if items:
-                idx = game.item_selected % len(items)
-                if delta < 0:
-                    idx = max(0, idx - 2)
-                else:
-                    idx = min(len(items) - 1, idx + 2)
-                game.item_selected = idx
-        elif game.ui_mode == "hotbar":
-            stage = getattr(game, "hotbar_stage", "type")
-            if stage == "type":
-                game.hotbar_type_selected = 1 - int(getattr(game, "hotbar_type_selected", 0))
-            elif stage == "slot":
-                if delta < 0:
-                    game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
-                else:
-                    game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
-            else:
-                if game.hotbar_mode == "item":
-                    items = game.get_item_list()
-                    if items:
-                        idx = game.hotbar_list_selected % len(items)
-                        idx = max(0, idx - 1) if delta < 0 else min(len(items) - 1, idx + 1)
-                        game.hotbar_list_selected = idx
-                else:
-                    if game.spells:
-                        idx = game.hotbar_list_selected % len(game.spells)
-                        idx = max(0, idx - 1) if delta < 0 else min(len(game.spells) - 1, idx + 1)
-                        game.hotbar_list_selected = idx
-        elif game.ui_mode == "skill_tree":
-            game.skill_tree_selected = max(0, game.skill_tree_selected + delta) if delta < 0 else game.skill_tree_selected + 1
-        elif game.ui_mode == "leave_confirm":
-            if delta < 0:
-                game.leave_selected = max(0, game.leave_selected - 1)
-            else:
-                game.leave_selected = min(2, game.leave_selected + 1)
-        elif game.ui_mode == "save":
-            game.save_selected = (game.save_selected + delta) % 3
-        ctx["last_move_time"] = now
-        return
-    if ctx["state"] != "game":
-        return
-    game = ctx["game"]
-    if game.ui_mode:
-        return
-    hold_delay = ctx.get("hold_repeat_delay", 0.08)
-    up = ctx["held_keys"]["w"] and now - ctx["press_time"]["w"] >= hold_delay
-    down = ctx["held_keys"]["s"] and now - ctx["press_time"]["s"] >= hold_delay
-    left = ctx["held_keys"]["a"] and now - ctx["press_time"]["a"] >= hold_delay
-    right = ctx["held_keys"]["d"] and now - ctx["press_time"]["d"] >= hold_delay
-    dx = (1 if right else 0) - (1 if left else 0)
-    dy = (1 if down else 0) - (1 if up else 0)
-    if dx != 0 or dy != 0:
-        moved = game.request_player_move(dx, dy)
-        # QOL: if diagonal blocked, try axis slide.
-        if not moved and dx != 0 and dy != 0:
-            moved = game.request_player_move(dx, 0)
-            if not moved:
-                moved = game.request_player_move(0, dy)
-        if moved:
-            ctx["last_move_time"] = now
+    _input_handle_held_movement(ctx)
 
 
 def _handle_mouse_main_menu(ctx, pos):
-    mx, my = pos
-    screen = ctx["screen"]
-    font2 = _get_font(32)
-    opts = ['new_game', 'continue', 'setting', 'leave', 'credits']
-    total_height = len(opts) * 44
-    start_y = screen.get_height() // 2 - total_height // 2 + 40
-    for i, opt in enumerate(opts):
-        label = tr(ctx["game"].lang, f"menu.{opt}")
-        surf = font2.render(label, True, (255, 255, 255))
-        x = screen.get_width() // 2 - surf.get_width() // 2
-        y = start_y + i * 44
-        rect = pygame.Rect(x - 12, y - 4, surf.get_width() + 24, surf.get_height() + 8)
-        if rect.collidepoint(mx, my):
-            ctx["menu_selected"] = i
-            if i == 0:
-                _open_new_game_name_input(ctx)
-            elif i == 1:
-                ctx["continue_slots"] = _get_save_slots()
-                ctx["continue_selected"] = 0
-                ctx["state"] = "continue_menu"
-            elif i == 2:
-                ctx["state"] = "settings"
-            elif i == 3:
-                ctx["running"] = False
-            elif i == 4:
-                pass
-            break
+    _ui_handle_mouse_main_menu(ctx, pos, _get_font, _open_new_game_name_input, _get_save_slots)
 
 
 def _handle_mouse_settings(ctx, pos):
-    # keep mouse simple: click outside closes sub menu
-    if ctx["settings_sub"] == "language":
-        return
+    _ui_handle_mouse_settings(ctx, pos)
 
 
 def _handle_mouse_continue_menu(ctx, pos):
-    mx, my = pos
-    screen = ctx["screen"]
-    slots = ctx.get("continue_slots", [])
-    if not slots:
-        return
-    font = _get_font(22)
-    start_y = 140
-    item_h = font.get_height() + 10
-    for i, _ in enumerate(slots):
-        rect = pygame.Rect(screen.get_width() // 2 - 140, start_y + i * item_h - 4, 280, font.get_height() + 8)
-        if rect.collidepoint(mx, my):
-            ctx["continue_selected"] = i
-            slot = slots[i]["slot"]
-            if ctx["game"].load_save(slot):
-                ctx["state"] = "game"
-            break
+    _ui_handle_mouse_continue_menu(ctx, pos, _get_font)
 
 
 def _handle_mouse_esc_menu(ctx, pos):
@@ -1211,11 +822,18 @@ def _handle_mouse_esc_menu(ctx, pos):
     screen = ctx["screen"]
     game = ctx["game"]
     menu_w = screen.get_width() // 4
-    font = _get_font(16)
-    item_h = font.get_height() + 6
+    # Must match draw_esc_menu() left list metrics exactly.
+    font = _get_font(18, bold=True)
+    item_h = font.get_height() + 10
     if mx < menu_w:
-        idx = (my - 20) // item_h
-        if 0 <= idx < 10:
+        hit_idx = None
+        for i in range(10):
+            rect = pygame.Rect(12, 20 + i * item_h, menu_w - 24, item_h)
+            if rect.collidepoint(mx, my):
+                hit_idx = i
+                break
+        if hit_idx is not None:
+            idx = hit_idx
             ctx["esc_selected"] = idx
             if idx == 0:
                 game.ui_mode = "item"
@@ -1246,8 +864,42 @@ def _handle_mouse_esc_menu(ctx, pos):
                 game.open_save()
             elif idx == 9:
                 game.open_leave_confirm()
+            return
     else:
         panel = pygame.Rect(menu_w, 0, screen.get_width() - menu_w, screen.get_height())
+        # Clicking inside right panel should enter current sublayer when not yet entered.
+        if game.ui_mode is None and panel.collidepoint(mx, my):
+            idx = int(ctx.get("esc_selected", 0))
+            if idx == 0:
+                game.ui_mode = "item"
+                game.item_focus = "tabs"
+            elif idx == 1:
+                game.ui_mode = "hotbar"
+                game.hotbar_stage = "grid"
+                game.hotbar_slot_selected = 0
+                game.hotbar_list_selected = 0
+            elif idx == 2:
+                game.open_equip()
+            elif idx == 3:
+                game.ui_mode = "team"
+            elif idx == 4:
+                ctx["tutorial_mode"] = "manual"
+                ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
+                ctx["tutorial_idx"] = 0
+                ctx["tutorial_return_state"] = "esc_menu"
+                game.ui_mode = None
+                ctx["state"] = "tutorial"
+            elif idx == 5:
+                game.ui_mode = "map"
+            elif idx == 6:
+                game.ui_mode = "objective"
+            elif idx == 7:
+                game.ui_mode = "skill_tree"
+            elif idx == 8:
+                game.open_save()
+            elif idx == 9:
+                game.open_leave_confirm()
+            return
         font = pygame.font.SysFont('consolas', 14)
         y = panel.y + 48
         if game.ui_mode == "save":
@@ -1630,11 +1282,7 @@ def _update(ctx, dt):
 
 
 def _handle_tutorial_mouse(ctx):
-    ctx["tutorial_idx"] = ctx.get("tutorial_idx", 0) + 1
-    if ctx["tutorial_idx"] >= len(ctx.get("tutorial_lines", [])):
-        if ctx.get("tutorial_mode", "start") == "start":
-            _mark_start_tutorial_seen()
-        ctx["state"] = ctx.get("tutorial_return_state", "game")
+    _ui_handle_tutorial_mouse(ctx, _mark_start_tutorial_seen)
 
 
 def _draw_name_input(ctx):
