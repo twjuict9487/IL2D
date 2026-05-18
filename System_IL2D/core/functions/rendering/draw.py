@@ -1513,6 +1513,107 @@ def draw_dialog(game, screen):
         resp_y += font2.get_height() + 6
 
 
+def draw_blackjack(game, screen):
+    if getattr(game, "ui_mode", None) != "blackjack":
+        return
+    st = getattr(game, "blackjack_ui_state", {}) or {}
+    player = st.get("player", {}) or {}
+    dealer = st.get("dealer", {}) or {}
+    narrative = st.get("narrative", {}) or {}
+    finished = bool(st.get("finished", False))
+    selected = int(getattr(game, "blackjack_ui_selected", 0))
+
+    panel = pygame.Rect(screen.get_width() // 8, screen.get_height() // 8, screen.get_width() * 3 // 4, screen.get_height() * 3 // 4)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 130))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (12, 18, 30), panel, border_radius=10)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=10)
+
+    title_font = _get_font(24, bold=True)
+    body_font = _get_font(17)
+    small_font = _get_font(15)
+    _draw_text_outline(screen, title_font, tr(game.lang, "blackjack.title"), (245, 245, 245), (0, 0, 0), (panel.x + 20, panel.y + 16), thickness=2)
+
+    bet = int(st.get("bet", 0) or 0)
+    payout = int(st.get("payout", 0) or 0)
+    left_money = int(getattr(game, "money", 0))
+    _draw_text_outline(screen, small_font, f"{tr(game.lang, 'blackjack.bet')}: {bet}", (210, 230, 245), (0, 0, 0), (panel.right - 180, panel.y + 22), thickness=2)
+    _draw_text_outline(screen, small_font, f"{tr(game.lang, 'blackjack.payout')}: {payout}", (210, 230, 245), (0, 0, 0), (panel.right - 180, panel.y + 46), thickness=2)
+    _draw_text_outline(screen, small_font, f"{tr(game.lang, 'blackjack.left_money')}: {left_money}", (210, 230, 245), (0, 0, 0), (panel.right - 180, panel.y + 70), thickness=2)
+
+    y0 = panel.y + 78
+    def _fmt_cards(cards):
+        suit_map = {"♥": "H", "♦": "D", "♣": "C", "♠": "S", "?": "?"}
+        out = []
+        for card in cards or []:
+            try:
+                rank, suit = card
+            except Exception:
+                out.append(str(card))
+                continue
+            out.append(f"{rank}{suit_map.get(str(suit), str(suit)[:1] if str(suit) else '?')}")
+        return ", ".join(out)
+
+    dealer_cards_text = _fmt_cards(dealer.get("cards", []))
+    if not finished and len(dealer.get("cards", [])) > 1 and dealer.get("cards", [None, None])[1] == ("?", "?"):
+        dealer_cards_text = f"{dealer_cards_text}, [{tr(game.lang, 'blackjack.hidden')}]"
+    _draw_text_outline(screen, body_font, f"{tr(game.lang, 'blackjack.dealer')}: {dealer_cards_text}", (235, 235, 235), (0, 0, 0), (panel.x + 22, y0), thickness=2)
+    dealer_value = dealer.get("value", None)
+    dealer_value_text = "?" if dealer_value is None else str(dealer_value)
+    _draw_text_outline(screen, body_font, f"{tr(game.lang, 'blackjack.dealer_value')}: {dealer_value_text}", (200, 220, 240), (0, 0, 0), (panel.x + 22, y0 + 26), thickness=2)
+
+    _draw_text_outline(screen, body_font, f"{tr(game.lang, 'blackjack.you')}: {_fmt_cards(player.get('cards', []))}", (245, 245, 220), (0, 0, 0), (panel.x + 22, y0 + 70), thickness=2)
+    _draw_text_outline(screen, body_font, f"{tr(game.lang, 'blackjack.your_value')}: {player.get('value', 0)}", (245, 245, 220), (0, 0, 0), (panel.x + 22, y0 + 96), thickness=2)
+
+    reaction = narrative.get("reaction", "")
+    final_comment = narrative.get("final_comment", "")
+    _draw_text_outline(screen, small_font, f"{tr(game.lang, 'blackjack.reaction')}: {reaction}", (200, 235, 220), (0, 0, 0), (panel.x + 22, y0 + 140), thickness=2)
+    if finished:
+        _draw_text_outline(screen, small_font, f"{tr(game.lang, 'blackjack.result')}: {st.get('result', '')}", (255, 226, 160), (0, 0, 0), (panel.x + 22, y0 + 170), thickness=2)
+        _draw_text_outline(screen, small_font, f"{tr(game.lang, 'blackjack.comment')}: {final_comment}", (255, 226, 160), (0, 0, 0), (panel.x + 22, y0 + 196), thickness=2)
+
+    options = (
+        [tr(game.lang, "blackjack.hit"), tr(game.lang, "blackjack.stand"), tr(game.lang, "blackjack.leave")]
+        if not finished
+        else [tr(game.lang, "blackjack.again"), tr(game.lang, "blackjack.leave")]
+    )
+    oy = panel.bottom - 92
+    ox = panel.x + 22
+    for i, label in enumerate(options):
+        rect = pygame.Rect(ox + i * 160, oy, 140, 36)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, body_font, label, color, (0, 0, 0), (rect.x + 18, rect.y + 8), thickness=2)
+    _draw_text_outline(screen, small_font, tr(game.lang, "blackjack.hint"), (180, 205, 225), (0, 0, 0), (panel.x + 22, panel.bottom - 34), thickness=2)
+
+
+def draw_blackjack_bet(game, screen):
+    if getattr(game, "ui_mode", None) != "blackjack_bet":
+        return
+    panel = pygame.Rect(screen.get_width() // 6, screen.get_height() // 4, screen.get_width() * 2 // 3, screen.get_height() // 3)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 130))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (12, 18, 30), panel, border_radius=10)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=10)
+    title_font = _get_font(24, bold=True)
+    body_font = _get_font(18)
+    _draw_text_outline(screen, title_font, tr(game.lang, "blackjack.session_title"), (245, 245, 245), (0, 0, 0), (panel.x + 20, panel.y + 16), thickness=2)
+    _draw_text_outline(screen, body_font, tr(game.lang, "blackjack.session_prompt"), (225, 235, 245), (0, 0, 0), (panel.x + 20, panel.y + 62), thickness=2)
+    _draw_text_outline(screen, body_font, tr(game.lang, "blackjack.session_money", money=int(getattr(game, "money", 0))), (200, 220, 240), (0, 0, 0), (panel.x + 20, panel.y + 90), thickness=2)
+    value = getattr(game, "blackjack_bet_input", "") or ""
+    box = pygame.Rect(panel.x + 20, panel.y + 125, panel.width - 40, 42)
+    _draw_readability_row(screen, box, selected=True)
+    _draw_text_outline(screen, body_font, value if value else "_", (255, 247, 170), (0, 0, 0), (box.x + 10, box.y + 10), thickness=2)
+    err = getattr(game, "blackjack_bet_error", "")
+    if err == "invalid":
+        _draw_text_outline(screen, body_font, tr(game.lang, "blackjack.session_err_invalid"), (255, 180, 180), (0, 0, 0), (panel.x + 20, panel.y + 176), thickness=2)
+    elif err == "range":
+        _draw_text_outline(screen, body_font, tr(game.lang, "blackjack.session_err_range"), (255, 180, 180), (0, 0, 0), (panel.x + 20, panel.y + 176), thickness=2)
+    _draw_text_outline(screen, body_font, tr(game.lang, "blackjack.session_hint"), (180, 205, 225), (0, 0, 0), (panel.x + 20, panel.bottom - 34), thickness=2)
+
+
 def draw_shop(game, screen):
     if game.ui_mode != "shop":
         return
@@ -1832,7 +1933,9 @@ def draw(game, screen):
         screen.blit(s, (0, 0))
 
     draw_messages(game, screen)
+    draw_blackjack_bet(game, screen)
     draw_dialog(game, screen)
+    draw_blackjack(game, screen)
     draw_shop(game, screen)
     draw_interact_picker(game, screen)
     draw_death_menu(game, screen)
@@ -1875,4 +1978,3 @@ def draw(game, screen):
         y = 12
         screen.blit(box, (x, y))
         screen.blit(surf, (x + 10, y + 5))
-

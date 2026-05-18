@@ -3,6 +3,16 @@ import pygame
 
 def handle_game_key(ctx, event, press_move_fn, set_always_on_top_fn, tile_size, viewport):
     game = ctx["game"]
+    def _settle_blackjack_if_needed():
+        st_local = getattr(game, "blackjack_ui_state", {}) or {}
+        if not bool(st_local.get("finished", False)):
+            return
+        if bool(getattr(game, "blackjack_round_settled", False)):
+            return
+        bet_local = int(st_local.get("bet", 0) or 0)
+        payout_local = int(st_local.get("payout", 0) or 0)
+        game.money = max(0, int(getattr(game, "money", 0)) - bet_local + payout_local)
+        game.blackjack_round_settled = True
     if game.ui_mode == "death_menu":
         if game.death_no_save_notice:
             if event.key in (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE):
@@ -82,6 +92,80 @@ def handle_game_key(ctx, event, press_move_fn, set_always_on_top_fn, tile_size, 
             game.buy_selected_item()
         elif event.key == pygame.K_ESCAPE:
             game.close_shop()
+        return
+    if game.ui_mode == "blackjack_bet":
+        if event.key == pygame.K_ESCAPE:
+            game.ui_mode = None
+            return
+        if event.key == pygame.K_BACKSPACE:
+            game.blackjack_bet_input = getattr(game, "blackjack_bet_input", "")[:-1]
+            game.blackjack_bet_error = ""
+            return
+        if event.key == pygame.K_RETURN:
+            txt = (getattr(game, "blackjack_bet_input", "") or "").strip()
+            if not txt.isdigit():
+                game.blackjack_bet_error = "invalid"
+                return
+            amount = int(txt)
+            money = int(getattr(game, "money", 0))
+            if amount <= 0 or amount > money:
+                game.blackjack_bet_error = "range"
+                return
+            game.blackjack_session_bank = amount
+            game.blackjack_ui_state = game.blackjack_start(amount)
+            game.blackjack_ui_selected = 0
+            game.blackjack_round_settled = False
+            game.blackjack_bet_error = ""
+            game.ui_mode = "blackjack"
+            return
+        if event.unicode and event.unicode.isdigit():
+            raw = getattr(game, "blackjack_bet_input", "")
+            if len(raw) < 9:
+                game.blackjack_bet_input = raw + event.unicode
+                game.blackjack_bet_error = ""
+            return
+        return
+    if game.ui_mode == "blackjack":
+        st = getattr(game, "blackjack_ui_state", {}) or {}
+        finished = bool(st.get("finished", False))
+        _settle_blackjack_if_needed()
+        option_count = 2 if finished else 3
+        if event.key in (pygame.K_UP, pygame.K_w, pygame.K_LEFT, pygame.K_a):
+            game.blackjack_ui_selected = (getattr(game, "blackjack_ui_selected", 0) - 1) % option_count
+            return
+        if event.key in (pygame.K_DOWN, pygame.K_s, pygame.K_RIGHT, pygame.K_d):
+            game.blackjack_ui_selected = (getattr(game, "blackjack_ui_selected", 0) + 1) % option_count
+            return
+        if event.key == pygame.K_ESCAPE:
+            game.ui_mode = None
+            return
+        if event.key == pygame.K_RETURN:
+            sel = int(getattr(game, "blackjack_ui_selected", 0))
+            if finished:
+                if sel == 0 and hasattr(game, "blackjack_start"):
+                    bet = int(st.get("bet", 10) or 10)
+                    bet = min(max(1, bet), int(getattr(game, "money", 0)))
+                    if bet <= 0:
+                        game.ui_mode = None
+                        return
+                    game.blackjack_ui_state = game.blackjack_start(bet)
+                    game.blackjack_ui_selected = 0
+                    game.blackjack_round_settled = False
+                else:
+                    game.ui_mode = None
+                return
+            if sel == 0 and hasattr(game, "blackjack_hit"):
+                game.blackjack_ui_state = game.blackjack_hit()
+                game.blackjack_ui_selected = 0
+                _settle_blackjack_if_needed()
+                return
+            if sel == 1 and hasattr(game, "blackjack_stand"):
+                game.blackjack_ui_state = game.blackjack_stand()
+                game.blackjack_ui_selected = 0
+                _settle_blackjack_if_needed()
+                return
+            game.ui_mode = None
+            return
         return
     if game.ui_mode == "hotbar":
         if event.key == pygame.K_i:

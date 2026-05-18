@@ -320,6 +320,32 @@ def dialog_choose(game):
             game.push_message("farm mod is not loaded")
             game.close_dialog()
         return
+    if next_node == "blackjack":
+        if hasattr(game, "blackjack_start") and hasattr(game, "blackjack_state"):
+            game.dialog_data = None
+            game.dialog_node = None
+            game.dialog_selected = 0
+            game.active_npc = None
+            game.dialog_source = None
+            if int(getattr(game, "money", 0)) <= 0:
+                game.push_message(tr(game.lang, "blackjack.no_money"))
+                game.ui_mode = None
+                return
+            if int(game.money) <= 1000:
+                bet = max(1, int(game.money))
+                game.blackjack_session_bank = bet
+                game.blackjack_ui_state = game.blackjack_start(bet)
+                game.blackjack_ui_selected = 0
+                game.blackjack_round_settled = False
+                game.ui_mode = "blackjack"
+            else:
+                game.blackjack_bet_input = ""
+                game.blackjack_bet_error = ""
+                game.ui_mode = "blackjack_bet"
+        else:
+            game.push_message("blackjack mod is not loaded")
+            game.close_dialog()
+        return
     if next_node == "heal":
         game.npc_heal()
         game.close_dialog()

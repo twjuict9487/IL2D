@@ -1,0 +1,1 @@
+﻿from mods.michael_mods.michael_mod_main import register_mod
