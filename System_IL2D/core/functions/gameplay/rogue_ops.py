@@ -6,7 +6,7 @@ from collections import deque
 from ..models.entity import Entity
 from ..support.i18n import tr
 from ..world.map import GameMap, mobs_data
-from ..support.utils import MAP_DIR, clamp
+from ..support.utils import MAP_DIR, clamp, resolve_map_file
 
 
 def enter_rogue_layer(game, new_entry=False):
@@ -27,7 +27,7 @@ def enter_rogue_layer(game, new_entry=False):
     special_layer = max(1, int(cfg.get("special_layer", 15)))
     special_map = cfg.get("special_map", "rouge_options.json")
     if game.rogue_layer > 0 and game.rogue_layer % special_layer == 0:
-        game.map = GameMap(os.path.join(MAP_DIR, special_map))
+        game.map = GameMap(resolve_map_file(special_map))
         if hasattr(game, "mark_map_explored"):
             game.mark_map_explored(game.map.name)
         game.map_max_h_mob = game.map.mob_limit

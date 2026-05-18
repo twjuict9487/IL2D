@@ -3,7 +3,7 @@ import random
 import time
 
 from ..support.i18n import tr
-from ..support.utils import DIALOG_DIR, load_json
+from ..support.utils import DIALOG_DIR, load_json, resolve_dialog_file
 from ..world.map import blocktypes, mobs_data, npc_data
 
 
@@ -89,7 +89,7 @@ def open_dialog(game, npc_id, source="script"):
     if npc_id in ("kaltsit", "ines"):
         _open_kaltsit_mission_dialog(game, npc_id, source=source)
         return
-    dialog_path = os.path.join(DIALOG_DIR, f"{npc_id}.json")
+    dialog_path = resolve_dialog_file(npc_id)
     if not os.path.isfile(dialog_path):
         return
     game.dialog_data = load_json(dialog_path)
@@ -312,6 +312,13 @@ def dialog_choose(game):
         return
     if next_node == "dev_shop":
         game.open_shop("dev")
+        return
+    if next_node == "farm_shop":
+        if hasattr(game, "farm_open_shop"):
+            game.farm_open_shop()
+        else:
+            game.push_message("farm mod is not loaded")
+            game.close_dialog()
         return
     if next_node == "heal":
         game.npc_heal()

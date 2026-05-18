@@ -6,7 +6,7 @@ from collections import deque
 try:
     from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from ..models.entity import Entity
-    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp
+    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from ..support.i18n import tr
     from . import rogue_ops as game_rogue_ops
     from . import npc_ops as game_npc_ops
@@ -19,7 +19,7 @@ except ImportError:
         sys.path.insert(0, _ROOT)
     from System_IL2D.core.functions.world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from System_IL2D.core.functions.models.entity import Entity
-    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp
+    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from System_IL2D.core.functions.support.i18n import tr
     from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
     from System_IL2D.core.functions.gameplay import npc_ops as game_npc_ops
@@ -409,7 +409,8 @@ class Game:
         if mapname == "rogue":
             self.enter_rogue_layer(new_entry=True)
             return
-        self.map = GameMap(os.path.join(MAP_DIR, mapname))
+        map_path = resolve_map_file(mapname)
+        self.map = GameMap(map_path)
         # map_1/map_2/map_3 stay fully pre-coded; do not randomize runtime layout.
         self.map_max_h_mob = self.map.mob_limit
         self.player_move_anim = None
@@ -443,10 +444,8 @@ class Game:
         nodes = {}
         edges = set()
         try:
-            for fname in os.listdir(MAP_DIR):
-                if not fname.lower().endswith(".json"):
-                    continue
-                fpath = os.path.join(MAP_DIR, fname)
+            for fpath in iter_all_map_files():
+                fname = os.path.basename(fpath)
                 try:
                     data = load_json(fpath)
                 except Exception:
@@ -478,14 +477,14 @@ class Game:
 
     def place_npcs_for_map(self):
         positions = {
-            "map_1.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8)],
+            "map_1.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 8)],
             # map_2: keep NPCs near left entrance (portal at x=0,y=15) with 1-tile gap.
-            "map_2.json": [(2, 16), (3, 16), (4, 16), (5, 16), (6, 16), (7, 16)],
-            "map_3.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8)],
-            "rogue": [(1, 12), (1, 13), (-999, -999), (-999, -999), (-999, -999), (-999, -999)],
-            "rouge_options.json": [(4, 5), (6, 5), (-999, -999), (-999, -999), (-999, -999), (-999, -999)]
+            "map_2.json": [(2, 16), (3, 16), (4, 16), (5, 16), (6, 16), (7, 16), (8, 16)],
+            "map_3.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 8)],
+            "rogue": [(1, 12), (1, 13), (-999, -999), (-999, -999), (-999, -999), (-999, -999), (-999, -999)],
+            "rouge_options.json": [(4, 5), (6, 5), (-999, -999), (-999, -999), (-999, -999), (-999, -999), (-999, -999)]
         }
-        order = ["dev", "priestess", "carmen", "closure", "kaltsit", "ines"]
+        order = ["dev", "priestess", "carmen", "closure", "kaltsit", "ines", "shu"]
         spots = positions.get(self.map.name, [])
         for i, npc_id in enumerate(order):
             ent = next((e for e in self.entities if e.eid == npc_id), None)

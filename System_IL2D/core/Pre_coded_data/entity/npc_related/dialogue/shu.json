@@ -1,0 +1,16 @@
+{
+  "start": "node_1",
+  "node_1": {
+    "text": "我是 Shu。要買農地、種子，還是把作物賣給我？",
+    "responses": [
+      {
+        "text": "開啟農場服務",
+        "next": "farm_shop"
+      },
+      {
+        "text": "先不用",
+        "next": "end"
+      }
+    ]
+  }
+}

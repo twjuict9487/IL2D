@@ -1,0 +1,19 @@
+{
+  "grow_seconds": 10,
+  "land_price": 100,
+  "crops": {
+    "rice": {
+      "seed_price": 20,
+      "sell_price": 35
+    },
+    "wheat": {
+      "seed_price": 15,
+      "sell_price": 28
+    }
+  },
+  "plots": [
+    [5, 5], [6, 5], [7, 5], [8, 5],
+    [5, 6], [6, 6], [7, 6], [8, 6],
+    [5, 7], [6, 7], [7, 7], [8, 7]
+  ]
+}

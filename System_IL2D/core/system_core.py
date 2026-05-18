@@ -1,6 +1,7 @@
 ﻿import os
 import pygame
 from core.functions.support.utils import CONFIG_FILE, SAVE_DIR, load_json
+from core.functions.support.asset_resolver import prime_asset_index
 from core.functions.support.i18n import tr
 from core.functions.gameplay.game import Game
 from core.functions.rendering.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, draw_dev_menu, draw_continue_menu, TILE_SIZE, VIEWPORT, FPS
@@ -35,6 +36,7 @@ from core.functions.input.held_movement import (
     handle_held_movement as _input_handle_held_movement,
 )
 from core.functions.input.game_key_flow import handle_game_key as _input_handle_game_key
+from core.mod_loader import load_mods as _load_mods, invoke_hooks as _invoke_mod_hooks
 
 _UI_IMG_CACHE = {}
 _TUTORIAL_STATE_FILE = os.path.join(SAVE_DIR, "tutorial_state.json")
@@ -141,6 +143,8 @@ def _mark_start_tutorial_seen():
 
 def init_context():
     pygame.init()
+    system_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    prime_asset_index(system_root)
     win_w = TILE_SIZE * VIEWPORT
     win_h = TILE_SIZE * (VIEWPORT + 1)
     screen = pygame.display.set_mode((win_w, win_h))
@@ -179,6 +183,8 @@ def init_context():
         "hold_repeat_delay": 0.08,
         "world_tick_interval": 0.5,
         "world_tick_accum": 0.0,
+        "loaded_mods": [],
+        "mod_errors": [],
     }
     try:
         cfg = load_json(CONFIG_FILE)
@@ -186,6 +192,8 @@ def init_context():
         ctx["hold_repeat_delay"] = cfg.get("hold_repeat_delay", ctx["hold_repeat_delay"])
     except Exception:
         pass
+    mods_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mods")
+    _load_mods(ctx, mods_dir)
     return ctx
 
 
@@ -774,6 +782,8 @@ def _handle_esc_menu_key(ctx, event):
 
 
 def _handle_game_key(ctx, event):
+    if _invoke_mod_hooks(ctx, "on_game_key", event, stop_on_true=True):
+        return
     _input_handle_game_key(ctx, event, _press_move, _set_always_on_top, TILE_SIZE, VIEWPORT)
 
 
@@ -1262,6 +1272,7 @@ def _handle_mouse_game(ctx, pos):
 
 def _update(ctx, dt):
     game = ctx["game"]
+    _invoke_mod_hooks(ctx, "on_update", dt)
     if ctx["state"] == "game" and getattr(game, 'death_timer', None) is not None:
         game.death_timer -= dt
         if game.death_timer <= 0:
@@ -1442,6 +1453,7 @@ def _render(ctx):
         # Keep dialog text readable: hide bottom status/hotbar while dialog is open.
         if getattr(ctx["game"], "ui_mode", None) != "dialog":
             draw_player_ui(ctx["game"], ctx["screen"])
+        _invoke_mod_hooks(ctx, "on_render", ctx["screen"])
     if ctx["game"].request_main_menu:
         ctx["game"].request_main_menu = False
         ctx["game"].ui_mode = None

@@ -1,9 +1,9 @@
 
 import os
-from ..support.utils import load_json, MAP_DIR, MOB_DIR, PLAYER_FILE, NPC_FILE
+from ..support.utils import load_json, BLOCKTYPE_FILE, MOBS_FILE, PLAYER_FILE, NPC_FILE
 
-blocktypes = load_json(os.path.join(MAP_DIR, 'blocktype.json'))
-mobs_data = load_json(os.path.join(MOB_DIR, 'mobs.json'))
+blocktypes = load_json(BLOCKTYPE_FILE)
+mobs_data = load_json(MOBS_FILE)
 player_data = load_json(PLAYER_FILE)
 npc_data = load_json(NPC_FILE)
 

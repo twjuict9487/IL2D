@@ -7,6 +7,7 @@ try:
     from ..support.utils import clamp
     from ..world.map import mobs_data, npc_data, blocktypes, player_data
     from ..support.i18n import tr
+    from ..support.asset_resolver import ensure_primed_from_file, resolve_image_candidates
 except ImportError:
     import sys
     _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
@@ -15,6 +16,7 @@ except ImportError:
     from System_IL2D.core.functions.support.utils import clamp
     from System_IL2D.core.functions.world.map import mobs_data, npc_data, blocktypes, player_data
     from System_IL2D.core.functions.support.i18n import tr
+    from System_IL2D.core.functions.support.asset_resolver import ensure_primed_from_file, resolve_image_candidates
 
 TILE_SIZE = 60
 VIEWPORT = 12
@@ -32,7 +34,14 @@ _DIALOG_NPC_FALLBACK_IMAGE = {
     "ines": "头像_伊内丝.png",
     "monst3r": "头像_Mon3tr.png",
     "wisadel": "头像_维什戴尔.png",
+    "shu": "头像_黍.png",
 }
+
+
+ensure_primed_from_file(__file__)
+_SYSTEM_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_CLIPS_DIR = os.path.join(_SYSTEM_ROOT, "clips")
+_ATLAS_DIR = os.path.join(_CLIPS_DIR, "atlas")
 
 
 def _load_image(filename, size=None):
@@ -41,19 +50,7 @@ def _load_image(filename, size=None):
     cache_key = (filename, size)
     if cache_key in _IMAGE_CACHE:
         return _IMAGE_CACHE[cache_key]
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    clips_dir = os.path.join(base_dir, "clips")
-    stem, ext = os.path.splitext(filename)
-    candidates = []
-    nobg_name = f"{stem}_nobg.png"
-    candidates.append(os.path.join(clips_dir, nobg_name))
-    candidates.append(os.path.join(clips_dir, "nobg_output", nobg_name))
-    candidates.append(os.path.join(clips_dir, filename))
-    # Fallbacks for engines/environments that cannot decode WEBP reliably.
-    if ext.lower() == ".webp":
-        for alt in (".png", ".jpg", ".jpeg"):
-            candidates.append(os.path.join(clips_dir, stem + alt))
-            candidates.append(os.path.join(clips_dir, "nobg_output", stem + alt))
+    candidates = resolve_image_candidates(filename)
     for path in candidates:
         if not os.path.isfile(path):
             continue
@@ -75,19 +72,15 @@ def _load_anim_frames(folder_name, size=None):
     cache_key = (folder_name, size)
     if cache_key in _ANIM_CACHE:
         return _ANIM_CACHE[cache_key]
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    clips_dir = os.path.join(base_dir, "clips")
-    atlas_dir = os.path.join(clips_dir, "atlas")
-
     # Atlas-first: clips/atlas/<folder_name>_atlas.json (+ optional _pNN pages)
     atlas_frames = []
     atlas_meta_files = []
-    base_meta = os.path.join(atlas_dir, f"{folder_name}_atlas.json")
+    base_meta = os.path.join(_ATLAS_DIR, f"{folder_name}_atlas.json")
     if os.path.isfile(base_meta):
         atlas_meta_files.append(base_meta)
         page_idx = 2
         while True:
-            page_meta = os.path.join(atlas_dir, f"{folder_name}_atlas_p{page_idx:02d}.json")
+            page_meta = os.path.join(_ATLAS_DIR, f"{folder_name}_atlas_p{page_idx:02d}.json")
             if not os.path.isfile(page_meta):
                 break
             atlas_meta_files.append(page_meta)
@@ -101,7 +94,7 @@ def _load_anim_frames(folder_name, size=None):
                 frame_defs = meta.get("frames", [])
                 if not atlas_name or not isinstance(frame_defs, list):
                     continue
-                atlas_path = os.path.join(atlas_dir, atlas_name)
+                atlas_path = os.path.join(_ATLAS_DIR, atlas_name)
                 if not os.path.isfile(atlas_path):
                     continue
                 atlas_img = pygame.image.load(atlas_path).convert_alpha()
@@ -128,7 +121,7 @@ def _load_anim_frames(folder_name, size=None):
         return atlas_frames
 
     # Legacy fallback: clips/<folder_name>/frame_*.png
-    folder = os.path.join(clips_dir, folder_name)
+    folder = os.path.join(_CLIPS_DIR, folder_name)
     if not os.path.isdir(folder):
         _ANIM_CACHE[cache_key] = []
         return []
@@ -1339,8 +1332,8 @@ def draw_messages(game, screen):
 def _draw_world_map(screen, panel, game, font):
     nodes_all = dict(getattr(game, "world_map_nodes", {}) or {})
     edges_all = list(getattr(game, "world_map_edges", []) or [])
-    core_names = ("map_1.json", "map_2.json", "map_3.json", "rogue")
-    nodes = {k: v for k, v in nodes_all.items() if k in core_names}
+    # Keep world map extensible for mod maps while anchoring known core maps.
+    nodes = dict(nodes_all)
     edges = [e for e in edges_all if e[0] in nodes and e[1] in nodes]
     if not nodes:
         return
@@ -1367,6 +1360,8 @@ def _draw_world_map(screen, panel, game, font):
         "map_2.json": (0.50, 0.55),
         "map_3.json": (0.84, 0.55),
         "rogue": (0.50, 0.20),
+        # Farmer mod map (requested): below map_2.
+        "farm_01.json": (0.50, 0.83),
     }
     # Recenter whole graph so current map is the visual focus.
     focus = cur if cur in anchor_base else "map_2.json"
@@ -1378,13 +1373,20 @@ def _draw_world_map(screen, panel, game, font):
     for k, (rx, ry) in anchor_base.items():
         anchor[k] = (rx + dx, ry + dy)
 
+    fallback_count = 0
     for name, meta in nodes.items():
         mw = max(1.0, float(meta.get("w", 20)))
         mh = max(1.0, float(meta.get("h", 20)))
         # Bigger map cards for readability.
         box_w = max(52, min(190, int(mw * 2.4)))
         box_h = max(36, min(130, int(mh * 2.4)))
-        rx, ry = anchor.get(name, (0.5, 0.5))
+        if name in anchor:
+            rx, ry = anchor[name]
+        else:
+            # Spread unknown/mod maps in a small bottom row band.
+            rx = 0.16 + (fallback_count % 5) * 0.17
+            ry = 0.87 + (fallback_count // 5) * 0.09
+            fallback_count += 1
         cx = int(map_rect.x + map_rect.width * rx)
         cy = int(map_rect.y + map_rect.height * ry)
         r = pygame.Rect(0, 0, box_w, box_h)

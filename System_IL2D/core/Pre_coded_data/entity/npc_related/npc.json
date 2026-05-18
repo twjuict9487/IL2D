@@ -1,75 +1,85 @@
 ﻿{
-  "_comment_zh": "//NPC 定義：friendly 預設 relation_point=100；neutral=0",
-  "dev": {
-    "_comment_zh": "dev 為友善且不死",
-    "immortal": true,
-    "ai_type": "friendly",
-    "relation_point": 100,
-    "gift_relation": 1000,
-    "image": "noFilter.webp"
-  },
-  "priestess": {
-    "_comment_zh": "治療 NPC：花費 50 robux 回滿 HP/MP",
-    "ai_type": "friendly",
-    "relation_point": 100,
-    "gift_relation": 50,
-    "image": "priestess.jpg",
-    "heal_cost": 50
-  },
-  "carmen": {
-    "_comment_zh": "中立 NPC（非敵對）",
-    "ai_type": "neutral",
-    "relation_point": 0,
-    "gift_relation": 50,
-    "image": "carmen.webp"
-  },
-  "closure": {
-    "_comment_zh": "一般商店 NPC（販售目前商店全部品項）",
-    "ai_type": "friendly",
-    "relation_point": 100,
-    "gift_relation": 50,
-    "image": "Closure.webp"
-  },
-  "kaltsit": {
-    "_comment_zh": "任務發布者 NPC（凱爾希）",
-    "ai_type": "friendly",
-    "relation_point": 100,
-    "gift_relation": 50,
-    "image": "头像_凯尔希.png",
-    "render_mode": "animated",
-    "anim_move": "nobg_kaltsit_walk",
-    "anim_fps": 12
-  },
-  "ines": {
-    "_comment_zh": "任務發布者 NPC（伊內絲），機制同凱爾希，獎勵為 Wisadel",
-    "ai_type": "friendly",
-    "relation_point": 100,
-    "gift_relation": 50,
-    "image": "头像_凯尔希.png",
-    "render_mode": "animated",
-    "anim_move": "nobg_ines_relax",
-    "anim_fps": 12
-  },
-  "monst3r": {
-    "_comment_zh": "隊伍成員（Monst3r），由凱爾希任務解鎖",
-    "ai_type": "team",
-    "relation_point": 100,
-    "gift_relation": 0,
-    "image": "头像_Mon3tr.png",
-    "render_mode": "animated",
-    "anim_move": "nobg_monst3r_walk",
-    "anim_skill3": "nobg_mons3r_attack",
-    "anim_fps": 12
-  },
-  "wisadel": {
-    "_comment_zh": "隊伍成員（Wisadel），由伊內絲任務解鎖",
-    "ai_type": "team",
-    "relation_point": 100,
-    "gift_relation": 0,
-    "image": "维什戴尔-超新星-基建-Move-x1.webp",
-    "render_mode": "animated",
-    "anim_move": "nobg_wisadel_walk",
-    "anim_skill3": "nobg_wisadel_attack",
-    "anim_fps": 12
-  }
+    "_comment_zh":  "//NPC 定義：friendly 預設 relation_point=100；neutral=0",
+    "dev":  {
+                "_comment_zh":  "dev 為友善且不死",
+                "immortal":  true,
+                "ai_type":  "friendly",
+                "relation_point":  100,
+                "gift_relation":  1000,
+                "image":  "noFilter.webp"
+            },
+    "priestess":  {
+                      "_comment_zh":  "治療 NPC：花費 50 robux 回滿 HP/MP",
+                      "ai_type":  "friendly",
+                      "relation_point":  100,
+                      "gift_relation":  50,
+                      "image":  "priestess.jpg",
+                      "heal_cost":  50
+                  },
+    "carmen":  {
+                   "_comment_zh":  "中立 NPC（非敵對）",
+                   "ai_type":  "neutral",
+                   "relation_point":  0,
+                   "gift_relation":  50,
+                   "image":  "carmen.webp"
+               },
+    "closure":  {
+                    "_comment_zh":  "一般商店 NPC（販售目前商店全部品項）",
+                    "ai_type":  "friendly",
+                    "relation_point":  100,
+                    "gift_relation":  50,
+                    "image":  "Closure.webp"
+                },
+    "kaltsit":  {
+                    "_comment_zh":  "任務發布者 NPC（凱爾希）",
+                    "ai_type":  "friendly",
+                    "relation_point":  100,
+                    "gift_relation":  50,
+                    "image":  "头像_凯尔希.png",
+                    "render_mode":  "animated",
+                    "anim_move":  "nobg_kaltsit_walk",
+                    "anim_fps":  12
+                },
+    "ines":  {
+                 "_comment_zh":  "任務發布者 NPC（伊內絲），機制同凱爾希，獎勵為 Wisadel",
+                 "ai_type":  "friendly",
+                 "relation_point":  100,
+                 "gift_relation":  50,
+                 "image":  "头像_凯尔希.png",
+                 "render_mode":  "animated",
+                 "anim_move":  "nobg_ines_relax",
+                 "anim_fps":  12
+             },
+    "monst3r":  {
+                    "_comment_zh":  "隊伍成員（Monst3r），由凱爾希任務解鎖",
+                    "ai_type":  "team",
+                    "relation_point":  100,
+                    "gift_relation":  0,
+                    "image":  "头像_Mon3tr.png",
+                    "render_mode":  "animated",
+                    "anim_move":  "nobg_monst3r_walk",
+                    "anim_skill3":  "nobg_mons3r_attack",
+                    "anim_fps":  12
+                },
+    "wisadel":  {
+                    "_comment_zh":  "隊伍成員（Wisadel），由伊內絲任務解鎖",
+                    "ai_type":  "team",
+                    "relation_point":  100,
+                    "gift_relation":  0,
+                    "image":  "维什戴尔-超新星-基建-Move-x1.webp",
+                    "render_mode":  "animated",
+                    "anim_move":  "nobg_wisadel_walk",
+                    "anim_skill3":  "nobg_wisadel_attack",
+                    "anim_fps":  12
+                },
+    "shu":  {
+                "_comment_zh":  "農場系統 NPC（購地、種子、作物販售與進入農地）",
+                "ai_type":  "friendly",
+                "relation_point":  100,
+                "gift_relation":  10,
+                "image":  "头像_黍.png",
+                "render_mode":  "animated",
+                "anim_move":  "nobg_shu_relax",
+                "anim_fps":  12
+            }
 }
