@@ -1,7 +1,7 @@
 ﻿import os
 import pygame
 from core.functions.support.utils import CONFIG_FILE, SAVE_DIR, load_json
-from core.functions.support.asset_resolver import prime_asset_index
+from core.functions.support.asset_resolver import prime_asset_index, resolve_image_candidates
 from core.functions.support.i18n import tr
 from core.functions.gameplay.game import Game
 from core.functions.rendering.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, draw_dev_menu, draw_continue_menu, TILE_SIZE, VIEWPORT, FPS
@@ -144,7 +144,11 @@ def _mark_start_tutorial_seen():
 def init_context():
     pygame.init()
     system_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    prime_asset_index(system_root)
+    try:
+        prime_asset_index(system_root)
+    except Exception:
+        # fail-open: keep booting even if indexing fails this run
+        pass
     win_w = TILE_SIZE * VIEWPORT
     win_h = TILE_SIZE * (VIEWPORT + 1)
     screen = pygame.display.set_mode((win_w, win_h))
@@ -1403,13 +1407,16 @@ def _load_npc_ui_image(npc_id, size):
     cache_key = (filename, int(size))
     if cache_key in _UI_IMG_CACHE:
         return _UI_IMG_CACHE[cache_key]
-    base_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Pictures")
-    path = os.path.join(base_dir, filename)
     stem, _ = os.path.splitext(filename)
-    nobg = os.path.join(base_dir, "nobg_output", f"{stem}_nobg.png")
-    if os.path.isfile(nobg):
-        path = nobg
-    if not os.path.isfile(path):
+    candidates = []
+    candidates.extend(resolve_image_candidates(filename))
+    candidates.extend(resolve_image_candidates(f"{stem}_nobg.png"))
+    path = None
+    for p in candidates:
+        if os.path.isfile(p):
+            path = p
+            break
+    if not path:
         _UI_IMG_CACHE[cache_key] = None
         return None
     try:

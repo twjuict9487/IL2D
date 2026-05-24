@@ -216,3 +216,14 @@ System_IL2D/Pictures/nobg_output/
 
 # keep final game assets in clips tracked, but ignore converter scratch output
 System_IL2D/clips/*_png_pack/
+
+# local backup folders (do not upload)
+Backup_version_v002/
+System_IL2D/backup v002/
+System_IL2D/Backup_version_v002/
+
+# experimental workspace (do not track)
+System_IL2D experimental version/
+Main_experimental.py
+Backup_version_v001/
+Backup_version_v002/

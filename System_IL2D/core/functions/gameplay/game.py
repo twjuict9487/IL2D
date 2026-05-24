@@ -8,6 +8,7 @@ try:
     from ..models.entity import Entity
     from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from ..support.i18n import tr
+    from ..support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from . import rogue_ops as game_rogue_ops
     from . import npc_ops as game_npc_ops
     from . import inventory_ops as game_inventory_ops
@@ -21,6 +22,7 @@ except ImportError:
     from System_IL2D.core.functions.models.entity import Entity
     from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from System_IL2D.core.functions.support.i18n import tr
+    from System_IL2D.core.functions.support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
     from System_IL2D.core.functions.gameplay import npc_ops as game_npc_ops
     from System_IL2D.core.functions.gameplay import inventory_ops as game_inventory_ops
@@ -2007,6 +2009,11 @@ class Game:
         return game_rogue_ops.use_level_skipper_hotbar(self)
 
     def _clips_base_dir(self):
+        # legacy helper kept for compatibility; folder resolution now uses indexer first
+        candidates = resolve_folder_candidates("clips")
+        for p in candidates:
+            if os.path.isdir(p):
+                return p
         return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "clips")
 
     def _anim_folder_for_state(self, ent_id, state):
@@ -2033,16 +2040,22 @@ class Game:
         cache = getattr(self, "_anim_frame_count_cache", {})
         if folder_name in cache:
             return cache[folder_name]
-        clips_dir = self._clips_base_dir()
-        atlas_dir = os.path.join(clips_dir, "atlas")
         total = 0
-        base_meta = os.path.join(atlas_dir, f"{folder_name}_atlas.json")
-        if os.path.isfile(base_meta):
+        base_meta = None
+        for p in resolve_atlas_candidates(f"{folder_name}_atlas.json"):
+            if os.path.isfile(p):
+                base_meta = p
+                break
+        if base_meta:
             meta_files = [base_meta]
             page_idx = 2
             while True:
-                page_meta = os.path.join(atlas_dir, f"{folder_name}_atlas_p{page_idx:02d}.json")
-                if not os.path.isfile(page_meta):
+                page_meta = None
+                for p in resolve_atlas_candidates(f"{folder_name}_atlas_p{page_idx:02d}.json"):
+                    if os.path.isfile(p):
+                        page_meta = p
+                        break
+                if not page_meta:
                     break
                 meta_files.append(page_meta)
                 page_idx += 1
@@ -2055,8 +2068,12 @@ class Game:
                 except Exception:
                     continue
         else:
-            folder = os.path.join(clips_dir, folder_name)
-            if os.path.isdir(folder):
+            folder = None
+            for p in resolve_folder_candidates(folder_name):
+                if os.path.isdir(p):
+                    folder = p
+                    break
+            if folder and os.path.isdir(folder):
                 total = len([n for n in os.listdir(folder) if n.lower().endswith(".png")])
         cache[folder_name] = total
         self._anim_frame_count_cache = cache

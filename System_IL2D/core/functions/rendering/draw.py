@@ -7,7 +7,7 @@ try:
     from ..support.utils import clamp
     from ..world.map import mobs_data, npc_data, blocktypes, player_data
     from ..support.i18n import tr
-    from ..support.asset_resolver import ensure_primed_from_file, resolve_image_candidates
+    from ..support.asset_resolver import ensure_primed_from_file, resolve_image_candidates, resolve_atlas_candidates, resolve_folder_candidates
 except ImportError:
     import sys
     _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
@@ -16,7 +16,7 @@ except ImportError:
     from System_IL2D.core.functions.support.utils import clamp
     from System_IL2D.core.functions.world.map import mobs_data, npc_data, blocktypes, player_data
     from System_IL2D.core.functions.support.i18n import tr
-    from System_IL2D.core.functions.support.asset_resolver import ensure_primed_from_file, resolve_image_candidates
+    from System_IL2D.core.functions.support.asset_resolver import ensure_primed_from_file, resolve_image_candidates, resolve_atlas_candidates, resolve_folder_candidates
 
 TILE_SIZE = 60
 VIEWPORT = 12
@@ -40,8 +40,6 @@ _DIALOG_NPC_FALLBACK_IMAGE = {
 
 ensure_primed_from_file(__file__)
 _SYSTEM_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_CLIPS_DIR = os.path.join(_SYSTEM_ROOT, "clips")
-_ATLAS_DIR = os.path.join(_CLIPS_DIR, "atlas")
 
 
 def _load_image(filename, size=None):
@@ -75,16 +73,21 @@ def _load_anim_frames(folder_name, size=None):
     # Atlas-first: clips/atlas/<folder_name>_atlas.json (+ optional _pNN pages)
     atlas_frames = []
     atlas_meta_files = []
-    base_meta = os.path.join(_ATLAS_DIR, f"{folder_name}_atlas.json")
-    if os.path.isfile(base_meta):
-        atlas_meta_files.append(base_meta)
-        page_idx = 2
-        while True:
-            page_meta = os.path.join(_ATLAS_DIR, f"{folder_name}_atlas_p{page_idx:02d}.json")
-            if not os.path.isfile(page_meta):
+    for p in resolve_atlas_candidates(f"{folder_name}_atlas.json"):
+        if os.path.isfile(p):
+            atlas_meta_files.append(p)
+            break
+    page_idx = 2
+    while True:
+        page_found = False
+        for p in resolve_atlas_candidates(f"{folder_name}_atlas_p{page_idx:02d}.json"):
+            if os.path.isfile(p):
+                atlas_meta_files.append(p)
+                page_found = True
                 break
-            atlas_meta_files.append(page_meta)
-            page_idx += 1
+        if not page_found:
+            break
+        page_idx += 1
     if atlas_meta_files:
         for meta_path in atlas_meta_files:
             try:
@@ -94,8 +97,17 @@ def _load_anim_frames(folder_name, size=None):
                 frame_defs = meta.get("frames", [])
                 if not atlas_name or not isinstance(frame_defs, list):
                     continue
-                atlas_path = os.path.join(_ATLAS_DIR, atlas_name)
-                if not os.path.isfile(atlas_path):
+                atlas_path = None
+                for p in resolve_atlas_candidates(atlas_name):
+                    if os.path.isfile(p):
+                        atlas_path = p
+                        break
+                if not atlas_path:
+                    for p in resolve_image_candidates(atlas_name):
+                        if os.path.isfile(p):
+                            atlas_path = p
+                            break
+                if not atlas_path:
                     continue
                 atlas_img = pygame.image.load(atlas_path).convert_alpha()
                 for fr in frame_defs:
@@ -121,8 +133,12 @@ def _load_anim_frames(folder_name, size=None):
         return atlas_frames
 
     # Legacy fallback: clips/<folder_name>/frame_*.png
-    folder = os.path.join(_CLIPS_DIR, folder_name)
-    if not os.path.isdir(folder):
+    folder = None
+    for p in resolve_folder_candidates(folder_name):
+        if os.path.isdir(p):
+            folder = p
+            break
+    if folder is None:
         _ANIM_CACHE[cache_key] = []
         return []
     frames = []
