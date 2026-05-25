@@ -201,6 +201,8 @@ def _get_entity_render_image(game, ent, ent_def, size):
 
 
 def _get_dialog_portrait(game, npc_id, ent_def, size):
+    npc_key = str(npc_id or "").strip()
+    npc_key_l = npc_key.lower()
     if ent_def.get("render_mode") == "animated":
         fps = int(ent_def.get("anim_fps", 12) or 12)
         for anim_key in ("anim_move", "anim_skill3"):
@@ -212,13 +214,21 @@ def _get_dialog_portrait(game, npc_id, ent_def, size):
     img = _load_image(ent_def.get("image"), size)
     if img is not None:
         return img
-    fallback = _DIALOG_NPC_FALLBACK_IMAGE.get(npc_id)
+    fallback = _DIALOG_NPC_FALLBACK_IMAGE.get(npc_key) or _DIALOG_NPC_FALLBACK_IMAGE.get(npc_key_l)
     if fallback:
         img = _load_image(fallback, size)
         if img is not None:
             return img
     for ext in (".png", ".webp", ".jpg", ".jpeg"):
-        img = _load_image(f"{npc_id}_nobg{ext}", size)
+        img = _load_image(f"{npc_key}_nobg{ext}", size)
+        if img is None and npc_key_l and npc_key_l != npc_key:
+            img = _load_image(f"{npc_key_l}_nobg{ext}", size)
+        if img is not None:
+            return img
+    for name in (npc_key, npc_key_l):
+        if not name:
+            continue
+        img = _load_image(name, size)
         if img is not None:
             return img
     return None
@@ -816,13 +826,8 @@ def draw_menu_detail(screen, panel, game):
         _draw_text_outline(screen, font, tr(game.lang, "hotbar.magic"), (255, 247, 170) if mode == "magic" else (230, 230, 230), (0, 0, 0), (right_x + 4, head_y), thickness=2)
         y += font.get_height() + 8
 
-        rows = list(range(10)) if stage == "pick" else []
-        if stage != "pick":
-            for i in range(10):
-                if game.item_hotbar_slots[i] or game.magic_hotbar_slots[i] or i == slot_sel:
-                    rows.append(i)
-        if not rows:
-            rows = [slot_sel]
+        # Always show full 10 rows in settings (item 10 + magic 10).
+        rows = list(range(10))
 
         row_h = font.get_height() + 8
         for i in rows:

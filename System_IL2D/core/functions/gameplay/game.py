@@ -413,6 +413,12 @@ class Game:
             return
         map_path = resolve_map_file(mapname)
         self.map = GameMap(map_path)
+        # Prevent hostile entities from leaking across map transitions.
+        if hasattr(self, "entities"):
+            self.entities = [
+                e for e in self.entities
+                if e.eid == "player" or e.ai_type == "team" or npc_data.get(e.eid) is not None or e.immortal
+            ]
         # map_1/map_2/map_3 stay fully pre-coded; do not randomize runtime layout.
         self.map_max_h_mob = self.map.mob_limit
         self.player_move_anim = None

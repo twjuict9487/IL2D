@@ -323,9 +323,29 @@ def _handle_settings_key(ctx, event):
 
 
 def _handle_hotbar_menu_key(game, event):
-    if event.key == pygame.K_i:
-        game.hotbar_mode = "magic" if game.hotbar_mode == "item" else "item"
+    if not hasattr(game, "hotbar_item_list_selected"):
+        game.hotbar_item_list_selected = 0
+    if not hasattr(game, "hotbar_magic_list_selected"):
+        game.hotbar_magic_list_selected = 0
+    if not hasattr(game, "hotbar_list_selected"):
         game.hotbar_list_selected = 0
+
+    def _sync_hotbar_selected_from_mode():
+        if game.hotbar_mode == "item":
+            game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_item_list_selected", 0)))
+        else:
+            game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_magic_list_selected", 0)))
+
+    def _sync_hotbar_selected_to_mode():
+        if game.hotbar_mode == "item":
+            game.hotbar_item_list_selected = max(0, int(getattr(game, "hotbar_list_selected", 0)))
+        else:
+            game.hotbar_magic_list_selected = max(0, int(getattr(game, "hotbar_list_selected", 0)))
+
+    if event.key == pygame.K_i:
+        _sync_hotbar_selected_to_mode()
+        game.hotbar_mode = "magic" if game.hotbar_mode == "item" else "item"
+        _sync_hotbar_selected_from_mode()
         return
     if event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
         if game.hotbar_mode == "item":
@@ -347,14 +367,18 @@ def _handle_hotbar_menu_key(game, event):
             game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
             return
         if event.key in (pygame.K_LEFT, pygame.K_a):
+            _sync_hotbar_selected_to_mode()
             game.hotbar_mode = "item"
+            _sync_hotbar_selected_from_mode()
             return
         if event.key in (pygame.K_RIGHT, pygame.K_d):
+            _sync_hotbar_selected_to_mode()
             game.hotbar_mode = "magic"
+            _sync_hotbar_selected_from_mode()
             return
         if event.key == pygame.K_RETURN:
             game.hotbar_stage = "pick"
-            game.hotbar_list_selected = 0
+            _sync_hotbar_selected_from_mode()
             return
         if event.key == pygame.K_ESCAPE:
             game.ui_mode = None
@@ -364,20 +388,24 @@ def _handle_hotbar_menu_key(game, event):
     # stage == "pick"
     src = game.get_item_list() if game.hotbar_mode == "item" else [sp.get("name") for sp in game.spells]
     if event.key in (pygame.K_LEFT, pygame.K_a):
+        _sync_hotbar_selected_to_mode()
         game.hotbar_mode = "item"
-        game.hotbar_list_selected = 0
+        _sync_hotbar_selected_from_mode()
         return
     if event.key in (pygame.K_RIGHT, pygame.K_d):
+        _sync_hotbar_selected_to_mode()
         game.hotbar_mode = "magic"
-        game.hotbar_list_selected = 0
+        _sync_hotbar_selected_from_mode()
         return
     if event.key in (pygame.K_UP, pygame.K_w):
         if src:
             game.hotbar_list_selected = max(0, game.hotbar_list_selected - 1)
+            _sync_hotbar_selected_to_mode()
         return
     if event.key in (pygame.K_DOWN, pygame.K_s):
         if src:
             game.hotbar_list_selected = min(len(src) - 1, game.hotbar_list_selected + 1)
+            _sync_hotbar_selected_to_mode()
         return
     if event.key == pygame.K_RETURN:
         if src:
@@ -754,13 +782,22 @@ def _handle_esc_menu_key(ctx, event):
         ctx["state"] = "game"
     elif event.key == pygame.K_RETURN:
         if ctx["esc_selected"] == 0:
-            game.ui_mode = "item"
-            game.item_focus = "tabs"
+            if game.ui_mode == "item":
+                game.ui_mode = None
+            else:
+                game.ui_mode = "item"
+                game.item_focus = "tabs"
         elif ctx["esc_selected"] == 1:
-            game.ui_mode = "hotbar"
-            game.hotbar_stage = "grid"
-            game.hotbar_slot_selected = 0
-            game.hotbar_list_selected = 0
+            if game.ui_mode == "hotbar":
+                game.ui_mode = None
+            else:
+                game.ui_mode = "hotbar"
+                game.hotbar_stage = "grid"
+                game.hotbar_slot_selected = 0
+                if game.hotbar_mode == "item":
+                    game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_item_list_selected", 0)))
+                else:
+                    game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_magic_list_selected", 0)))
         elif ctx["esc_selected"] == 2:
             game.open_equip()
         elif ctx["esc_selected"] == 3:
@@ -850,13 +887,22 @@ def _handle_mouse_esc_menu(ctx, pos):
             idx = hit_idx
             ctx["esc_selected"] = idx
             if idx == 0:
-                game.ui_mode = "item"
-                game.item_focus = "tabs"
+                if game.ui_mode == "item":
+                    game.ui_mode = None
+                else:
+                    game.ui_mode = "item"
+                    game.item_focus = "tabs"
             elif idx == 1:
-                game.ui_mode = "hotbar"
-                game.hotbar_stage = "grid"
-                game.hotbar_slot_selected = 0
-                game.hotbar_list_selected = 0
+                if game.ui_mode == "hotbar":
+                    game.ui_mode = None
+                else:
+                    game.ui_mode = "hotbar"
+                    game.hotbar_stage = "grid"
+                    game.hotbar_slot_selected = 0
+                    if game.hotbar_mode == "item":
+                        game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_item_list_selected", 0)))
+                    else:
+                        game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_magic_list_selected", 0)))
             elif idx == 2:
                 game.open_equip()
             elif idx == 3:
@@ -881,38 +927,7 @@ def _handle_mouse_esc_menu(ctx, pos):
             return
     else:
         panel = pygame.Rect(menu_w, 0, screen.get_width() - menu_w, screen.get_height())
-        # Clicking inside right panel should enter current sublayer when not yet entered.
         if game.ui_mode is None and panel.collidepoint(mx, my):
-            idx = int(ctx.get("esc_selected", 0))
-            if idx == 0:
-                game.ui_mode = "item"
-                game.item_focus = "tabs"
-            elif idx == 1:
-                game.ui_mode = "hotbar"
-                game.hotbar_stage = "grid"
-                game.hotbar_slot_selected = 0
-                game.hotbar_list_selected = 0
-            elif idx == 2:
-                game.open_equip()
-            elif idx == 3:
-                game.ui_mode = "team"
-            elif idx == 4:
-                ctx["tutorial_mode"] = "manual"
-                ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
-                ctx["tutorial_idx"] = 0
-                ctx["tutorial_return_state"] = "esc_menu"
-                game.ui_mode = None
-                ctx["state"] = "tutorial"
-            elif idx == 5:
-                game.ui_mode = "map"
-            elif idx == 6:
-                game.ui_mode = "objective"
-            elif idx == 7:
-                game.ui_mode = "skill_tree"
-            elif idx == 8:
-                game.open_save()
-            elif idx == 9:
-                game.open_leave_confirm()
             return
         font = pygame.font.SysFont('consolas', 14)
         y = panel.y + 48
@@ -1067,16 +1082,21 @@ def _handle_mouse_esc_menu(ctx, pos):
                     break
         elif game.ui_mode == "hotbar":
             # minimal mouse support: click top half selects slot, bottom half selects source and assigns.
-            mode = game.hotbar_mode
             tab_y = panel.y + 48
             tab_w = (panel.width - 36) // 2
             item_tab = pygame.Rect(panel.x + 16, tab_y - 2, tab_w, font.get_height() + 8)
             magic_tab = pygame.Rect(panel.x + 20 + tab_w, tab_y - 2, tab_w, font.get_height() + 8)
             if item_tab.collidepoint(mx, my):
+                if game.hotbar_mode == "magic":
+                    game.hotbar_magic_list_selected = max(0, int(getattr(game, "hotbar_list_selected", 0)))
                 game.hotbar_mode = "item"
+                game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_item_list_selected", 0)))
                 return
             if magic_tab.collidepoint(mx, my):
+                if game.hotbar_mode == "item":
+                    game.hotbar_item_list_selected = max(0, int(getattr(game, "hotbar_list_selected", 0)))
                 game.hotbar_mode = "magic"
+                game.hotbar_list_selected = max(0, int(getattr(game, "hotbar_magic_list_selected", 0)))
                 return
         elif game.ui_mode == "skill_tree":
             nodes = game.get_skill_tree_nodes()
