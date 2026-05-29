@@ -8,7 +8,7 @@ ITEM_CATEGORY_TYPES = {
     "item": {"consumable"},
     "gift": {"gift"},
     "equipment": {"equipment"},
-    "special": {"special"},
+    "special": {"special", "magic_book"},
 }
 
 
@@ -78,6 +78,7 @@ def equip_selected_item(game):
     game.equipment[target_slot] = name
     game.recalculate_stats()
     game.push_message(tr(game.lang, "msg.equipped_item", name=game.display_item_name(name)))
+    game.tutorial_notify("equipment_changed", item_name=name, slot=target_slot)
 
 
 def unequip_all(game):
@@ -127,6 +128,7 @@ def equip_best(game):
                 changed = True
     game.recalculate_stats()
     if changed:
+        game.tutorial_notify("equipment_changed", item_name="equip_best", slot="multi")
         game.push_message(tr(game.lang, "msg.equip_best_done"))
     else:
         game.push_message(tr(game.lang, "msg.equip_best_no_change"))
@@ -180,6 +182,14 @@ def use_item(game):
     elif name == "rogue level skipper":
         game.open_level_skipper_ui()
         return
+    elif name.startswith("magic_book_"):
+        magic_id = name[len("magic_book_"):]
+        if game.unlock_magic(magic_id):
+            game.inventory[name] = max(0, game.inventory.get(name, 0) - 1)
+            game.push_message(tr(game.lang, "msg.magic_unlocked", name=game.display_spell_name(magic_id)))
+        else:
+            game.push_message(tr(game.lang, "msg.magic_already_unlocked", name=game.display_spell_name(magic_id)))
+        return
     else:
         game.push_message(tr(game.lang, "msg.cannot_use_item"))
         return
@@ -188,10 +198,11 @@ def use_item(game):
 
 
 def cast_spell(game):
-    if not game.spells:
+    spells_pool = game.get_unlocked_spells() if hasattr(game, "get_unlocked_spells") else game.spells
+    if not spells_pool:
         game.push_message(tr(game.lang, "msg.no_spells"))
         return
-    spell = game.spells[game.magic_selected % len(game.spells)]
+    spell = spells_pool[game.magic_selected % len(spells_pool)]
     name = spell.get("name", "spell")
     spell_label = game.display_spell_name(name)
     cost = int(spell.get("mp_cost", 0))
@@ -201,37 +212,26 @@ def cast_spell(game):
         game.push_message(tr(game.lang, "msg.spell_cooldown", name=spell_label, sec=remain))
         return
     if game.player.mp < cost:
-        game.push_message(tr(game.lang, "msg.not_enough_mp"))
+        game.push_message(tr(game.lang, "msg.out_of_mp"))
         return
+    # Casting consumes MP even when no target is hit.
     game.player.mp -= cost
     game.spell_cd_ticks[name] = max(0, cooldown_ticks)
-    effect_type = spell.get("effect_type")
-    if not effect_type:
-        effect_type = "heal" if name == "heal" else "damage"
-    if effect_type == "heal":
-        before = game.player.hp
-        heal_amount = int(spell.get("heal_amount", 25))
-        game.player.hp = clamp(game.player.hp + heal_amount, 0, game.player.max_hp)
-        healed = game.player.hp - before
-        if healed <= 0:
-            game.push_message(tr(game.lang, "msg.heal_full"))
-        else:
-            game.push_message(tr(game.lang, "msg.heal_gain", amount=healed))
+    archetype = str(spell.get("archetype", "")).lower()
+    effect_type = str(spell.get("effect_type", "")).lower()
+    if archetype == "beneficial" or effect_type in ("heal", "beneficial"):
+        _apply_beneficial_spell(game, spell, spell_label)
         return
 
-    target_range = int(spell.get("range", 4))
-    target = find_nearest_enemy_in_range(game, game.player, target_range)
-    if target is None:
-        game.push_message(tr(game.lang, "msg.cast_spell", name=spell_label))
-        return
-    base_damage = int(spell.get("base_damage", 8))
-    magic_ratio = float(spell.get("magic_ratio", 1.0))
-    damage = compute_magic_damage(game.player, target, base_damage, magic_ratio)
-    target.hp -= damage
-    game.push_message(tr(game.lang, "msg.cast_spell", name=f"{spell_label} ({damage})"))
-    if target.hp <= 0:
-        game.on_enemy_death(target)
-        game.state_cleanup()
+    target_range = int(spell.get("range_manhattan", spell.get("range", 4)))
+    target_ent = find_nearest_enemy_in_range(game, game.player, target_range)
+    if target_ent is not None:
+        target_tile = (target_ent.x, target_ent.y)
+    else:
+        target_tile = pick_random_tile_in_manhattan(game, game.player.x, game.player.y, target_range) or (game.player.x, game.player.y)
+
+    _spawn_projectile_effect(game, spell, (game.player.x, game.player.y), target_tile)
+    game.push_message(tr(game.lang, "msg.cast_spell", name=spell_label))
 
 
 def update_spell_cooldowns_tick(game):
@@ -270,6 +270,127 @@ def find_nearest_enemy_in_range(game, caster, target_range):
     return random.choice(nearest)
 
 
+def pick_random_tile_in_manhattan(game, cx, cy, target_range):
+    cells = []
+    for y in range(max(0, cy - target_range), min(game.map.h, cy + target_range + 1)):
+        for x in range(max(0, cx - target_range), min(game.map.w, cx + target_range + 1)):
+            dist = abs(cx - x) + abs(cy - y)
+            if dist <= target_range:
+                cells.append((x, y))
+    if not cells:
+        return None
+    return random.choice(cells)
+
+
+def _spawn_projectile_effect(game, spell, source_tile, target_tile):
+    sx, sy = source_tile
+    tx, ty = target_tile
+    dist = abs(sx - tx) + abs(sy - ty)
+    travel_sec = max(0.08, min(0.65, 0.06 * max(1, dist)))
+    effect = {
+        "kind": "projectile",
+        "spell": dict(spell),
+        "sx": float(sx),
+        "sy": float(sy),
+        "tx": float(tx),
+        "ty": float(ty),
+        "start": time.time(),
+        "travel_sec": float(travel_sec),
+    }
+    if not isinstance(getattr(game, "active_spell_effects", None), list):
+        game.active_spell_effects = []
+    game.active_spell_effects.append(effect)
+
+
+def update_spell_effects(game):
+    now = time.time()
+    effects = list(getattr(game, "active_spell_effects", []) or [])
+    if not effects:
+        return
+    kept = []
+    for ef in effects:
+        kind = ef.get("kind")
+        if kind == "projectile":
+            st = float(ef.get("start", now))
+            dur = max(0.01, float(ef.get("travel_sec", 0.2)))
+            if now - st >= dur:
+                _resolve_spell_impact(game, ef)
+                impact = {
+                    "kind": "impact",
+                    "spell": ef.get("spell", {}),
+                    "x": float(ef.get("tx", ef.get("sx", 0))),
+                    "y": float(ef.get("ty", ef.get("sy", 0))),
+                    "start": now,
+                    "life_sec": float(ef.get("spell", {}).get("impact_life_sec", 0.35)),
+                }
+                kept.append(impact)
+            else:
+                kept.append(ef)
+        elif kind == "impact":
+            st = float(ef.get("start", now))
+            life = max(0.01, float(ef.get("life_sec", 0.35)))
+            if now - st < life:
+                kept.append(ef)
+    game.active_spell_effects = kept
+
+
+def _resolve_spell_impact(game, projectile):
+    spell = projectile.get("spell", {}) or {}
+    cx = int(round(float(projectile.get("tx", 0))))
+    cy = int(round(float(projectile.get("ty", 0))))
+    base_damage = int(spell.get("base_damage", 8))
+    magic_ratio = float(spell.get("magic_ratio", 1.0))
+    aoe = int(spell.get("aoe_manhattan", spell.get("aoe_radius", 5)))
+    victims = []
+    for ent in game.entities:
+        if ent.eid == "player" or ent.hp <= 0 or getattr(ent, "immortal", False):
+            continue
+        ent_def = game.get_entity_def(ent.eid)
+        if ent_def.get("ai_type") != "hostile":
+            continue
+        if abs(ent.x - cx) + abs(ent.y - cy) <= aoe:
+            victims.append(ent)
+    total = 0
+    for ent in victims:
+        damage = compute_magic_damage(game.player, ent, base_damage, magic_ratio)
+        ent.hp -= damage
+        total += max(0, damage)
+        if ent.hp <= 0:
+            game.on_enemy_death(ent)
+    if victims:
+        game.state_cleanup()
+    if total > 0:
+        game.push_message(tr(game.lang, "msg.spell_aoe_hit", amount=total))
+
+
+def _apply_beneficial_spell(game, spell, spell_label):
+    heal_amount = int(spell.get("heal_amount", 25))
+    targets = [game.player]
+    members = set(getattr(game, "team_members", []) or [])
+    for ent in game.entities:
+        if ent.eid in members and ent.hp > 0 and getattr(ent, "ai_type", "") == "team":
+            targets.append(ent)
+    total_heal = 0
+    for ent in targets:
+        before = ent.hp
+        ent.hp = clamp(ent.hp + heal_amount, 0, ent.max_hp)
+        total_heal += max(0, ent.hp - before)
+        if not isinstance(getattr(game, "active_spell_effects", None), list):
+            game.active_spell_effects = []
+        game.active_spell_effects.append({
+            "kind": "impact",
+            "spell": dict(spell),
+            "x": float(ent.x),
+            "y": float(ent.y),
+            "start": time.time(),
+            "life_sec": float(spell.get("beneficial_life_sec", 0.45)),
+        })
+    if total_heal <= 0:
+        game.push_message(tr(game.lang, "msg.heal_full"))
+    else:
+        game.push_message(tr(game.lang, "msg.heal_gain", amount=total_heal))
+
+
 def compute_magic_damage(caster, target, base_damage, magic_ratio):
     atk = float(getattr(caster, "magic_attack", getattr(caster, "attack", 0)))
     md = float(getattr(target, "magic_defense", 0))
@@ -279,11 +400,12 @@ def compute_magic_damage(caster, target, base_damage, magic_ratio):
 
 
 def cast_spell_by_name(game, spell_name):
-    if not game.spells:
+    spells_pool = game.get_unlocked_spells() if hasattr(game, "get_unlocked_spells") else game.spells
+    if not spells_pool:
         game.push_message(tr(game.lang, "msg.no_spells"))
         return
     spell_name = game.canonical_spell_name(spell_name)
-    idx = next((i for i, sp in enumerate(game.spells) if sp.get("name") == spell_name), None)
+    idx = next((i for i, sp in enumerate(spells_pool) if sp.get("name") == spell_name), None)
     if idx is None:
         game.push_message(tr(game.lang, "msg.no_spells"))
         return

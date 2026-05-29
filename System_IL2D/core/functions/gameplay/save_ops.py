@@ -52,6 +52,7 @@ def save_game(game):
         "item_hotbar_slots": game.item_hotbar_slots,
         "magic_hotbar_slots": game.magic_hotbar_slots,
         "active_hotbar": game.active_hotbar,
+        "unlocked_magics": list(getattr(game, "unlocked_magics", [])),
         "team_equipment": getattr(game, "team_equipment", {}),
         "level_stat_pending": int(getattr(game, "level_stat_pending", 0)),
         "explored_maps": sorted(list(getattr(game, "explored_maps", set()))),
@@ -63,6 +64,7 @@ def save_game(game):
     game.last_saved = True
     game.last_save_slot = slot
     game.push_message(tr(game.lang, "msg.saved_slot", slot=slot))
+    game.tutorial_notify("game_saved", slot=slot)
 
 
 def load_save(game, slot):
@@ -132,6 +134,9 @@ def load_save(game, slot):
         game.magic_hotbar_slots = [(game.canonical_spell_name(v) if v else None) for v in (magic_slots + [None] * 10)[:10]]
     active = data.get("active_hotbar", "item")
     game.active_hotbar = "magic" if active == "magic" else "item"
+    loaded_unlock = data.get("unlocked_magics", None)
+    if isinstance(loaded_unlock, list):
+        game.unlocked_magics = [game.canonical_spell_name(v) for v in loaded_unlock if isinstance(v, str)]
     game.level_stat_pending = int(data.get("level_stat_pending", getattr(game, "level_stat_pending", 0)))
     loaded_explored = data.get("explored_maps", None)
     if isinstance(loaded_explored, list):

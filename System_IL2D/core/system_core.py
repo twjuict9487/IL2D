@@ -386,7 +386,7 @@ def _handle_hotbar_menu_key(game, event):
         return
 
     # stage == "pick"
-    src = game.get_item_list() if game.hotbar_mode == "item" else [sp.get("name") for sp in game.spells]
+    src = game.get_item_list() if game.hotbar_mode == "item" else [sp.get("name") for sp in game.get_unlocked_spells()]
     if event.key in (pygame.K_LEFT, pygame.K_a):
         _sync_hotbar_selected_to_mode()
         game.hotbar_mode = "item"
@@ -412,8 +412,10 @@ def _handle_hotbar_menu_key(game, event):
             picked = src[game.hotbar_list_selected % len(src)]
             if game.hotbar_mode == "item":
                 game.item_hotbar_slots[game.hotbar_slot_selected] = picked
+                game.tutorial_notify("hotbar_item_assigned", item_name=picked)
             else:
                 game.magic_hotbar_slots[game.hotbar_slot_selected] = picked
+                game.tutorial_notify("hotbar_magic_assigned", spell_name=picked)
         return
     if event.key == pygame.K_ESCAPE:
         game.hotbar_stage = "grid"
@@ -758,10 +760,13 @@ def _handle_esc_menu_key(ctx, event):
                     if items:
                         item = items[game.hotbar_list_selected % len(items)]
                         game.item_hotbar_slots[game.hotbar_slot_selected] = item
+                        game.tutorial_notify("hotbar_item_assigned", item_name=item)
                 else:
-                    if game.spells:
-                        sp = game.spells[game.hotbar_list_selected % len(game.spells)]
+                    spells = game.get_unlocked_spells()
+                    if spells:
+                        sp = spells[game.hotbar_list_selected % len(spells)]
                         game.magic_hotbar_slots[game.hotbar_slot_selected] = sp.get("name")
+                        game.tutorial_notify("hotbar_magic_assigned", spell_name=sp.get("name"))
             elif game.ui_mode == "skill_tree":
                 game.unlock_selected_skill()
             elif game.ui_mode == "leave_confirm":
@@ -779,6 +784,7 @@ def _handle_esc_menu_key(ctx, event):
     elif event.key == pygame.K_DOWN:
         ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 10
     elif event.key == pygame.K_ESCAPE:
+        game.tutorial_notify("esc_close")
         ctx["state"] = "game"
     elif event.key == pygame.K_RETURN:
         if ctx["esc_selected"] == 0:
@@ -814,6 +820,7 @@ def _handle_esc_menu_key(ctx, event):
         elif ctx["esc_selected"] == 6:
             game.ui_mode = "objective"
             game.objective_selected = 0
+            game.tutorial_notify("objective_opened")
         elif ctx["esc_selected"] == 7:
             game.ui_mode = "skill_tree"
         elif ctx["esc_selected"] == 8:
@@ -825,6 +832,8 @@ def _handle_esc_menu_key(ctx, event):
 def _handle_game_key(ctx, event):
     if _invoke_mod_hooks(ctx, "on_game_key", event, stop_on_true=True):
         return
+    if event.key == pygame.K_ESCAPE:
+        ctx["game"].tutorial_notify("esc_open")
     _input_handle_game_key(ctx, event, _press_move, _set_always_on_top, TILE_SIZE, VIEWPORT)
 
 
@@ -918,6 +927,7 @@ def _handle_mouse_esc_menu(ctx, pos):
                 game.ui_mode = "map"
             elif idx == 6:
                 game.ui_mode = "objective"
+                game.tutorial_notify("objective_opened")
             elif idx == 7:
                 game.ui_mode = "skill_tree"
             elif idx == 8:

@@ -165,5 +165,20 @@
   "Rogue 跳層器": {
     "id": "rogue level skipper",
     "type": "consumable"
+  },
+  "magic_book_spark": {
+    "id": "magic_book_spark",
+    "type": "magic_book",
+    "magic_id": "spark"
+  },
+  "magic_book_heal": {
+    "id": "magic_book_heal",
+    "type": "magic_book",
+    "magic_id": "heal"
+  },
+  "magic_book_fireball": {
+    "id": "magic_book_fireball",
+    "type": "magic_book",
+    "magic_id": "fireball"
   }
 }

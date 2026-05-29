@@ -69,6 +69,12 @@ def enter_rogue_layer(game, new_entry=False):
     if new_entry:
         retreat_name = cfg.get("retreat_item", "retreat item")
         game.inventory[retreat_name] = game.inventory.get(retreat_name, 0) + 1
+    else:
+        core = getattr(game, "tutorial_core", None)
+        if core and getattr(core, "active", False) and getattr(core, "current_id", lambda: None)() == "rogue_intro":
+            retreat_name = cfg.get("retreat_item", "retreat item")
+            if game.inventory.get(retreat_name, 0) <= 0:
+                game.inventory[retreat_name] = game.inventory.get(retreat_name, 0) + 1
     spawn_rogue_mobs(game)
 
 

@@ -1,0 +1,81 @@
+[
+  {
+    "id": "spark",
+    "name": "spark",
+    "starter_unlocked": true,
+    "book_price": 160,
+    "mp_cost": 5,
+    "archetype": "offensive",
+    "effect_type": "damage",
+    "range_manhattan": 4,
+    "aoe_manhattan": 1,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Magic1.png",
+      "frame_w": 96,
+      "frame_h": 96,
+      "frames": 24,
+      "fps": 16,
+      "size": 46
+    },
+    "atlas_impact": {
+      "image": "hahaimg/animations/Hit1.png",
+      "frame_w": 96,
+      "frame_h": 96,
+      "frames": 12,
+      "fps": 18,
+      "size": 56
+    }
+  },
+  {
+    "id": "heal",
+    "name": "heal",
+    "starter_unlocked": true,
+    "book_price": 220,
+    "mp_cost": 8,
+    "archetype": "beneficial",
+    "effect_type": "heal",
+    "heal_amount": 25,
+    "cooldown_ticks": 2,
+    "atlas_beneficial": {
+      "image": "hahaimg/animations/Recovery1.png",
+      "frame_w": 96,
+      "frame_h": 96,
+      "frames": 24,
+      "fps": 18,
+      "size": 62
+    }
+  },
+  {
+    "id": "fireball",
+    "name": "fireball",
+    "starter_unlocked": false,
+    "book_price": 420,
+    "mp_cost": 10,
+    "archetype": "offensive",
+    "effect_type": "damage",
+    "range_manhattan": 12,
+    "aoe_manhattan": 5,
+    "base_damage": 12,
+    "magic_ratio": 1.2,
+    "cooldown_ticks": 3,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Fire2.png",
+      "frame_w": 96,
+      "frame_h": 96,
+      "frames": 40,
+      "fps": 22,
+      "size": 52
+    },
+    "atlas_impact": {
+      "image": "hahaimg/animations/Explosion1.png",
+      "frame_w": 96,
+      "frame_h": 96,
+      "frames": 24,
+      "fps": 20,
+      "size": 84
+    }
+  }
+]

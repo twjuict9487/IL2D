@@ -41,6 +41,7 @@ def player_interact(game):
 
 
 def _open_interaction_for_npc(game, npc_id):
+    game.tutorial_notify("npc_interact", npc_id=npc_id)
     if game.map.name == "rouge_options.json" and npc_id == "dev":
         game.open_rogue_rest_leave()
     elif npc_id == "carmen":
@@ -546,6 +547,7 @@ def buy_selected_item(game):
             return
     game.money -= price
     game.inventory[name] = game.inventory.get(name, 0) + 1
+    game.tutorial_notify("item_purchased", item_name=name, item_type=game.item_defs.get(name, {}).get("type"))
     item_label = game.display_item_name(name)
     key = f"item.{name}"
     tr_label = tr(game.lang, key)

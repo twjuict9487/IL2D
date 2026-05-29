@@ -25,6 +25,7 @@ MAX_ANIM_FRAMES = 48
 
 _IMAGE_CACHE = {}
 _ANIM_CACHE = {}
+_SPELL_ATLAS_CACHE = {}
 _DIALOG_NPC_FALLBACK_IMAGE = {
     "dev": "noFilter_nobg.png",
     "priestess": "priestess_nobg.png",
@@ -166,6 +167,105 @@ def _get_anim_frame(folder_name, size=None, fps=12):
     tick = pygame.time.get_ticks() / 1000.0
     idx = int(tick * max(1, fps)) % len(frames)
     return frames[idx]
+
+
+def _resolve_spell_image_path(image_name):
+    if not image_name:
+        return None
+    cands = resolve_image_candidates(image_name)
+    for p in cands:
+        if os.path.isfile(p):
+            return p
+    p2 = os.path.join(_SYSTEM_ROOT, "clips", image_name.replace("/", os.sep).replace("\\", os.sep))
+    if os.path.isfile(p2):
+        return p2
+    return None
+
+
+def _load_spell_atlas_frames(atlas_cfg):
+    if not isinstance(atlas_cfg, dict):
+        return []
+    image_name = atlas_cfg.get("image")
+    fw = int(atlas_cfg.get("frame_w", 0) or 0)
+    fh = int(atlas_cfg.get("frame_h", 0) or 0)
+    max_frames = int(atlas_cfg.get("frames", 0) or 0)
+    if not image_name or fw <= 0 or fh <= 0:
+        return []
+    key = (image_name, fw, fh, max_frames)
+    if key in _SPELL_ATLAS_CACHE:
+        return _SPELL_ATLAS_CACHE[key]
+    path = _resolve_spell_image_path(image_name)
+    if not path:
+        _SPELL_ATLAS_CACHE[key] = []
+        return []
+    try:
+        atlas = pygame.image.load(path).convert_alpha()
+    except Exception:
+        _SPELL_ATLAS_CACHE[key] = []
+        return []
+    aw, ah = atlas.get_width(), atlas.get_height()
+    cols = max(1, aw // fw)
+    rows = max(1, ah // fh)
+    out = []
+    for r in range(rows):
+        for c in range(cols):
+            if max_frames > 0 and len(out) >= max_frames:
+                break
+            x = c * fw
+            y = r * fh
+            if x + fw <= aw and y + fh <= ah:
+                out.append(atlas.subsurface(pygame.Rect(x, y, fw, fh)).copy())
+        if max_frames > 0 and len(out) >= max_frames:
+            break
+    _SPELL_ATLAS_CACHE[key] = out
+    return out
+
+
+def _draw_spell_effects(game, screen, cam_px, cam_py, tile_w, tile_h):
+    effects = list(getattr(game, "active_spell_effects", []) or [])
+    if not effects:
+        return
+    now = time.time()
+    for ef in effects:
+        spell = ef.get("spell", {}) or {}
+        kind = ef.get("kind")
+        if kind == "projectile":
+            cfg = spell.get("atlas_projectile", {})
+            frames = _load_spell_atlas_frames(cfg)
+            if not frames:
+                continue
+            start = float(ef.get("start", now))
+            dur = max(0.01, float(ef.get("travel_sec", 0.2)))
+            t = max(0.0, min(1.0, (now - start) / dur))
+            px = float(ef.get("sx", 0)) + (float(ef.get("tx", 0)) - float(ef.get("sx", 0))) * t
+            py = float(ef.get("sy", 0)) + (float(ef.get("ty", 0)) - float(ef.get("sy", 0))) * t
+            fps = max(1, int(cfg.get("fps", 16)))
+            idx = int((now - start) * fps) % len(frames)
+            fr = frames[idx]
+            size = int(cfg.get("size", int(tile_w * 0.85)))
+            if size > 0 and (fr.get_width() != size or fr.get_height() != size):
+                fr = pygame.transform.smoothscale(fr, (size, size))
+            dx = int(px * tile_w - cam_px + (tile_w - fr.get_width()) / 2)
+            dy = int(py * tile_h - cam_py + (tile_h - fr.get_height()) / 2)
+            screen.blit(fr, (dx, dy))
+        elif kind == "impact":
+            cfg = spell.get("atlas_impact", spell.get("atlas_beneficial", {}))
+            frames = _load_spell_atlas_frames(cfg)
+            if not frames:
+                continue
+            start = float(ef.get("start", now))
+            life = max(0.01, float(ef.get("life_sec", 0.35)))
+            p = max(0.0, min(1.0, (now - start) / life))
+            idx = min(len(frames) - 1, int(p * (len(frames) - 1)))
+            fr = frames[idx]
+            size = int(cfg.get("size", int(tile_w * 1.05)))
+            if size > 0 and (fr.get_width() != size or fr.get_height() != size):
+                fr = pygame.transform.smoothscale(fr, (size, size))
+            x = float(ef.get("x", 0))
+            y = float(ef.get("y", 0))
+            dx = int(x * tile_w - cam_px + (tile_w - fr.get_width()) / 2)
+            dy = int(y * tile_h - cam_py + (tile_h - fr.get_height()) / 2)
+            screen.blit(fr, (dx, dy))
 
 
 def _get_entity_anim_state(game, ent):
@@ -860,7 +960,7 @@ def draw_menu_detail(screen, panel, game):
             _draw_text_outline(screen, font, hint, (200, 200, 200), (255, 255, 255), (panel.x + 20, panel.bottom - 28))
             return
 
-        src = game.get_item_list() if mode == "item" else [sp.get("name") for sp in game.spells]
+        src = game.get_item_list() if mode == "item" else [sp.get("name") for sp in game.get_unlocked_spells()]
         picker_top = min(panel.bottom - 130, y + 8)
         title = f"Assign -> {'ITEM' if mode == 'item' else 'MAGIC'} [{slot_sel + 1 if slot_sel < 9 else 0}]"
         _draw_text_outline(screen, font, title, (230, 230, 230), (255, 255, 255), (panel.x + 20, picker_top))
@@ -1349,6 +1449,48 @@ def draw_messages(game, screen):
             y -= font.get_height() + 4
             screen.blit(surf, (x, y))
         y -= 6
+
+
+def draw_tutorial_panel(game, screen):
+    core = getattr(game, "tutorial_core", None)
+    if not core or not getattr(core, "active", False):
+        return
+    payload = core.get_ui_payload() if hasattr(core, "get_ui_payload") else None
+    if not payload:
+        return
+
+    font_title = _get_font(16, bold=True)
+    font_body = _get_font(14)
+    panel_w = int(screen.get_width() * 0.58)
+    panel_h = int(screen.get_height() * 0.15)
+    panel_x = int((screen.get_width() - panel_w) * 0.38)
+    bar_h = 56
+    hotbar_h = 34
+    panel_y = screen.get_height() - (bar_h + hotbar_h + panel_h + 20)
+    panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
+    shade = pygame.Surface((panel.width, panel.height), pygame.SRCALPHA)
+    shade.fill((8, 16, 30, 210))
+    screen.blit(shade, (panel.x, panel.y))
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=8)
+
+    speaker = str(payload.get("speaker", "dev"))
+    title = str(payload.get("title", "Tutorial"))
+    hint = str(payload.get("hint", ""))
+    progress = str(payload.get("progress", ""))
+    countdown = payload.get("countdown", None)
+    _draw_text_outline(screen, font_title, f"{speaker}:", (170, 220, 255), (0, 0, 0), (panel.x + 12, panel.y + 10), thickness=2)
+    _draw_text_outline(screen, font_title, title, (245, 245, 245), (0, 0, 0), (panel.x + 84, panel.y + 10), thickness=2)
+    if progress:
+        _draw_text_outline(screen, font_body, progress, (255, 240, 170), (0, 0, 0), (panel.right - 150, panel.y + 12), thickness=2)
+    lines = _wrap_text(font_body, hint, panel.width - 24)
+    yy = panel.y + 36
+    for line in lines[:3]:
+        _draw_text_outline(screen, font_body, line, (225, 235, 245), (0, 0, 0), (panel.x + 12, yy), thickness=1)
+        yy += font_body.get_height() + 4
+    if countdown is not None:
+        ctext = tr(game.lang, "tutorial.dev.countdown", sec=int(countdown))
+        _draw_text_outline(screen, font_body, ctext, (255, 210, 150), (0, 0, 0), (panel.x + 12, panel.bottom - 24), thickness=2)
 
 def _draw_world_map(screen, panel, game, font):
     nodes_all = dict(getattr(game, "world_map_nodes", {}) or {})
@@ -1916,6 +2058,8 @@ def draw(game, screen):
                 cy = base_y - row * (star_size + gap) + star_size // 2
                 _draw_star(screen, cx, cy, star_size // 2, (248, 222, 90), (255, 245, 180))
 
+    _draw_spell_effects(game, screen, cam_px, cam_py, tile_w, tile_h)
+
     minimap_rect = _draw_minimap(game, screen, cam_px, cam_py, view_w_px, view_h_px)
     tracking_lines = game.get_tracking_summary_lines() if hasattr(game, "get_tracking_summary_lines") else []
     if minimap_rect and tracking_lines:
@@ -1953,6 +2097,7 @@ def draw(game, screen):
         s.fill((0, 0, 0))
         screen.blit(s, (0, 0))
 
+    draw_tutorial_panel(game, screen)
     draw_messages(game, screen)
     draw_blackjack_bet(game, screen)
     draw_dialog(game, screen)

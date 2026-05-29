@@ -6,13 +6,14 @@ from collections import deque
 try:
     from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from ..models.entity import Entity
-    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from ..support.i18n import tr
     from ..support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from . import rogue_ops as game_rogue_ops
     from . import npc_ops as game_npc_ops
     from . import inventory_ops as game_inventory_ops
     from . import save_ops as game_save_ops
+    from .tutorial import GameplayTutorialCore
 except ImportError:
     import sys
     _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
@@ -20,13 +21,14 @@ except ImportError:
         sys.path.insert(0, _ROOT)
     from System_IL2D.core.functions.world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from System_IL2D.core.functions.models.entity import Entity
-    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from System_IL2D.core.functions.support.i18n import tr
     from System_IL2D.core.functions.support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
     from System_IL2D.core.functions.gameplay import npc_ops as game_npc_ops
     from System_IL2D.core.functions.gameplay import inventory_ops as game_inventory_ops
     from System_IL2D.core.functions.gameplay import save_ops as game_save_ops
+    from System_IL2D.core.functions.gameplay.tutorial import GameplayTutorialCore
 
 
 class Game:
@@ -103,6 +105,8 @@ class Game:
         self.hotbar_type_selected = 0  # 0=item, 1=magic
         self.hotbar_slot_selected = 0
         self.hotbar_list_selected = 0
+        self.hotbar_item_list_selected = 0
+        self.hotbar_magic_list_selected = 0
         self.active_hotbar = "item"  # currently visible/triggered in-game bar
         self.item_hotbar_slots = [None] * 10
         self.magic_hotbar_slots = [None] * 10
@@ -139,8 +143,10 @@ class Game:
         self.tracked_mission = None
         self.active_missions = []
         self.spells = []
+        self.unlocked_magics = []
         self.spell_last_cast = {}
         self.spell_cd_ticks = {}
+        self.active_spell_effects = []
         self.player_level = int(pdata.get("level", 1))
         self.player_exp = int(pdata.get("exp", 0))
         self.player_skill_points = int(pdata.get("skill_points", 3))
@@ -206,6 +212,7 @@ class Game:
         self.explored_maps = set()
         self.world_map_nodes = {}
         self.world_map_edges = []
+        self.tutorial_core = None
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
@@ -214,6 +221,26 @@ class Game:
         self.mark_map_explored(self.map.name)
         self.relations = {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)}
         self.maybe_startup_closure_greet()
+
+    def start_new_player_tutorial(self):
+        self.tutorial_core = GameplayTutorialCore(lang=self.lang)
+        self.tutorial_core.start(self)
+
+    def tutorial_notify(self, event_name, **kwargs):
+        core = getattr(self, "tutorial_core", None)
+        if core and getattr(core, "active", False):
+            core.notify(self, event_name, **kwargs)
+
+    def tutorial_update(self, dt):
+        core = getattr(self, "tutorial_core", None)
+        if core and getattr(core, "active", False):
+            core.update(self, dt)
+
+    def tutorial_forced_drop_bonus(self, ent):
+        core = getattr(self, "tutorial_core", None)
+        if core and getattr(core, "active", False):
+            return core.forced_drop_bonus(self, ent)
+        return None
 
     def canonical_item_name(self, name):
         return self.item_alias.get(name, name)
@@ -238,11 +265,14 @@ class Game:
         self.move_anim_duration = cfg.get("move_anim_duration", self.move_anim_duration)
         self.leave_rogue_hp = cfg.get("leave_rogue_hp", 100)
         self._load_item_defs(load_json(ITEMS_FILE))
+        spells_path = MAGICS_FILE if MAGICS_FILE and os.path.isfile(MAGICS_FILE) else SPELLS_FILE
+        self._load_spells(load_json(spells_path))
+        if not self.unlocked_magics:
+            self.unlocked_magics = [sp.get("name") for sp in self.spells if sp.get("starter_unlocked", False)]
         raw_shop = load_json(SHOP_FILE)
         self._refresh_equipment_layout()
         self.shop_all_items = self._build_synced_shop_items(raw_shop)
         self.shop_items = list(self.shop_all_items)
-        self._load_spells(load_json(SPELLS_FILE))
         self.objectives_cfg = load_json(OBJECTIVES_FILE)
         self.rogue_cfg = load_json(ROGUE_FILE)
 
@@ -294,6 +324,29 @@ class Game:
         self.spell_alias = alias
         self.spell_display = display
         self.magic_hotbar_slots = [self.canonical_spell_name(v) if v else None for v in self.magic_hotbar_slots]
+
+    def get_unlocked_spell_ids(self):
+        unlocked = [self.canonical_spell_name(v) for v in getattr(self, "unlocked_magics", []) if v]
+        valid = {sp.get("name") for sp in self.spells if isinstance(sp, dict)}
+        out = []
+        for sid in unlocked:
+            if sid in valid and sid not in out:
+                out.append(sid)
+        return out
+
+    def get_unlocked_spells(self):
+        allowed = set(self.get_unlocked_spell_ids())
+        return [sp for sp in self.spells if sp.get("name") in allowed]
+
+    def unlock_magic(self, magic_id):
+        sid = self.canonical_spell_name(magic_id)
+        valid = {sp.get("name") for sp in self.spells if isinstance(sp, dict)}
+        if sid not in valid:
+            return False
+        if sid in self.get_unlocked_spell_ids():
+            return False
+        self.unlocked_magics.append(sid)
+        return True
 
     def _refresh_equipment_layout(self):
         slot_order = ["weapon", "shield", "helmet", "armor", "pants", "boots"]
@@ -405,7 +458,18 @@ class Game:
                 r["name"]
             )
         )
-        return non_equipment + equipment_rows
+        spell_books = []
+        seen = {row.get("name") for row in non_equipment}
+        for sp in self.spells:
+            sid = sp.get("name")
+            if not sid:
+                continue
+            book_id = f"magic_book_{sid}"
+            if book_id in seen:
+                continue
+            price = int(sp.get("book_price", max(120, int(sp.get("mp_cost", 10)) * 20)))
+            spell_books.append({"name": book_id, "price": price})
+        return non_equipment + spell_books + equipment_rows
 
     def load_map(self, mapname):
         if mapname == "rogue":
@@ -696,6 +760,7 @@ class Game:
                 target.x, target.y = oldx, oldy
                 self.player.x, self.player.y = tx, ty
                 self.player_move_anim = {"from": (oldx, oldy), "to": (tx, ty), "start": time.time(), "duration": self.move_anim_duration}
+                self.tutorial_notify("move_key")
                 self.state_cleanup()
                 self.update(player_tick=False)
                 return True
@@ -708,6 +773,7 @@ class Game:
                 target.hp = -1
                 self.player.x, self.player.y = nx, ny
                 self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
+                self.tutorial_notify("move_key")
                 self.on_enemy_death(target)
                 self.state_cleanup()
                 self.update(player_tick=False)
@@ -722,6 +788,7 @@ class Game:
             return False
         self.player.x, self.player.y = nx, ny
         self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
+        self.tutorial_notify("move_key")
         bt = self.map.get_block(nx, ny)
         if bt and 'on_step' in blocktypes[bt]:
             if blocktypes[bt]['on_step'] == 'portal':
@@ -800,8 +867,23 @@ class Game:
                     dropped_items.append(f"{name} x{count}")
         if dropped_items:
             lines.append(tr(self.lang, "reward.dropped", text=", ".join(dropped_items)))
+        bonus = self.tutorial_forced_drop_bonus(ent)
+        if bonus:
+            bonus_money = int(bonus.get("money", 0))
+            if bonus_money > 0:
+                self.money += bonus_money
+                lines.append(tr(self.lang, "reward.dropped", text=f"{bonus_money} robux"))
+            for name, count in bonus.get("items", []):
+                if not name:
+                    continue
+                c = int(count or 0)
+                if c <= 0:
+                    continue
+                self.inventory[name] = self.inventory.get(name, 0) + c
+                lines.append(tr(self.lang, "reward.dropped", text=f"{name} x{c}"))
         self.push_message_lines(lines)
         self.add_exp(int(mob.get("exp_reward", 10)))
+        self.tutorial_notify("enemy_killed", enemy_id=ent.eid)
 
         # Mission progress (multi-mission)
         for mission in self.get_active_missions():
@@ -1181,6 +1263,7 @@ class Game:
             self.cleanup_messages()
 
     def update_time(self, dt):
+        self.tutorial_update(dt)
         if self.transition_active:
             self.update_transition(dt)
             return
@@ -1195,6 +1278,7 @@ class Game:
         self.update_bush_regrow()
         self.update_monst3r(player_tick=False)
         self.update_wisadel(player_tick=False)
+        game_inventory_ops.update_spell_effects(self)
         self.cleanup_messages()
 
     def ensure_monst3r_entity(self):
@@ -1675,7 +1759,9 @@ class Game:
         self.start_transition(do_return)
 
     def enter_rogue_layer(self, new_entry=False):
-        return game_rogue_ops.enter_rogue_layer(self, new_entry)
+        out = game_rogue_ops.enter_rogue_layer(self, new_entry)
+        self.tutorial_notify("rogue_entered")
+        return out
 
     def get_env_tier(self):
         step = 0.20
@@ -2009,6 +2095,7 @@ class Game:
             return
         self.item_selected = items.index(name)
         self.use_item()
+        self.tutorial_notify("hotbar_item_used", item_name=name)
         self.item_category = old_category
 
     def use_level_skipper_hotbar(self):
@@ -2117,10 +2204,15 @@ class Game:
             self.monst3r_anim_until = end_time
 
     def cast_spell_by_name(self, name):
-        return game_inventory_ops.cast_spell_by_name(self, name)
+        out = game_inventory_ops.cast_spell_by_name(self, name)
+        self.tutorial_notify("hotbar_magic_used", spell_name=name)
+        return out
 
     def update_spell_cooldowns_tick(self):
         return game_inventory_ops.update_spell_cooldowns_tick(self)
+
+    def update_spell_effects(self):
+        return game_inventory_ops.update_spell_effects(self)
 
     def recalculate_stats(self):
         game_inventory_ops.recalculate_stats(self)

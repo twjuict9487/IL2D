@@ -22,16 +22,10 @@ def handle_name_input_key(ctx, event, has_seen_tutorial_fn, build_tutorial_lines
         player_name = raw_name[:20] if raw_name else "Doctor"
         game = Game()
         game.player_name = player_name
+        game.start_new_player_tutorial()
         ctx["game"] = game
         pygame.key.stop_text_input()
-        if has_seen_tutorial_fn():
-            ctx["state"] = "game"
-        else:
-            ctx["tutorial_mode"] = "start"
-            ctx["tutorial_lines"] = build_tutorial_lines_fn(game.lang, mode="start")
-            ctx["tutorial_idx"] = 0
-            ctx["tutorial_return_state"] = "game"
-            ctx["state"] = "tutorial"
+        ctx["state"] = "game"
 
 
 def handle_text_input(ctx, text):
