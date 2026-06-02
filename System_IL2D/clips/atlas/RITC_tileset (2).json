@@ -1,0 +1,405 @@
+{
+  "version": 1,
+  "source": "RITC_tileset (2).png",
+  "atlas_size": [
+    1536,
+    1024
+  ],
+  "tile_size": [
+    128,
+    128
+  ],
+  "note": "Curated RITC tiles selected for hub, doors, walls, signage, and construction notices.",
+  "selected": [
+    {
+      "name": "floor_plain_dark",
+      "row": 1,
+      "col": 1,
+      "x": 0,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "safe floor / interior base"
+    },
+    {
+      "name": "floor_plain_light",
+      "row": 1,
+      "col": 2,
+      "x": 128,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "safe floor / brighter room base"
+    },
+    {
+      "name": "floor_panel",
+      "row": 1,
+      "col": 3,
+      "x": 256,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "room floor / industrial panel"
+    },
+    {
+      "name": "floor_grate",
+      "row": 1,
+      "col": 4,
+      "x": 384,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "vent / utility floor"
+    },
+    {
+      "name": "floor_mesh",
+      "row": 1,
+      "col": 5,
+      "x": 512,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "utility floor / maintenance zone"
+    },
+    {
+      "name": "floor_hazard_frame",
+      "row": 1,
+      "col": 6,
+      "x": 640,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "warning edge / restricted floor"
+    },
+    {
+      "name": "wall_plain_dark",
+      "row": 1,
+      "col": 7,
+      "x": 768,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "clean wall / room outer shell"
+    },
+    {
+      "name": "wall_light_strip",
+      "row": 1,
+      "col": 8,
+      "x": 896,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "accent wall / tech strip"
+    },
+    {
+      "name": "wall_panel_gray",
+      "row": 1,
+      "col": 9,
+      "x": 1024,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "wall panel / clean corridor wall"
+    },
+    {
+      "name": "wall_door",
+      "row": 1,
+      "col": 10,
+      "x": 1152,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "standard door / room entry"
+    },
+    {
+      "name": "wall_opening",
+      "row": 1,
+      "col": 11,
+      "x": 1280,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "open doorway / passage"
+    },
+    {
+      "name": "wall_gate",
+      "row": 1,
+      "col": 12,
+      "x": 1408,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "use": "gate / main entrance shell"
+    },
+    {
+      "name": "corner_outer_left",
+      "row": 2,
+      "col": 1,
+      "x": 0,
+      "y": 128,
+      "w": 128,
+      "h": 128,
+      "use": "outer corner / room edge"
+    },
+    {
+      "name": "corner_outer_right",
+      "row": 2,
+      "col": 2,
+      "x": 128,
+      "y": 128,
+      "w": 128,
+      "h": 128,
+      "use": "outer corner / room edge"
+    },
+    {
+      "name": "door_frame",
+      "row": 2,
+      "col": 5,
+      "x": 512,
+      "y": 128,
+      "w": 128,
+      "h": 128,
+      "use": "safe door frame / interior entrance"
+    },
+    {
+      "name": "door_frame_light",
+      "row": 2,
+      "col": 6,
+      "x": 640,
+      "y": 128,
+      "w": 128,
+      "h": 128,
+      "use": "light door frame / clean entrance"
+    },
+    {
+      "name": "gate_panel_dark",
+      "row": 2,
+      "col": 11,
+      "x": 1280,
+      "y": 128,
+      "w": 128,
+      "h": 128,
+      "use": "large gate / locked wing entry"
+    },
+    {
+      "name": "gate_panel_warning",
+      "row": 2,
+      "col": 12,
+      "x": 1408,
+      "y": 128,
+      "w": 128,
+      "h": 128,
+      "use": "large gate / marked lock zone"
+    },
+    {
+      "name": "marking_bar",
+      "row": 3,
+      "col": 1,
+      "x": 0,
+      "y": 256,
+      "w": 128,
+      "h": 128,
+      "use": "floor line / corridor marking"
+    },
+    {
+      "name": "marking_cross",
+      "row": 3,
+      "col": 2,
+      "x": 128,
+      "y": 256,
+      "w": 128,
+      "h": 128,
+      "use": "floor line / intersection marker"
+    },
+    {
+      "name": "marking_corner",
+      "row": 3,
+      "col": 4,
+      "x": 384,
+      "y": 256,
+      "w": 128,
+      "h": 128,
+      "use": "floor line corner / path turn"
+    },
+    {
+      "name": "marking_box_dashed",
+      "row": 3,
+      "col": 10,
+      "x": 1152,
+      "y": 256,
+      "w": 128,
+      "h": 128,
+      "use": "restricted zone border / warning frame"
+    },
+    {
+      "name": "light_bar",
+      "row": 4,
+      "col": 1,
+      "x": 0,
+      "y": 384,
+      "w": 128,
+      "h": 128,
+      "use": "ceiling light / wall light strip"
+    },
+    {
+      "name": "light_cross",
+      "row": 4,
+      "col": 2,
+      "x": 128,
+      "y": 384,
+      "w": 128,
+      "h": 128,
+      "use": "focus light / hub accent"
+    },
+    {
+      "name": "terminal_screen",
+      "row": 4,
+      "col": 7,
+      "x": 768,
+      "y": 384,
+      "w": 128,
+      "h": 128,
+      "use": "terminal / control room screen"
+    },
+    {
+      "name": "terminal_console",
+      "row": 4,
+      "col": 8,
+      "x": 896,
+      "y": 384,
+      "w": 128,
+      "h": 128,
+      "use": "console / tech desk"
+    },
+    {
+      "name": "plant_prop",
+      "row": 4,
+      "col": 11,
+      "x": 1280,
+      "y": 384,
+      "w": 128,
+      "h": 128,
+      "use": "decorative plant / room softener"
+    },
+    {
+      "name": "crate_prop",
+      "row": 4,
+      "col": 12,
+      "x": 1408,
+      "y": 384,
+      "w": 128,
+      "h": 128,
+      "use": "crate / storage prop"
+    },
+    {
+      "name": "mission_house_sign",
+      "row": 5,
+      "col": 1,
+      "x": 0,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "RITC portal sign"
+    },
+    {
+      "name": "shopping_area_sign",
+      "row": 5,
+      "col": 2,
+      "x": 128,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "RITC portal sign"
+    },
+    {
+      "name": "dormitory_sign",
+      "row": 5,
+      "col": 3,
+      "x": 256,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "RITC portal sign"
+    },
+    {
+      "name": "medical_area_sign",
+      "row": 5,
+      "col": 4,
+      "x": 384,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "RITC portal sign"
+    },
+    {
+      "name": "training_area_sign",
+      "row": 5,
+      "col": 5,
+      "x": 512,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "RITC portal sign"
+    },
+    {
+      "name": "main_building_sign",
+      "row": 5,
+      "col": 6,
+      "x": 640,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "RITC portal sign / future main building"
+    },
+    {
+      "name": "rhodes_island_logo",
+      "row": 5,
+      "col": 12,
+      "x": 1408,
+      "y": 512,
+      "w": 128,
+      "h": 128,
+      "use": "brand logo / lobby dressing"
+    },
+    {
+      "name": "still_cooking_warning",
+      "row": 6,
+      "col": 1,
+      "x": 0,
+      "y": 640,
+      "w": 128,
+      "h": 128,
+      "use": "locked area message"
+    },
+    {
+      "name": "area_not_ready_warning",
+      "row": 6,
+      "col": 2,
+      "x": 128,
+      "y": 640,
+      "w": 128,
+      "h": 128,
+      "use": "locked area message"
+    },
+    {
+      "name": "access_blocked_warning",
+      "row": 6,
+      "col": 3,
+      "x": 256,
+      "y": 640,
+      "w": 128,
+      "h": 128,
+      "use": "locked area message"
+    },
+    {
+      "name": "under_construction_warning",
+      "row": 6,
+      "col": 4,
+      "x": 384,
+      "y": 640,
+      "w": 128,
+      "h": 128,
+      "use": "locked area message"
+    }
+  ]
+}

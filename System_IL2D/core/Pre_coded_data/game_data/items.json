@@ -180,5 +180,35 @@
     "id": "magic_book_fireball",
     "type": "magic_book",
     "magic_id": "fireball"
+  },
+  "magic_book_ice_shard": {
+    "id": "magic_book_ice_shard",
+    "type": "magic_book",
+    "magic_id": "ice shard"
+  },
+  "magic_book_lightning_strike": {
+    "id": "magic_book_lightning_strike",
+    "type": "magic_book",
+    "magic_id": "lightning strike"
+  },
+  "magic_book_earthquake": {
+    "id": "magic_book_earthquake",
+    "type": "magic_book",
+    "magic_id": "earthquake"
+  },
+  "magic_book_wind_blade": {
+    "id": "magic_book_wind_blade",
+    "type": "magic_book",
+    "magic_id": "wind blade"
+  },
+  "magic_book_water_wave": {
+    "id": "magic_book_water_wave",
+    "type": "magic_book",
+    "magic_id": "water wave"
+  },
+  "magic_book_holy_light": {
+    "id": "magic_book_holy_light",
+    "type": "magic_book",
+    "magic_id": "holy light"
   }
 }

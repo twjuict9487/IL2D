@@ -227,3 +227,5 @@ System_IL2D experimental version/
 Main_experimental.py
 Backup_version_v001/
 Backup_version_v002/
+daily_log
+daily_log.*

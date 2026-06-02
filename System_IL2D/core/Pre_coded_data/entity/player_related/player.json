@@ -6,6 +6,7 @@
   "mp": 30,
   "attack": 20,
   "defence": 10,
+  "image": "Doctor_DM_icon_nobg.png",
   "level": 1,
   "exp": 0,
   "skill_points": 3

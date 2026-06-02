@@ -512,6 +512,25 @@ class Game:
             return "rogue"
         return name if name.endswith(".json") else f"{name}.json"
 
+    def _resolve_safe_spawn(self, pos, fallback=None, radius=2):
+        if not pos or len(pos) != 2 or not hasattr(self, "map") or self.map is None:
+            return fallback if fallback is not None else pos
+        try:
+            tx, ty = int(pos[0]), int(pos[1])
+        except Exception:
+            return fallback if fallback is not None else pos
+        candidates = [(tx, ty)]
+        for step in range(1, max(1, int(radius)) + 1):
+            for dx in range(-step, step + 1):
+                for dy in range(-step, step + 1):
+                    if abs(dx) != step and abs(dy) != step:
+                        continue
+                    candidates.append((tx + dx, ty + dy))
+        for cx, cy in candidates:
+            if self.map.is_walkable(cx, cy) and self.entity_at(cx, cy) is None:
+                return [cx, cy]
+        return fallback if fallback is not None else [tx, ty]
+
     def _build_world_map_graph(self):
         nodes = {}
         edges = set()
@@ -522,9 +541,16 @@ class Game:
                     data = load_json(fpath)
                 except Exception:
                     continue
+                if data.get("world_hidden", False):
+                    continue
                 grid = data.get("grid", [])
                 h = len(grid)
-                w = len(grid[0]) if h > 0 and isinstance(grid[0], list) else 0
+                if h > 0 and isinstance(grid[0], list):
+                    w = len(grid[0])
+                elif h > 0 and isinstance(grid[0], str):
+                    w = len([t for t in grid[0].replace(",", " ").split() if t])
+                else:
+                    w = 0
                 if w <= 0 or h <= 0:
                     continue
                 key = self._normalize_map_ref(fname)
@@ -806,6 +832,13 @@ class Game:
             if p.get("x") == x and p.get("y") == y:
                 target_map = p.get("target_map", "")
                 target_spawn = p.get("target_spawn", None)
+                message_key = p.get("message_key", "")
+                message_text = p.get("message", "")
+                locked = bool(p.get("locked", False))
+                if locked or (not target_map and (message_key or message_text)):
+                    msg = tr(self.lang, message_key) if message_key else (message_text or tr(self.lang, "msg.area_still_cooking"))
+                    self.push_message(msg)
+                    return
                 if target_map:
                     if target_map == "rogue":
                         self.start_transition(lambda: self.enter_rogue_layer(new_entry=True))
@@ -813,9 +846,10 @@ class Game:
                         def do_load():
                             self.load_map(target_map)
                             if target_spawn and len(target_spawn) == 2:
-                                self.player.x, self.player.y = target_spawn
+                                safe_spawn = self._resolve_safe_spawn(target_spawn, fallback=self.map.spawn)
                             else:
-                                self.player.x, self.player.y = self.map.spawn
+                                safe_spawn = self._resolve_safe_spawn(self.map.spawn, fallback=self.map.spawn)
+                            self.player.x, self.player.y = safe_spawn
                             self.teleport_team_to_player()
                         self.start_transition(do_load)
                 return

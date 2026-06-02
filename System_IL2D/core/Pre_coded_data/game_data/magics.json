@@ -14,18 +14,19 @@
     "cooldown_ticks": 10,
     "atlas_projectile": {
       "image": "hahaimg/animations/Magic1.png",
-      "frame_w": 96,
-      "frame_h": 96,
-      "frames": 24,
+      "frame_w": 192,
+      "frame_h": 192,
+      "frames": 5,
       "fps": 16,
       "size": 46
     },
     "atlas_impact": {
       "image": "hahaimg/animations/Hit1.png",
-      "frame_w": 96,
-      "frame_h": 96,
-      "frames": 12,
+      "frame_w": 192,
+      "frame_h": 192,
+      "frames": 4,
       "fps": 18,
+      "reverse": true,
       "size": 56
     }
   },
@@ -63,19 +64,174 @@
     "cooldown_ticks": 3,
     "atlas_projectile": {
       "image": "hahaimg/animations/Fire2.png",
-      "frame_w": 96,
-      "frame_h": 96,
-      "frames": 40,
+      "frame_w": 192,
+      "frame_h": 192,
+      "frames": 5,
       "fps": 22,
       "size": 52
     },
     "atlas_impact": {
       "image": "hahaimg/animations/Explosion1.png",
-      "frame_w": 96,
-      "frame_h": 96,
-      "frames": 24,
+      "frame_w": 192,
+      "frame_h": 192,
+      "frames": 5,
       "fps": 20,
       "size": 84
+    }
+  },
+  {
+    "id": "ice shard",
+    "name": "冰錐",
+    "starter_unlocked": false,
+    "book_price": 260,
+    "mp_cost": 12,
+    "effect_type": "damage",
+    "range": 4,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "manual_art_needed": true
+  },
+  {
+    "id": "lightning strike",
+    "name": "雷擊",
+    "starter_unlocked": false,
+    "book_price": 360,
+    "mp_cost": 20,
+    "effect_type": "damage",
+    "range": 4,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Thunder1.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 5,
+      "frame_end": 1,
+      "frames": 5,
+      "reverse": true,
+      "fps": 16,
+      "size": 52
+    }
+  },
+  {
+    "id": "earthquake",
+    "name": "地震",
+    "starter_unlocked": false,
+    "book_price": 420,
+    "mp_cost": 25,
+    "effect_type": "damage",
+    "range": 4,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Meteor.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 1,
+      "frame_end": 1,
+      "frames": 1,
+      "fps": 16,
+      "size": 38
+    },
+    "atlas_impact": {
+      "image": "hahaimg/animations/Explosion2.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 6,
+      "frame_end": 10,
+      "frames": 5,
+      "fps": 20,
+      "size": 84
+    }
+  },
+  {
+    "id": "wind blade",
+    "name": "風刃",
+    "starter_unlocked": false,
+    "book_price": 240,
+    "mp_cost": 10,
+    "effect_type": "damage",
+    "range": 4,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Slash.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 1,
+      "frame_end": 5,
+      "frames": 5,
+      "fps": 16,
+      "size": 48
+    }
+  },
+  {
+    "id": "water wave",
+    "name": "水波",
+    "starter_unlocked": false,
+    "book_price": 320,
+    "mp_cost": 18,
+    "effect_type": "damage",
+    "range": 4,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Water1.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 1,
+      "frame_end": 10,
+      "frames": 10,
+      "fps": 16,
+      "size": 50
+    },
+    "atlas_impact": {
+      "image": "hahaimg/animations/Mist.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 5,
+      "frame_end": 1,
+      "frames": 5,
+      "reverse": true,
+      "fps": 18,
+      "size": 62
+    }
+  },
+  {
+    "id": "holy light",
+    "name": "聖光",
+    "starter_unlocked": false,
+    "book_price": 520,
+    "mp_cost": 30,
+    "effect_type": "damage",
+    "range": 4,
+    "base_damage": 8,
+    "magic_ratio": 1.0,
+    "cooldown_ticks": 10,
+    "atlas_projectile": {
+      "image": "hahaimg/animations/Holy1.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 5,
+      "frame_end": 9,
+      "frames": 5,
+      "fps": 16,
+      "size": 54
+    },
+    "atlas_impact": {
+      "image": "hahaimg/animations/Light3.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "frame_start": 1,
+      "frame_end": 10,
+      "frames": 10,
+      "fps": 18,
+      "size": 66
     }
   }
 ]

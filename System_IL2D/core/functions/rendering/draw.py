@@ -1,4 +1,4 @@
-﻿import os
+import os
 import math
 import time
 import json
@@ -26,6 +26,7 @@ MAX_ANIM_FRAMES = 48
 _IMAGE_CACHE = {}
 _ANIM_CACHE = {}
 _SPELL_ATLAS_CACHE = {}
+_TILESET_CACHE = {}
 _DIALOG_NPC_FALLBACK_IMAGE = {
     "dev": "noFilter_nobg.png",
     "priestess": "priestess_nobg.png",
@@ -62,6 +63,64 @@ def _load_image(filename, size=None):
         except Exception:
             continue
     _IMAGE_CACHE[cache_key] = None
+    return None
+
+
+def _load_tileset_piece(tileset_json_name, ref_name, size=None):
+    if not tileset_json_name or not ref_name:
+        return None
+    cache_key = (tileset_json_name, ref_name, size)
+    if cache_key in _TILESET_CACHE:
+        return _TILESET_CACHE[cache_key]
+    for meta_path in resolve_atlas_candidates(tileset_json_name):
+        if not os.path.isfile(meta_path):
+            continue
+        try:
+            with open(meta_path, "r", encoding="utf-8-sig") as f:
+                meta = json.load(f)
+        except Exception:
+            continue
+        source_name = meta.get("source")
+        selected = meta.get("selected", [])
+        if not source_name or not isinstance(selected, list):
+            continue
+        target = None
+        for item in selected:
+            if item.get("name") == ref_name:
+                try:
+                    target = (
+                        int(item.get("x", 0)),
+                        int(item.get("y", 0)),
+                        int(item.get("w", 0)),
+                        int(item.get("h", 0)),
+                    )
+                except Exception:
+                    target = None
+                break
+        if not target:
+            continue
+        atlas_path = None
+        for p in resolve_atlas_candidates(source_name):
+            if os.path.isfile(p):
+                atlas_path = p
+                break
+        if not atlas_path:
+            for p in resolve_image_candidates(source_name):
+                if os.path.isfile(p):
+                    atlas_path = p
+                    break
+        if not atlas_path:
+            continue
+        try:
+            atlas = pygame.image.load(atlas_path).convert_alpha()
+            sub = atlas.subsurface(pygame.Rect(*target)).copy()
+            if size:
+                sub = pygame.transform.smoothscale(sub, (int(size[0]), int(size[1])))
+            _TILESET_CACHE[cache_key] = sub
+            return sub
+        except Exception:
+            continue
+    _TILESET_CACHE[cache_key] = None
     return None
 
 
@@ -1517,12 +1576,13 @@ def _draw_world_map(screen, panel, game, font):
     rects = {}
 
     # Base organization:
-    # map_1 left, map_2 middle, map_3 right, rogue up.
+    # map_1 left, map_2 middle, map_3 right, RITC up, rogue shifted aside as a future/sim area.
     anchor_base = {
         "map_1.json": (0.16, 0.55),
         "map_2.json": (0.50, 0.55),
         "map_3.json": (0.84, 0.55),
-        "rogue": (0.50, 0.20),
+        "ritc.json": (0.50, 0.20),
+        "rogue": (0.84, 0.20),
         # Farmer mod map (requested): below map_2.
         "farm_01.json": (0.50, 0.83),
     }
@@ -1575,8 +1635,12 @@ def _draw_world_map(screen, panel, game, font):
                 label = "map2"
             elif raw == "map_3":
                 label = "map3"
+            elif raw == "ritc":
+                label = "RITC"
             elif raw == "rogue":
                 label = f"rogue L{int(getattr(game, 'rogue_layer', 0))}"
+            elif raw.startswith("ritc_"):
+                label = raw.replace("ritc_", "").replace("_", " ").title()
             else:
                 label = raw
             # Name directly on map area (can overflow as requested).
@@ -1995,6 +2059,17 @@ def draw(game, screen):
                         ox = tile_x + (tile_w - size[0]) // 2
                         oy = tile_y + (tile_h - size[1]) // 2
                         screen.blit(img, (ox, oy))
+                else:
+                    bt_meta = blocktypes.get(bt, {})
+                    tileset_json_name = bt_meta.get("tileset_json")
+                    tileset_ref = bt_meta.get("tileset_ref")
+                    if tileset_json_name and tileset_ref:
+                        size = int(tile_w * 0.9), int(tile_h * 0.9)
+                        img = _load_tileset_piece(tileset_json_name, tileset_ref, size)
+                        if img:
+                            ox = tile_x + (tile_w - size[0]) // 2
+                            oy = tile_y + (tile_h - size[1]) // 2
+                            screen.blit(img, (ox, oy))
                 if (mx, my) in portal_set:
                     overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
                     overlay.fill((180, 60, 220, 160))

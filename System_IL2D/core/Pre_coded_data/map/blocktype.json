@@ -1,4 +1,4 @@
-﻿{
+{
   "_comment_zh": "//方塊代碼：01 草地、02 牆、03 傳送門、04 出口、05 樹、06 石頭、07 灌木(有莓)、08 灌木(無莓)、09 花",
   "01": { "walkable": true, "zh_comment": "草地 / 可走" },
   "02": { "walkable": false, "zh_comment": "牆 / 不可走" },
@@ -8,5 +8,55 @@
   "06": { "walkable": false, "image": "rock.jpg", "base": "01", "zh_comment": "石頭 / 不可走" },
   "07": { "walkable": false, "image": "bush_with_barries.jpg", "base": "01", "zh_comment": "灌木(有莓) / E 採集" },
   "08": { "walkable": true, "image": "bush_without_barries.jpg", "base": "01", "zh_comment": "灌木(無莓) / 可走 / 等待再生" },
-  "09": { "walkable": true, "image": "flower.png", "base": "01", "zh_comment": "花 / 可走裝飾" }
+  "09": { "walkable": true, "image": "flower.png", "base": "01", "zh_comment": "花 / 可走裝飾" },
+  "10": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "floor_plain_dark",
+    "zh_comment": "RITC 地板(深色) / 可走"
+  },
+  "11": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "floor_plain_light",
+    "zh_comment": "RITC 地板(淺色) / 可走"
+  },
+  "12": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "wall_plain_dark",
+    "zh_comment": "RITC 牆面 / 不可走"
+  },
+  "13": {
+    "walkable": true,
+    "on_step": "portal",
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "wall_door",
+    "zh_comment": "RITC 門 / 傳送門"
+  },
+  "14": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "mission_house_sign",
+    "zh_comment": "RITC 標牌 / 任務區可走裝飾"
+  },
+  "15": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "still_cooking_warning",
+    "zh_comment": "RITC 未完成提示 / 可走裝飾"
+  },
+  "16": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "gate_panel_warning",
+    "zh_comment": "RITC 封鎖門 / 可走裝飾"
+  }
 }

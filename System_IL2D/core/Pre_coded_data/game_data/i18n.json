@@ -299,7 +299,8 @@
     "item.magic_book_spark": "magic book: spark",
     "item.magic_book_heal": "magic book: heal",
     "item.magic_book_fireball": "magic book: fireball",
-    "spell.fireball": "fireball"
+    "spell.fireball": "fireball",
+    "msg.area_still_cooking": "Access blocked. This area is still cooking."
   },
   "zh": {
     "menu.new_game": "新遊戲",
@@ -601,6 +602,7 @@
     "item.magic_book_spark": "魔法書：火花",
     "item.magic_book_heal": "魔法書：治療",
     "item.magic_book_fireball": "魔法書：火球",
-    "spell.fireball": "火球"
+    "spell.fireball": "火球",
+    "msg.area_still_cooking": "?????????????"
   }
 }
