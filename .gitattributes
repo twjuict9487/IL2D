@@ -1,16 +1,9 @@
-﻿* text=auto
+* text=auto eol=lf
+
 *.py text eol=lf
 *.json text eol=lf
 *.md text eol=lf
 *.txt text eol=lf
-*.yml text eol=lf
 *.yaml text eol=lf
-*.pyc binary
-*.pyo binary
-*.pyd binary
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.webp binary
-*.webm binary
-*.gif binary
+*.yml text eol=lf
+*.ini text eol=lf

@@ -1,62 +1,192 @@
 {
-  "_comment_zh": "//方塊代碼：01 草地、02 牆、03 傳送門、04 出口、05 樹、06 石頭、07 灌木(有莓)、08 灌木(無莓)、09 花",
-  "01": { "walkable": true, "zh_comment": "草地 / 可走" },
-  "02": { "walkable": false, "zh_comment": "牆 / 不可走" },
-  "03": { "walkable": true, "on_step": "portal", "zh_comment": "傳送門 / 進入後切換地圖" },
-  "04": { "walkable": true, "on_step": "level_exit", "zh_comment": "出口 / 結束關卡" },
-  "05": { "walkable": false, "image": "tree.jpg", "base": "01", "zh_comment": "樹 / 不可走" },
-  "06": { "walkable": false, "image": "rock.jpg", "base": "01", "zh_comment": "石頭 / 不可走" },
-  "07": { "walkable": false, "image": "bush_with_barries.jpg", "base": "01", "zh_comment": "灌木(有莓) / E 採集" },
-  "08": { "walkable": true, "image": "bush_without_barries.jpg", "base": "01", "zh_comment": "灌木(無莓) / 可走 / 等待再生" },
-  "09": { "walkable": true, "image": "flower.png", "base": "01", "zh_comment": "花 / 可走裝飾" },
+  "_comment_zh": "01-09 ????????10-26 ? RITC ?????RITC ??????????????????",
+  "01": {
+    "walkable": true,
+    "base": "01",
+    "zh_comment": "草地 / 地面"
+  },
+  "02": {
+    "walkable": false,
+    "base": "02",
+    "zh_comment": "阻擋 / 牆體"
+  },
+  "03": {
+    "walkable": true,
+    "on_step": "portal",
+    "base": "01",
+    "zh_comment": "傳送點 / 入口"
+  },
+  "04": {
+    "walkable": true,
+    "on_step": "level_exit",
+    "base": "01",
+    "zh_comment": "關卡出口 / 結算點"
+  },
+  "05": {
+    "walkable": false,
+    "image": "tree.jpg",
+    "base": "01",
+    "zh_comment": "樹木 / 製飾"
+  },
+  "06": {
+    "walkable": false,
+    "image": "rock.jpg",
+    "base": "01",
+    "zh_comment": "岩石 / 製飾"
+  },
+  "07": {
+    "walkable": false,
+    "image": "bush_with_barries.jpg",
+    "base": "01",
+    "zh_comment": "有果灯木 / 阻擋"
+  },
+  "08": {
+    "walkable": true,
+    "image": "bush_without_barries.jpg",
+    "base": "01",
+    "zh_comment": "無果灯木 / 可走"
+  },
+  "09": {
+    "walkable": true,
+    "image": "flower.png",
+    "base": "01",
+    "zh_comment": "花朵 / 製飾"
+  },
   "10": {
     "walkable": true,
     "base": "01",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "floor_plain_dark",
-    "zh_comment": "RITC 地板(深色) / 可走"
+    "tileset_ref": "ritc_floor_dark",
+    "zh_comment": "RITC 深色地板",
+    "draw_scale": 1.0
   },
   "11": {
     "walkable": true,
     "base": "01",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "floor_plain_light",
-    "zh_comment": "RITC 地板(淺色) / 可走"
+    "tileset_ref": "ritc_floor_light",
+    "zh_comment": "RITC 淺色地板",
+    "draw_scale": 1.0
   },
   "12": {
     "walkable": false,
     "base": "02",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "wall_plain_dark",
-    "zh_comment": "RITC 牆面 / 不可走"
+    "tileset_ref": "ritc_wall_dark",
+    "zh_comment": "RITC 深色牆面",
+    "draw_scale": 1.0
   },
   "13": {
     "walkable": true,
     "on_step": "portal",
     "base": "01",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "wall_door",
-    "zh_comment": "RITC 門 / 傳送門"
+    "tileset_ref": "ritc_door_frame",
+    "zh_comment": "RITC 門框",
+    "draw_scale": 1.0
   },
   "14": {
-    "walkable": true,
+    "walkable": false,
     "base": "01",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "mission_house_sign",
-    "zh_comment": "RITC 標牌 / 任務區可走裝飾"
+    "tileset_ref": "ritc_mission_panel",
+    "zh_comment": "RITC 任務看板",
+    "draw_scale": 1.0
   },
   "15": {
-    "walkable": true,
+    "walkable": false,
     "base": "01",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "still_cooking_warning",
-    "zh_comment": "RITC 未完成提示 / 可走裝飾"
+    "tileset_ref": "ritc_warning_panel",
+    "zh_comment": "RITC 施工提示",
+    "draw_scale": 1.0
   },
   "16": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_gate_warning_panel",
+    "zh_comment": "RITC 關門提示",
+    "draw_scale": 1.0
+  },
+  "17": {
     "walkable": true,
     "base": "01",
     "tileset_json": "RITC_tileset (2).json",
-    "tileset_ref": "gate_panel_warning",
-    "zh_comment": "RITC 封鎖門 / 可走裝飾"
+    "tileset_ref": "ritc_floor_panel",
+    "zh_comment": "RITC 面板地板",
+    "draw_scale": 1.0
+  },
+  "18": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_floor_grate",
+    "zh_comment": "RITC 格枵地板",
+    "draw_scale": 1.0
+  },
+  "19": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_floor_mesh",
+    "zh_comment": "RITC 網格地板",
+    "draw_scale": 1.0
+  },
+  "20": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_hazard_frame",
+    "zh_comment": "RITC 危險框線",
+    "draw_scale": 1.0
+  },
+  "21": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_bar",
+    "zh_comment": "RITC 導引線",
+    "draw_scale": 1.0
+  },
+  "22": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_cross",
+    "zh_comment": "RITC 導引十字",
+    "draw_scale": 1.0
+  },
+  "23": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_corner",
+    "zh_comment": "RITC 導引轉角",
+    "draw_scale": 1.0
+  },
+  "24": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_box_dashed",
+    "zh_comment": "RITC 虛線框",
+    "draw_scale": 1.0
+  },
+  "25": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_light_bar",
+    "zh_comment": "RITC 燈條",
+    "draw_scale": 1.0
+  },
+  "26": {
+    "walkable": false,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_light_cross",
+    "zh_comment": "RITC 十字燈",
+    "draw_scale": 1.0
   }
 }

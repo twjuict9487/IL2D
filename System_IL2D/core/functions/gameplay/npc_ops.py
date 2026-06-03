@@ -421,6 +421,8 @@ def maybe_startup_closure_greet(game):
     # class attribute lives on Game class instance type
     if game.__class__.closure_greeted_this_run:
         return
+    if getattr(getattr(game, "map", None), "name", None) != "map_1.json":
+        return
     if "closure" not in npc_data:
         return
     game.dialog_data = {

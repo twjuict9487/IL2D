@@ -40,6 +40,14 @@ _DIALOG_NPC_FALLBACK_IMAGE = {
 }
 
 
+def _block_draw_scale(bt_meta, default=0.9):
+    try:
+        scale = float(bt_meta.get("draw_scale", default))
+    except Exception:
+        scale = float(default)
+    return max(0.1, min(1.0, scale))
+
+
 ensure_primed_from_file(__file__)
 _SYSTEM_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -82,21 +90,51 @@ def _load_tileset_piece(tileset_json_name, ref_name, size=None):
             continue
         source_name = meta.get("source")
         selected = meta.get("selected", [])
+        grid_exact = meta.get("grid_exact", {}) or {}
+        exact_tiles = grid_exact.get("tiles", []) if isinstance(grid_exact, dict) else []
         if not source_name or not isinstance(selected, list):
             continue
+        exact_by_rc = {}
+        exact_by_name = {}
+        if isinstance(exact_tiles, list):
+            for item in exact_tiles:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    row = int(item.get("row", 0) or 0)
+                    col = int(item.get("col", 0) or 0)
+                    rect = (
+                        int(item.get("x", 0) or 0),
+                        int(item.get("y", 0) or 0),
+                        int(item.get("w", 0) or 0),
+                        int(item.get("h", 0) or 0),
+                    )
+                    exact_by_rc[(row, col)] = rect
+                    exact_name = str(item.get("name", "") or "").strip()
+                    if exact_name:
+                        exact_by_name[exact_name] = rect
+                except Exception:
+                    continue
         target = None
         for item in selected:
             if item.get("name") == ref_name:
                 try:
-                    target = (
-                        int(item.get("x", 0)),
-                        int(item.get("y", 0)),
-                        int(item.get("w", 0)),
-                        int(item.get("h", 0)),
-                    )
+                    row = int(item.get("row", 0) or 0)
+                    col = int(item.get("col", 0) or 0)
+                    # Prefer the exact grid definition if the atlas JSON provides one.
+                    target = exact_by_rc.get((row, col))
+                    if target is None:
+                        target = (
+                            int(item.get("x", 0)),
+                            int(item.get("y", 0)),
+                            int(item.get("w", 0)),
+                            int(item.get("h", 0)),
+                        )
                 except Exception:
                     target = None
                 break
+        if not target:
+            target = exact_by_name.get(ref_name)
         if not target:
             continue
         atlas_path = None
@@ -2032,7 +2070,8 @@ def draw(game, screen):
     portal_set = set()
     if getattr(game.map, "portals", None):
         for p in game.map.portals:
-            portal_set.add((p.get("x"), p.get("y")))
+            if isinstance(p, dict) and p.get("visible", True):
+                portal_set.add((p.get("x"), p.get("y")))
     tiles_x = map_view_w + 2
     tiles_y = map_view_h + 2
     for y in range(tiles_y):
@@ -2053,7 +2092,8 @@ def draw(game, screen):
                     screen.blit(overlay, (tile_x, tile_y))
                 bt_img = blocktypes.get(bt, {}).get("image")
                 if bt_img:
-                    size = int(tile_w * 0.9), int(tile_h * 0.9)
+                    draw_scale = _block_draw_scale(blocktypes.get(bt, {}))
+                    size = max(1, int(tile_w * draw_scale)), max(1, int(tile_h * draw_scale))
                     img = _load_image(bt_img, size)
                     if img:
                         ox = tile_x + (tile_w - size[0]) // 2
@@ -2064,7 +2104,8 @@ def draw(game, screen):
                     tileset_json_name = bt_meta.get("tileset_json")
                     tileset_ref = bt_meta.get("tileset_ref")
                     if tileset_json_name and tileset_ref:
-                        size = int(tile_w * 0.9), int(tile_h * 0.9)
+                        draw_scale = _block_draw_scale(bt_meta)
+                        size = max(1, int(tile_w * draw_scale)), max(1, int(tile_h * draw_scale))
                         img = _load_tileset_piece(tileset_json_name, tileset_ref, size)
                         if img:
                             ox = tile_x + (tile_w - size[0]) // 2

@@ -479,9 +479,14 @@ class Game:
         self.map = GameMap(map_path)
         # Prevent hostile entities from leaking across map transitions.
         if hasattr(self, "entities"):
+            allowed_npcs = set(self._npc_layout_for_map().keys())
             self.entities = [
                 e for e in self.entities
-                if e.eid == "player" or e.ai_type == "team" or npc_data.get(e.eid) is not None or e.immortal
+                if e.eid == "player"
+                or e.ai_type == "team"
+                or e.immortal
+                or e.eid not in npc_data
+                or e.eid in allowed_npcs
             ]
         # map_1/map_2/map_3 stay fully pre-coded; do not randomize runtime layout.
         self.map_max_h_mob = self.map.mob_limit
@@ -531,6 +536,34 @@ class Game:
                 return [cx, cy]
         return fallback if fallback is not None else [tx, ty]
 
+    def _npc_layout_for_map(self, map_name=None):
+        name = map_name or getattr(self, "map", None)
+        if hasattr(name, "name"):
+            name = name.name
+        name = str(name or "")
+        layouts = {
+            "map_1.json": {
+                "dev": (2, 8),
+                "closure": (7, 8),
+            },
+            "ritc_mission_house.json": {
+                "kaltsit": (8, 8),
+            },
+            "ritc_shopping_area.json": {
+                "carmen": (8, 8),
+            },
+            "ritc_dormitory.json": {
+                "shu": (8, 8),
+            },
+            "ritc_medical_area.json": {
+                "ines": (8, 8),
+            },
+            "ritc_training_area.json": {
+                "priestess": (8, 8),
+            },
+        }
+        return layouts.get(name, {})
+
     def _build_world_map_graph(self):
         nodes = {}
         edges = set()
@@ -574,30 +607,38 @@ class Game:
         self.world_map_edges = sorted(list(edges))
 
     def place_npcs_for_map(self):
-        positions = {
-            "map_1.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 8)],
-            # map_2: keep NPCs near left entrance (portal at x=0,y=15) with 1-tile gap.
-            "map_2.json": [(2, 16), (3, 16), (4, 16), (5, 16), (6, 16), (7, 16), (8, 16)],
-            "map_3.json": [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 8)],
-            "rogue": [(1, 12), (1, 13), (-999, -999), (-999, -999), (-999, -999), (-999, -999), (-999, -999)],
-            "rouge_options.json": [(4, 5), (6, 5), (-999, -999), (-999, -999), (-999, -999), (-999, -999), (-999, -999)]
-        }
-        order = ["dev", "priestess", "carmen", "closure", "kaltsit", "ines", "shu"]
-        spots = positions.get(self.map.name, [])
-        for i, npc_id in enumerate(order):
+        layout = self._npc_layout_for_map()
+        allowed_ids = set(layout.keys())
+        if hasattr(self, "entities"):
+            self.entities = [
+                e for e in self.entities
+                if e.eid == "player"
+                or e.ai_type == "team"
+                or e.immortal
+                or e.eid not in npc_data
+                or e.eid in allowed_ids
+            ]
+        for npc_id, spot in layout.items():
             ent = next((e for e in self.entities if e.eid == npc_id), None)
             if ent is None:
                 data = npc_data.get(npc_id, {})
-                ent = Entity(npc_id, 0, 0, data.get('hp', 1), data.get('mp', 0), data.get('attack', 0), data.get('defence', 0), data.get('ai_type'), data.get('immortal', False))
+                ent = Entity(
+                    npc_id,
+                    spot[0],
+                    spot[1],
+                    data.get("hp", 1),
+                    data.get("mp", 0),
+                    data.get("attack", 0),
+                    data.get("defence", 0),
+                    data.get("ai_type"),
+                    data.get("immortal", False),
+                )
                 ent.magic_attack = int(data.get("magic_attack", data.get("attack", 0)))
                 ent.magic_defense = float(data.get("magic_defense", 0.0))
                 ent.attack_type = str(data.get("attack_type", "P")).upper()
                 self.entities.append(ent)
             self._ensure_entity_combat_profile(ent)
-            if i < len(spots):
-                ent.x, ent.y = spots[i]
-            elif self.map.name in ("rogue", "rouge_options.json"):
-                ent.x, ent.y = -999, -999
+            ent.x, ent.y = spot
 
     def spawn_default_entities(self):
         if 'slime' in mobs_data:
@@ -619,36 +660,6 @@ class Game:
             mdata = mobs_data['soldier']
             self.entities.append(
                 Entity('soldier', 8, 6, mdata['hp'], mdata.get('mp', 0), mdata.get('attack', 10), mdata.get('defence', 0), mdata.get('ai_type'), mdata.get('immortal', False))
-            )
-        if 'dev' in npc_data:
-            ddata = npc_data['dev']
-            self.entities.append(
-                Entity('dev', 2, 8, ddata.get('hp', 1), ddata.get('mp', 0), ddata.get('attack', 0), ddata.get('defence', 0), ddata.get('ai_type'), ddata.get('immortal', False))
-            )
-        if 'priestess' in npc_data:
-            pdata = npc_data['priestess']
-            self.entities.append(
-                Entity('priestess', 4, 8, pdata.get('hp', 1), pdata.get('mp', 0), pdata.get('attack', 0), pdata.get('defence', 0), pdata.get('ai_type'), pdata.get('immortal', False))
-            )
-        if 'carmen' in npc_data:
-            cdata = npc_data['carmen']
-            self.entities.append(
-                Entity('carmen', 6, 8, cdata.get('hp', 1), cdata.get('mp', 0), cdata.get('attack', 0), cdata.get('defence', 0), cdata.get('ai_type'), cdata.get('immortal', False))
-            )
-        if 'closure' in npc_data:
-            cdata = npc_data['closure']
-            self.entities.append(
-                Entity('closure', 7, 8, cdata.get('hp', 1), cdata.get('mp', 0), cdata.get('attack', 0), cdata.get('defence', 0), cdata.get('ai_type'), cdata.get('immortal', False))
-            )
-        if 'kaltsit' in npc_data:
-            kdata = npc_data['kaltsit']
-            self.entities.append(
-                Entity('kaltsit', 8, 8, kdata.get('hp', 1), kdata.get('mp', 0), kdata.get('attack', 0), kdata.get('defence', 0), kdata.get('ai_type'), kdata.get('immortal', False))
-            )
-        if 'ines' in npc_data:
-            idata = npc_data['ines']
-            self.entities.append(
-                Entity('ines', 9, 8, idata.get('hp', 1), idata.get('mp', 0), idata.get('attack', 0), idata.get('defence', 0), idata.get('ai_type'), idata.get('immortal', False))
             )
         for ent in self.entities:
             self._ensure_entity_combat_profile(ent)

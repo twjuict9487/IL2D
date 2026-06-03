@@ -24,12 +24,9 @@ class GameplayTutorialCore:
         self.data = {
             "move_count": 0,
             "kill_1": 0,
-            "kill_2": 0,
             "talked_npc": False,
-            "bought_equipment": False,
-            "used_hotbar_item": False,
-            "used_hotbar_magic": False,
             "esc_opened": False,
+            "esc_closed": False,
         }
         self._baseline = {
             "level": int(getattr(game, "player_level", 1)),
@@ -89,15 +86,12 @@ class GameplayTutorialCore:
             return f"{min(4, self.data.get('move_count', 0))}/4"
         if sid == "kill_wave_1":
             return f"{min(5, self.data.get('kill_1', 0))}/5"
-        if sid == "npc_shop":
-            a = tr(self.lang, "tutorial.dev.done") if self.data.get("talked_npc", False) else tr(self.lang, "tutorial.dev.todo")
-            b = tr(self.lang, "tutorial.dev.done") if self.data.get("bought_equipment", False) else tr(self.lang, "tutorial.dev.todo")
-            return f"talk:{a}  buy:{b}"
-        if sid == "kill_wave_2":
-            k = min(5, self.data.get("kill_2", 0))
-            i = tr(self.lang, "tutorial.dev.done") if self.data.get("used_hotbar_item", False) else tr(self.lang, "tutorial.dev.todo")
-            m = tr(self.lang, "tutorial.dev.done") if self.data.get("used_hotbar_magic", False) else tr(self.lang, "tutorial.dev.todo")
-            return f"kill:{k}/5  item:{i}  magic:{m}"
+        if sid == "npc_intro":
+            return tr(self.lang, "tutorial.dev.done") if self.data.get("talked_npc", False) else tr(self.lang, "tutorial.dev.todo")
+        if sid == "esc_open":
+            return tr(self.lang, "tutorial.dev.done") if self.data.get("esc_opened", False) else tr(self.lang, "tutorial.dev.todo")
+        if sid == "esc_close":
+            return tr(self.lang, "tutorial.dev.done") if self.data.get("esc_closed", False) else tr(self.lang, "tutorial.dev.todo")
         return ""
 
     def notify(self, game, event_name, **kwargs):
@@ -105,10 +99,6 @@ class GameplayTutorialCore:
             return
         sid = self.current_id()
         if sid is None:
-            return
-
-        if sid == "equip_bought" and any(bool(v) for v in getattr(game, "equipment", {}).values()):
-            self._advance(game)
             return
 
         if sid == "move_basic" and event_name == "move_key":
@@ -123,52 +113,17 @@ class GameplayTutorialCore:
                 self._advance(game)
             return
 
-        if sid == "npc_shop":
-            if event_name == "npc_interact":
-                self.data["talked_npc"] = True
-            elif event_name == "item_purchased" and kwargs.get("item_type") == "equipment":
-                self.data["bought_equipment"] = True
-            if self.data["talked_npc"] and self.data["bought_equipment"]:
-                self._advance(game)
+        if sid == "npc_intro" and event_name == "npc_interact":
+            self.data["talked_npc"] = True
+            self._advance(game)
             return
 
         if sid == "esc_open" and event_name == "esc_open":
-            self._advance(game)
-            return
-        if sid == "hotbar_item" and event_name == "hotbar_item_assigned":
-            self._advance(game)
-            return
-        if sid == "hotbar_magic" and event_name == "hotbar_magic_assigned":
-            self._advance(game)
-            return
-        if sid == "equip_bought" and event_name == "equipment_changed":
-            self._advance(game)
-            return
-        if sid == "save_once" and event_name == "game_saved":
+            self.data["esc_opened"] = True
             self._advance(game)
             return
         if sid == "esc_close" and event_name == "esc_close":
-            self._advance(game)
-            return
-
-        if sid == "kill_wave_2":
-            if event_name == "enemy_killed":
-                self.data["kill_2"] += 1
-            elif event_name == "hotbar_item_used":
-                self.data["used_hotbar_item"] = True
-            elif event_name == "hotbar_magic_used":
-                self.data["used_hotbar_magic"] = True
-            if self.data["kill_2"] >= 5 and self.data["used_hotbar_item"] and self.data["used_hotbar_magic"]:
-                self._advance(game)
-            return
-
-        if sid == "objective_intro" and event_name == "objective_opened":
-            self._advance(game)
-            return
-        if sid == "rogue_intro" and event_name == "rogue_entered":
-            retreat_name = "retreat item"
-            if game.inventory.get(retreat_name, 0) <= 0:
-                game.inventory[retreat_name] = game.inventory.get(retreat_name, 0) + 1
+            self.data["esc_closed"] = True
             self._advance(game)
             return
 
@@ -188,7 +143,7 @@ class GameplayTutorialCore:
         if sid == "combat_intro":
             self._advance(game)
             return
-        if sid in ("kill_wave_1", "kill_wave_2"):
+        if sid == "kill_wave_1":
             self._spawn_training_wave(game, count=5)
         if sid == "finish_reset":
             self._finish_countdown_start = time.time()
