@@ -11,6 +11,13 @@ from core.functions.ui.tutorial_flow import (
     handle_tutorial_key as _ui_handle_tutorial_key,
     handle_tutorial_mouse as _ui_handle_tutorial_mouse,
 )
+from core.functions.ui.lore_flow import (
+    load_lore_archive as _ui_load_lore_archive,
+    build_lore_index as _ui_build_lore_index,
+    get_lore_entry_by_id as _ui_get_lore_entry_by_id,
+    get_lore_entry_pages as _ui_get_lore_entry_pages,
+    get_lore_entry_title as _ui_get_lore_entry_title,
+)
 from core.functions.ui.continue_flow import (
     get_save_slots as _ui_get_save_slots,
     handle_continue_menu_key as _ui_handle_continue_menu_key,
@@ -165,6 +172,18 @@ def init_context():
         "new_game_name": "",
         "cutscene_lines": [],
         "cutscene_idx": 0,
+        "lore_archive": _ui_load_lore_archive(),
+        "lore_mode": None,
+        "lore_entry_id": None,
+        "lore_pages": [],
+        "lore_page_idx": 0,
+        "lore_reveal_chars": 0.0,
+        "lore_reveal_speed": 120.0,
+        "lore_reveal_done": False,
+        "lore_return_state": "game",
+        "lore_entry_title": "",
+        "lore_index_entries": [],
+        "lore_index_selected": 0,
         "tutorial_lines": [],
         "tutorial_idx": 0,
         "tutorial_return_state": "game",
@@ -240,6 +259,8 @@ def _handle_key(ctx, event):
         _handle_name_input_key(ctx, event)
     elif state == "opening_cutscene":
         _handle_cutscene_key(ctx, event)
+    elif state == "lore_reader":
+        _handle_lore_key(ctx, event)
     elif state == "tutorial":
         _handle_tutorial_key(ctx, event)
     elif state == "settings":
@@ -292,7 +313,7 @@ def _open_new_game_name_input(ctx):
 
 
 def _handle_name_input_key(ctx, event):
-    _ui_handle_name_input_key(ctx, event, _has_seen_start_tutorial, _build_tutorial_lines)
+    _ui_handle_name_input_key(ctx, event, _has_seen_start_tutorial, _build_tutorial_lines, _start_lore_entry)
 
 
 def _handle_text_input(ctx, text):
@@ -304,6 +325,229 @@ def _handle_cutscene_key(ctx, event):
         ctx["cutscene_idx"] = ctx.get("cutscene_idx", 0) + 1
         if ctx["cutscene_idx"] >= len(ctx.get("cutscene_lines", [])):
             ctx["state"] = "game"
+
+
+def _start_lore_entry(ctx, game, entry_id="opening_short", return_state="game"):
+    archive = ctx.get("lore_archive") or getattr(game, "lore_archive", {}) or {}
+    entry = _ui_get_lore_entry_by_id(archive, entry_id)
+    pages = _ui_get_lore_entry_pages(archive, entry_id)
+    ctx["lore_archive"] = archive
+    ctx["lore_mode"] = "entry"
+    ctx["lore_entry_id"] = entry_id
+    ctx["lore_pages"] = pages if pages else [""]
+    ctx["lore_page_idx"] = 0
+    ctx["lore_reveal_chars"] = 0.0
+    ctx["lore_reveal_done"] = False
+    ctx["lore_return_state"] = return_state or "game"
+    ctx["lore_index_entries"] = []
+    ctx["lore_index_selected"] = 0
+    ctx["state"] = "lore_reader"
+    if entry:
+        ctx["lore_entry_title"] = _ui_get_lore_entry_title(entry, game.lang if game else "zh")
+    else:
+        ctx["lore_entry_title"] = entry_id or "Lore"
+
+
+def _start_lore_index(ctx, game, return_state="game"):
+    archive = ctx.get("lore_archive") or getattr(game, "lore_archive", {}) or {}
+    ctx["lore_archive"] = archive
+    ctx["lore_mode"] = "index"
+    ctx["lore_entry_id"] = None
+    ctx["lore_pages"] = []
+    ctx["lore_page_idx"] = 0
+    ctx["lore_reveal_chars"] = 0.0
+    ctx["lore_reveal_done"] = True
+    ctx["lore_return_state"] = return_state or "game"
+    ctx["lore_index_entries"] = _ui_build_lore_index(archive)
+    ctx["lore_index_selected"] = min(
+        max(0, int(ctx.get("lore_index_selected", 0))),
+        max(0, len(ctx.get("lore_index_entries", [])) - 1),
+    )
+    ctx["state"] = "lore_reader"
+
+
+def _close_lore_reader(ctx):
+    ctx["state"] = ctx.get("lore_return_state", "game")
+    ctx["lore_mode"] = None
+    ctx["lore_entry_id"] = None
+    ctx["lore_pages"] = []
+    ctx["lore_page_idx"] = 0
+    ctx["lore_reveal_chars"] = 0.0
+    ctx["lore_reveal_done"] = False
+    ctx["lore_return_state"] = "game"
+    ctx["lore_index_entries"] = []
+    ctx["lore_index_selected"] = 0
+    ctx["lore_entry_title"] = ""
+
+
+def _advance_lore_reader(ctx, game):
+    mode = ctx.get("lore_mode", "entry")
+    if mode == "index":
+        entries = ctx.get("lore_index_entries", [])
+        if not entries:
+            _close_lore_reader(ctx)
+            return
+        idx = max(0, min(len(entries) - 1, int(ctx.get("lore_index_selected", 0))))
+        entry_id = entries[idx].get("id")
+        if entry_id:
+            _start_lore_entry(ctx, game, entry_id=entry_id, return_state=ctx.get("lore_return_state", "game"))
+        return
+
+    pages = ctx.get("lore_pages", []) or [""]
+    current_text = pages[max(0, min(len(pages) - 1, int(ctx.get("lore_page_idx", 0))))]
+    if not ctx.get("lore_reveal_done", False):
+        ctx["lore_reveal_chars"] = float(len(current_text))
+        ctx["lore_reveal_done"] = True
+        return
+    if int(ctx.get("lore_page_idx", 0)) + 1 < len(pages):
+        ctx["lore_page_idx"] = int(ctx.get("lore_page_idx", 0)) + 1
+        ctx["lore_reveal_chars"] = 0.0
+        ctx["lore_reveal_done"] = False
+        return
+    _close_lore_reader(ctx)
+
+
+def _update_lore_reader(ctx, dt):
+    if ctx.get("lore_mode") != "entry":
+        return
+    pages = ctx.get("lore_pages", []) or [""]
+    page_idx = max(0, min(len(pages) - 1, int(ctx.get("lore_page_idx", 0))))
+    page_text = pages[page_idx]
+    if not page_text:
+        ctx["lore_reveal_done"] = True
+        return
+    if ctx.get("lore_reveal_done", False):
+        return
+    speed = float(ctx.get("lore_reveal_speed", 120.0) or 120.0)
+    ctx["lore_reveal_chars"] = min(len(page_text), float(ctx.get("lore_reveal_chars", 0.0)) + max(1.0, speed) * max(0.0, float(dt)))
+    if int(ctx["lore_reveal_chars"]) >= len(page_text):
+        ctx["lore_reveal_chars"] = float(len(page_text))
+        ctx["lore_reveal_done"] = True
+
+
+def _handle_lore_key(ctx, event):
+    game = ctx.get("game")
+    if event.key == pygame.K_ESCAPE:
+        _close_lore_reader(ctx)
+        return
+    if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+        _advance_lore_reader(ctx, game)
+        return
+    if ctx.get("lore_mode") == "index":
+        entries = ctx.get("lore_index_entries", [])
+        if not entries:
+            return
+        if event.key in (pygame.K_UP, pygame.K_w):
+            ctx["lore_index_selected"] = max(0, int(ctx.get("lore_index_selected", 0)) - 1)
+            return
+        if event.key in (pygame.K_DOWN, pygame.K_s):
+            ctx["lore_index_selected"] = min(len(entries) - 1, int(ctx.get("lore_index_selected", 0)) + 1)
+            return
+    elif ctx.get("lore_mode") == "entry":
+        if event.key in (pygame.K_UP, pygame.K_LEFT, pygame.K_w, pygame.K_a):
+            if int(ctx.get("lore_page_idx", 0)) > 0:
+                ctx["lore_page_idx"] = int(ctx.get("lore_page_idx", 0)) - 1
+                ctx["lore_reveal_chars"] = 0.0
+                ctx["lore_reveal_done"] = False
+            return
+        if event.key in (pygame.K_DOWN, pygame.K_RIGHT, pygame.K_s, pygame.K_d):
+            pages = ctx.get("lore_pages", []) or [""]
+            if int(ctx.get("lore_page_idx", 0)) + 1 < len(pages):
+                ctx["lore_page_idx"] = int(ctx.get("lore_page_idx", 0)) + 1
+                ctx["lore_reveal_chars"] = 0.0
+                ctx["lore_reveal_done"] = False
+            return
+
+
+def _handle_lore_mouse(ctx, pos):
+    screen = ctx["screen"]
+    mx, my = pos
+    game = ctx.get("game")
+    mode = ctx.get("lore_mode")
+    panel = pygame.Rect(60, 80, screen.get_width() - 120, screen.get_height() - 160)
+    if mode == "index":
+        font = _get_font(18)
+        entries = ctx.get("lore_index_entries", [])
+        row_h = font.get_height() + 8
+        y = panel.y + 72
+        for i, _entry in enumerate(entries):
+            rect = pygame.Rect(panel.x + 18, y - 2, panel.width - 36, row_h)
+            if rect.collidepoint(mx, my):
+                ctx["lore_index_selected"] = i
+                _advance_lore_reader(ctx, game)
+                return
+            y += row_h
+    elif mode == "entry":
+        _advance_lore_reader(ctx, game)
+
+
+def _draw_lore_reader(ctx):
+    screen = ctx["screen"]
+    game = ctx["game"]
+    mode = ctx.get("lore_mode")
+    screen.fill((6, 10, 18))
+    title_font = _get_font(28, bold=True)
+    body_font = _get_font(22)
+    hint_font = _get_font(18)
+    panel = pygame.Rect(60, 80, screen.get_width() - 120, screen.get_height() - 160)
+    pygame.draw.rect(screen, (12, 22, 35), panel, border_radius=10)
+    pygame.draw.rect(screen, (130, 180, 220), panel, 2, border_radius=10)
+
+    if mode == "index":
+        title_text = tr(game.lang, "lore.archive.title")
+        title_surf = title_font.render(title_text, True, (230, 245, 255))
+        screen.blit(title_surf, (panel.x + 20, panel.y + 16))
+        hint = hint_font.render(tr(game.lang, "lore.archive.hint"), True, (170, 205, 230))
+        screen.blit(hint, (panel.right - hint.get_width() - 20, panel.y + 20))
+        entries = ctx.get("lore_index_entries", [])
+        if not entries:
+            empty = body_font.render(tr(game.lang, "lore.archive.empty"), True, (230, 238, 248))
+            screen.blit(empty, (panel.x + 20, panel.y + 90))
+            return
+        y = panel.y + 78
+        selected = int(ctx.get("lore_index_selected", 0)) % len(entries)
+        for i, entry in enumerate(entries):
+            rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, body_font.get_height() + 10)
+            pygame.draw.rect(screen, (24, 34, 52), rect, border_radius=6)
+            if i == selected:
+                pygame.draw.rect(screen, (255, 214, 102), rect, 2, border_radius=6)
+            title = entry.get("title", entry.get("id", ""))
+            category = entry.get("category", "archive")
+            label = f"[{category}] {title}"
+            surf = body_font.render(label, True, (235, 240, 245))
+            screen.blit(surf, (rect.x + 10, rect.y + 5))
+            y += body_font.get_height() + 12
+    else:
+        entry = _ui_get_lore_entry_by_id(ctx.get("lore_archive", {}), ctx.get("lore_entry_id"))
+        pages = ctx.get("lore_pages", []) or [""]
+        page_idx = max(0, min(len(pages) - 1, int(ctx.get("lore_page_idx", 0))))
+        page_text = pages[page_idx] if pages else ""
+        visible_len = min(len(page_text), int(ctx.get("lore_reveal_chars", 0.0)))
+        visible_text = page_text[:visible_len]
+        title_text = ctx.get("lore_entry_title") or ( _ui_get_lore_entry_title(entry, game.lang) if entry else tr(game.lang, "lore.entry.title") )
+        title_surf = title_font.render(title_text, True, (230, 245, 255))
+        screen.blit(title_surf, (panel.x + 20, panel.y + 16))
+        page_text_surf = hint_font.render(f"{page_idx + 1}/{len(pages)}", True, (170, 205, 230))
+        screen.blit(page_text_surf, (panel.right - page_text_surf.get_width() - 20, panel.y + 20))
+        y = panel.y + 76
+        for raw_line in visible_text.splitlines() or [""]:
+            if raw_line:
+                wrapped = _wrap_text(body_font, raw_line, panel.width - 40)
+            else:
+                wrapped = [""]
+            for row in wrapped:
+                if row:
+                    surf = body_font.render(row, True, (230, 238, 248))
+                    screen.blit(surf, (panel.x + 20, y))
+                y += body_font.get_height() + 10
+        if int(ctx.get("lore_page_idx", 0)) + 1 >= len(pages) and ctx.get("lore_reveal_done", False):
+            hint_text = tr(game.lang, "lore.entry.hint_end")
+        elif ctx.get("lore_reveal_done", False):
+            hint_text = tr(game.lang, "lore.entry.hint_next")
+        else:
+            hint_text = tr(game.lang, "lore.entry.hint_reveal")
+        hint = hint_font.render(hint_text, True, (170, 205, 230))
+        screen.blit(hint, (panel.right - hint.get_width() - 20, panel.bottom - hint.get_height() - 16))
 
 
 def _build_tutorial_lines(lang, mode="start"):
@@ -839,6 +1083,9 @@ def _handle_game_key(ctx, event):
 
 def _handle_mouse(ctx, pos):
     state = ctx["state"]
+    if state == "lore_reader":
+        _handle_lore_mouse(ctx, pos)
+        return
     if state == "main_menu":
         _handle_mouse_main_menu(ctx, pos)
     elif state == "settings":
@@ -1307,6 +1554,8 @@ def _handle_mouse_game(ctx, pos):
 def _update(ctx, dt):
     game = ctx["game"]
     _invoke_mod_hooks(ctx, "on_update", dt)
+    if ctx.get("state") == "lore_reader":
+        _update_lore_reader(ctx, dt)
     if ctx["state"] == "game" and getattr(game, 'death_timer', None) is not None:
         game.death_timer -= dt
         if game.death_timer <= 0:
@@ -1324,6 +1573,15 @@ def _update(ctx, dt):
             step_count += 1
         game.update(player_tick=False)
         game.update_time(dt)
+        lore_request = getattr(game, "lore_request", None)
+        if lore_request:
+            mode = str(lore_request.get("mode", "index"))
+            entry_id = lore_request.get("entry_id")
+            game.lore_request = None
+            if mode == "entry" and entry_id:
+                _start_lore_entry(ctx, game, entry_id=entry_id, return_state="game")
+            else:
+                _start_lore_index(ctx, game, return_state="game")
 
 
 def _handle_tutorial_mouse(ctx):
@@ -1466,6 +1724,8 @@ def _render(ctx):
         _draw_name_input(ctx)
     elif ctx["state"] == "opening_cutscene":
         _draw_cutscene(ctx)
+    elif ctx["state"] == "lore_reader":
+        _draw_lore_reader(ctx)
     elif ctx["state"] == "tutorial":
         _draw_tutorial(ctx)
     elif ctx["state"] == "settings":

@@ -7,19 +7,31 @@ def _iter_mod_files(mods_dir):
     if not os.path.isdir(mods_dir):
         return []
     files = []
-    for name in sorted(os.listdir(mods_dir)):
-        if not name.endswith(".py"):
-            continue
-        if name.startswith("_"):
-            continue
-        path = os.path.join(mods_dir, name)
-        if os.path.isfile(path):
+    for root, dirs, names in os.walk(mods_dir):
+        dirs[:] = sorted(d for d in dirs if d != "__pycache__" and not d.startswith("."))
+        for name in sorted(names):
+            if not name.endswith(".py"):
+                continue
+            if name.startswith("_") or name == "__init__.py":
+                continue
+            if name.endswith("_entry.py"):
+                continue
+            path = os.path.join(root, name)
+            if not os.path.isfile(path):
+                continue
+            rel = os.path.relpath(path, mods_dir)
+            if os.path.dirname(rel):
+                if not name.endswith("_main.py"):
+                    continue
             files.append(path)
     return files
 
 
-def _load_module_from_path(path):
-    mod_name = f"il2d_mod_{os.path.splitext(os.path.basename(path))[0]}"
+def _load_module_from_path(path, mods_dir):
+    rel = os.path.relpath(path, mods_dir)
+    rel_stem = os.path.splitext(rel)[0]
+    rel_mod = rel_stem.replace(os.sep, ".").replace("/", ".").replace("\\", ".")
+    mod_name = f"mods.{rel_mod}"
     spec = importlib.util.spec_from_file_location(mod_name, path)
     if spec is None or spec.loader is None:
         raise RuntimeError("failed to build import spec")
@@ -35,9 +47,9 @@ def load_mods(ctx, mods_dir):
     errors = []
 
     for path in _iter_mod_files(mods_dir):
-        name = os.path.splitext(os.path.basename(path))[0]
+        name = os.path.relpath(path, mods_dir)
         try:
-            module = _load_module_from_path(path)
+            module = _load_module_from_path(path, mods_dir)
             register = getattr(module, "register_mod", None)
             if register is None:
                 register = getattr(module, "register", None)

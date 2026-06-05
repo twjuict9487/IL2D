@@ -351,6 +351,13 @@ def dialog_choose(game):
         game.npc_heal()
         game.close_dialog()
         return
+    if next_node == "lore_archive":
+        if getattr(game, "lore_archive", None):
+            game.open_lore_archive()
+        else:
+            game.push_message(tr(game.lang, "msg.archive_unavailable"))
+        game.close_dialog()
+        return
     game.dialog_node = next_node
     game.dialog_selected = 0
 
@@ -368,6 +375,9 @@ def get_dialog_responses(game, node):
     if can_gift:
         if not any(r.get("next") == "gift" for r in responses):
             responses = responses + [{"text": "gift", "next": "gift"}]
+    if getattr(game, "active_npc", None) in {"closure", "priestess", "kaltsit"} and getattr(game, "dialog_source", None) == "interaction":
+        if not any(r.get("next") == "lore_archive" for r in responses):
+            responses = responses + [{"text": tr(game.lang, "dialog.archive"), "next": "lore_archive"}]
     return responses
 
 

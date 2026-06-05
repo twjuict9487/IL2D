@@ -6,7 +6,7 @@ from collections import deque
 try:
     from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from ..models.entity import Entity
-    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from ..support.i18n import tr
     from ..support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from . import rogue_ops as game_rogue_ops
@@ -21,7 +21,7 @@ except ImportError:
         sys.path.insert(0, _ROOT)
     from System_IL2D.core.functions.world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from System_IL2D.core.functions.models.entity import Entity
-    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from System_IL2D.core.functions.support.i18n import tr
     from System_IL2D.core.functions.support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
@@ -213,6 +213,9 @@ class Game:
         self.world_map_nodes = {}
         self.world_map_edges = []
         self.tutorial_core = None
+        self.lore_archive = {}
+        self.lore_request = None
+        self.last_portal_fallback = None
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
@@ -225,6 +228,12 @@ class Game:
     def start_new_player_tutorial(self):
         self.tutorial_core = GameplayTutorialCore(lang=self.lang)
         self.tutorial_core.start(self)
+
+    def open_lore_archive(self, entry_id=None):
+        self.lore_request = {
+            "mode": "entry" if entry_id else "index",
+            "entry_id": entry_id,
+        }
 
     def tutorial_notify(self, event_name, **kwargs):
         core = getattr(self, "tutorial_core", None)
@@ -274,6 +283,13 @@ class Game:
         self.shop_all_items = self._build_synced_shop_items(raw_shop)
         self.shop_items = list(self.shop_all_items)
         self.objectives_cfg = load_json(OBJECTIVES_FILE)
+        if LORE_ARCHIVE_FILE and os.path.isfile(LORE_ARCHIVE_FILE):
+            try:
+                self.lore_archive = load_json(LORE_ARCHIVE_FILE)
+            except Exception:
+                self.lore_archive = {}
+        else:
+            self.lore_archive = {}
         self.rogue_cfg = load_json(ROGUE_FILE)
 
     def _load_item_defs(self, raw_defs):
@@ -485,7 +501,6 @@ class Game:
                 if e.eid == "player"
                 or e.ai_type == "team"
                 or e.immortal
-                or e.eid not in npc_data
                 or e.eid in allowed_npcs
             ]
         # map_1/map_2/map_3 stay fully pre-coded; do not randomize runtime layout.
@@ -517,24 +532,115 @@ class Game:
             return "rogue"
         return name if name.endswith(".json") else f"{name}.json"
 
-    def _resolve_safe_spawn(self, pos, fallback=None, radius=2):
-        if not pos or len(pos) != 2 or not hasattr(self, "map") or self.map is None:
+    def _direction_delta(self, direction):
+        direction = str(direction or "").lower()
+        mapping = {
+            "up": (0, -1),
+            "down": (0, 1),
+            "left": (-1, 0),
+            "right": (1, 0),
+            "north": (0, -1),
+            "south": (0, 1),
+            "west": (-1, 0),
+            "east": (1, 0),
+        }
+        return mapping.get(direction)
+
+    def _portal_by_id(self, portal_id, map_obj=None):
+        portal_id = str(portal_id or "").strip()
+        if not portal_id:
+            return None
+        src_map = map_obj or getattr(self, "map", None)
+        portals = getattr(src_map, "portals", None) if src_map is not None else None
+        if not portals:
+            return None
+        for portal in portals:
+            if str(portal.get("portal_id", "") or "").strip() == portal_id:
+                return portal
+        return None
+
+    def _iter_safe_spawn_candidates(self, pos=None, anchor=None, direction=None, fallback=None):
+        seen = set()
+
+        def _add(candidate):
+            if candidate is None:
+                return
+            try:
+                cx, cy = int(candidate[0]), int(candidate[1])
+            except Exception:
+                return
+            key = (cx, cy)
+            if key in seen:
+                return
+            seen.add(key)
+            yield key
+
+        if pos is not None:
+            for item in _add(pos):
+                yield item
+        if anchor is not None and direction is not None:
+            delta = self._direction_delta(direction)
+            if delta:
+                ax, ay = int(anchor[0]), int(anchor[1])
+                for item in _add((ax + delta[0], ay + delta[1])):
+                    yield item
+        if anchor is not None:
+            for item in _add(anchor):
+                yield item
+        if fallback is not None:
+            for item in _add(fallback):
+                yield item
+
+    def _resolve_safe_spawn(self, pos, fallback=None, radius=2, anchor=None, direction=None):
+        if not hasattr(self, "map") or self.map is None:
             return fallback if fallback is not None else pos
-        try:
-            tx, ty = int(pos[0]), int(pos[1])
-        except Exception:
-            return fallback if fallback is not None else pos
-        candidates = [(tx, ty)]
-        for step in range(1, max(1, int(radius)) + 1):
-            for dx in range(-step, step + 1):
-                for dy in range(-step, step + 1):
-                    if abs(dx) != step and abs(dy) != step:
-                        continue
-                    candidates.append((tx + dx, ty + dy))
-        for cx, cy in candidates:
-            if self.map.is_walkable(cx, cy) and self.entity_at(cx, cy) is None:
-                return [cx, cy]
-        return fallback if fallback is not None else [tx, ty]
+        candidates = []
+        for base in self._iter_safe_spawn_candidates(pos=pos, anchor=anchor, direction=direction, fallback=fallback):
+            candidates.append(base)
+        if not candidates and fallback is not None:
+            candidates.append(tuple(fallback))
+        for tx, ty in candidates:
+            if self.map.is_walkable(tx, ty) and self.entity_at(tx, ty) is None:
+                return [tx, ty]
+        for tx, ty in candidates:
+            for step in range(1, max(1, int(radius)) + 1):
+                points = []
+                for dx in range(-step, step + 1):
+                    for dy in range(-step, step + 1):
+                        if abs(dx) != step and abs(dy) != step:
+                            continue
+                        points.append((tx + dx, ty + dy))
+                for cx, cy in points:
+                    if self.map.is_walkable(cx, cy) and self.entity_at(cx, cy) is None:
+                        return [cx, cy]
+        if fallback is not None:
+            return list(fallback)
+        if pos is not None and len(pos) == 2:
+            return [int(pos[0]), int(pos[1])]
+        return [self.map.spawn[0], self.map.spawn[1]]
+
+    def _portal_entry_direction(self, portal, target_map=None):
+        explicit = str((portal or {}).get("entry_direction", "") or "").strip().lower()
+        if explicit:
+            return explicit
+        explicit = str((portal or {}).get("spawn_direction", "") or "").strip().lower()
+        if explicit:
+            return explicit
+        if target_map is not None and getattr(target_map, "w", 0) > 0 and getattr(target_map, "h", 0) > 0:
+            try:
+                x = int(portal.get("x", 0))
+                y = int(portal.get("y", 0))
+            except Exception:
+                return None
+            if x <= 0:
+                return "right"
+            if x >= target_map.w - 1:
+                return "left"
+            if y <= 0:
+                return "down"
+            if y >= target_map.h - 1:
+                return "up"
+        return None
 
     def _npc_layout_for_map(self, map_name=None):
         name = map_name or getattr(self, "map", None)
@@ -547,19 +653,18 @@ class Game:
                 "closure": (7, 8),
             },
             "ritc_mission_house.json": {
-                "kaltsit": (8, 8),
+                "ines": (8, 2),
             },
             "ritc_shopping_area.json": {
-                "carmen": (8, 8),
+                "dev": (5, 2),
+                "closure": (11, 2),
             },
             "ritc_dormitory.json": {
-                "shu": (8, 8),
+                "carmen": (8, 8),
             },
             "ritc_medical_area.json": {
-                "ines": (8, 8),
-            },
-            "ritc_training_area.json": {
-                "priestess": (8, 8),
+                "kaltsit": (5, 2),
+                "priestess": (11, 2),
             },
         }
         return layouts.get(name, {})
@@ -843,6 +948,7 @@ class Game:
             if p.get("x") == x and p.get("y") == y:
                 target_map = p.get("target_map", "")
                 target_spawn = p.get("target_spawn", None)
+                target_portal_id = p.get("target_portal_id", "")
                 message_key = p.get("message_key", "")
                 message_text = p.get("message", "")
                 locked = bool(p.get("locked", False))
@@ -856,10 +962,37 @@ class Game:
                     else:
                         def do_load():
                             self.load_map(target_map)
-                            if target_spawn and len(target_spawn) == 2:
-                                safe_spawn = self._resolve_safe_spawn(target_spawn, fallback=self.map.spawn)
+                            anchor_portal = self._portal_by_id(target_portal_id, self.map) if target_portal_id else None
+                            anchor_spawn = None
+                            if anchor_portal is not None:
+                                try:
+                                    ax, ay = int(anchor_portal.get("x", 0)), int(anchor_portal.get("y", 0))
+                                    anchor_spawn = [ax, ay]
+                                except Exception:
+                                    anchor_spawn = None
+                            preferred_spawn = target_spawn if (isinstance(target_spawn, (list, tuple)) and len(target_spawn) == 2) else None
+                            entry_direction = self._portal_entry_direction(anchor_portal or {}, self.map) if anchor_portal else None
+                            safe_spawn = self._resolve_safe_spawn(
+                                preferred_spawn,
+                                fallback=self.map.spawn,
+                                anchor=anchor_spawn,
+                                direction=entry_direction,
+                            )
+                            if preferred_spawn is None or tuple(safe_spawn) != tuple(preferred_spawn):
+                                self.last_portal_fallback = {
+                                    "from_map": getattr(self.map, "name", ""),
+                                    "from_portal": (x, y),
+                                    "target_map": target_map,
+                                    "target_portal_id": target_portal_id,
+                                    "preferred_spawn": preferred_spawn,
+                                    "resolved_spawn": safe_spawn,
+                                }
+                                print(
+                                    f"[portal fallback] {self.last_portal_fallback['from_map']}({x},{y}) -> {target_map} "
+                                    f"target_portal_id={target_portal_id!r} preferred={preferred_spawn} resolved={safe_spawn}"
+                                )
                             else:
-                                safe_spawn = self._resolve_safe_spawn(self.map.spawn, fallback=self.map.spawn)
+                                self.last_portal_fallback = None
                             self.player.x, self.player.y = safe_spawn
                             self.teleport_team_to_player()
                         self.start_transition(do_load)

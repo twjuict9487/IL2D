@@ -7,7 +7,7 @@ def ensure_shu(game):
     if getattr(game, "map", None) is None:
         return
     map_name = game.map.name
-    if map_name not in ("map_1.json", "map_2.json", "farm_01.json"):
+    if map_name not in ("map_1.json", "farm_01.json"):
         return
     ent = next((e for e in game.entities if e.eid == "shu"), None)
     if ent is None:
@@ -27,7 +27,5 @@ def ensure_shu(game):
         game.entities.append(ent)
     if map_name == "map_1.json":
         ent.x, ent.y = 7, 8
-    elif map_name == "map_2.json":
-        ent.x, ent.y = 14, 27
     elif map_name == "farm_01.json":
-        ent.x, ent.y = 3, 14
+        ent.x, ent.y = 9, 1

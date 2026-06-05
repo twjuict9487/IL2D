@@ -9,7 +9,7 @@ def open_new_game_name_input(ctx):
     ctx["state"] = "name_input"
 
 
-def handle_name_input_key(ctx, event, has_seen_tutorial_fn, build_tutorial_lines_fn):
+def handle_name_input_key(ctx, event, has_seen_tutorial_fn, build_tutorial_lines_fn, start_lore_intro_fn=None):
     if event.key == pygame.K_ESCAPE:
         pygame.key.stop_text_input()
         ctx["state"] = "main_menu"
@@ -25,7 +25,10 @@ def handle_name_input_key(ctx, event, has_seen_tutorial_fn, build_tutorial_lines
         game.start_new_player_tutorial()
         ctx["game"] = game
         pygame.key.stop_text_input()
-        ctx["state"] = "game"
+        if callable(start_lore_intro_fn):
+            start_lore_intro_fn(ctx, game)
+        else:
+            ctx["state"] = "game"
 
 
 def handle_text_input(ctx, text):
