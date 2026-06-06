@@ -1,0 +1,14 @@
+{
+  "start": "node_1",
+  "node_1": {
+    "text": "You look like you have something to say.",
+    "text_zh": "你看起來有話要說。",
+    "responses": [
+      {
+        "text": "ok",
+        "text_zh": "好",
+        "next": "end"
+      }
+    ]
+  }
+}

@@ -6,6 +6,8 @@ from ..support.i18n import tr
 from ..support.utils import DIALOG_DIR, load_json, resolve_dialog_file
 from ..world.map import blocktypes, mobs_data, npc_data
 
+MISSION_GIVERS = {"kaltsit", "ines", "closure", "priestess"}
+
 
 def player_interact(game):
     if game.is_ui_blocking():
@@ -33,15 +35,39 @@ def player_interact(game):
             game.interact_selected = 0
             game.ui_mode = "interact_pick"
         return
+    mission_target_hit = False
+    # TODO: add explicit mission_targets entries to maps once placement is finalized.
+    for dx, dy in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
+        nx, ny = game.player.x + dx, game.player.y + dy
+        target = None
+        if hasattr(game.map, "get_mission_target"):
+            target = game.map.get_mission_target(nx, ny)
+        if not target:
+            continue
+        mission_target_hit = True
+        if hasattr(game, "record_mission_key_interact"):
+            game.record_mission_key_interact(
+                target_id=target.get("target_id") or target.get("id") or f"{game.map.name}:{nx}:{ny}",
+                key_id=target.get("required_key"),
+                consume=bool(target.get("consume_key", False)),
+                flag=target.get("set_flag"),
+            )
+        msg = target.get("message")
+        if msg and hasattr(game, "push_message"):
+            game.push_message(str(msg))
+        break
     bt = game.map.get_block(game.player.x, game.player.y)
     if bt and "on_step" in blocktypes[bt]:
         if blocktypes[bt]["on_step"] == "level_exit":
             game.start_blackout()
-    game.try_harvest_bush()
+    if not mission_target_hit:
+        game.try_harvest_bush()
 
 
 def _open_interaction_for_npc(game, npc_id):
     game.tutorial_notify("npc_interact", npc_id=npc_id)
+    if hasattr(game, "record_mission_key_interact"):
+        game.record_mission_key_interact(target_id=f"npc:{npc_id}")
     if game.map.name == "rouge_options.json" and npc_id == "dev":
         game.open_rogue_rest_leave()
     elif npc_id == "carmen":
@@ -87,11 +113,11 @@ def try_harvest_bush(game):
 
 
 def open_dialog(game, npc_id, source="script"):
-    if npc_id in ("kaltsit", "ines"):
-        _open_kaltsit_mission_dialog(game, npc_id, source=source)
-        return
     dialog_path = resolve_dialog_file(npc_id)
     if not os.path.isfile(dialog_path):
+        if npc_id in MISSION_GIVERS and hasattr(game, "open_mission_board"):
+            game.open_mission_board(npc_id, source=source)
+            return
         return
     game.dialog_data = load_json(dialog_path)
     game.dialog_node = game.dialog_data.get("start")
@@ -358,6 +384,12 @@ def dialog_choose(game):
             game.push_message(tr(game.lang, "msg.archive_unavailable"))
         game.close_dialog()
         return
+    if next_node == "mission_board":
+        giver = getattr(game, "active_npc", None)
+        game.close_dialog()
+        if giver and hasattr(game, "open_mission_board"):
+            game.open_mission_board(giver, source="interaction")
+        return
     game.dialog_node = next_node
     game.dialog_selected = 0
 
@@ -378,6 +410,9 @@ def get_dialog_responses(game, node):
     if getattr(game, "active_npc", None) in {"closure", "priestess", "kaltsit"} and getattr(game, "dialog_source", None) == "interaction":
         if not any(r.get("next") == "lore_archive" for r in responses):
             responses = responses + [{"text": tr(game.lang, "dialog.archive"), "next": "lore_archive"}]
+    if getattr(game, "active_npc", None) in MISSION_GIVERS and getattr(game, "dialog_source", None) == "interaction":
+        if not any(r.get("next") == "mission_board" for r in responses):
+            responses = responses + [{"text": tr(game.lang, "dialog.mission_board"), "next": "mission_board"}]
     return responses
 
 

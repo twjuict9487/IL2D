@@ -28,6 +28,7 @@ class GameMap:
         self.grid = _normalize_grid(data['grid'])
         self.spawn = tuple(data['spawn'])
         self.portals = data.get('portals', [])
+        self.mission_targets = data.get('mission_targets', [])
         self.mob_limit = data.get('mob_limit', 4)
         self.spawn_interval = data.get('spawn_interval')
         self.h = len(self.grid)
@@ -40,6 +41,7 @@ class GameMap:
         obj.grid = _normalize_grid(data['grid'])
         obj.spawn = tuple(data['spawn'])
         obj.portals = data.get('portals', [])
+        obj.mission_targets = data.get('mission_targets', [])
         obj.mob_limit = data.get('mob_limit', 4)
         obj.spawn_interval = data.get('spawn_interval')
         obj.h = len(obj.grid)
@@ -55,4 +57,18 @@ class GameMap:
     def get_block(self, x, y):
         if 0 <= y < self.h and 0 <= x < self.w:
             return self.grid[y][x]
+        return None
+
+    def get_mission_target(self, x, y):
+        targets = getattr(self, "mission_targets", []) or []
+        for target in targets:
+            if not isinstance(target, dict):
+                continue
+            try:
+                tx = int(target.get("x", -999))
+                ty = int(target.get("y", -999))
+            except Exception:
+                continue
+            if tx == int(x) and ty == int(y):
+                return target
         return None

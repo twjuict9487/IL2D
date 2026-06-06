@@ -6,7 +6,7 @@ from collections import deque
 try:
     from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from ..models.entity import Entity
-    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, MISSIONS_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from ..support.i18n import tr
     from ..support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from . import rogue_ops as game_rogue_ops
@@ -21,13 +21,14 @@ except ImportError:
         sys.path.insert(0, _ROOT)
     from System_IL2D.core.functions.world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from System_IL2D.core.functions.models.entity import Entity
-    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, MISSIONS_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
     from System_IL2D.core.functions.support.i18n import tr
     from System_IL2D.core.functions.support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
     from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
     from System_IL2D.core.functions.gameplay import npc_ops as game_npc_ops
     from System_IL2D.core.functions.gameplay import inventory_ops as game_inventory_ops
     from System_IL2D.core.functions.gameplay import save_ops as game_save_ops
+    from System_IL2D.core.functions.gameplay import missions as game_missions
     from System_IL2D.core.functions.gameplay.tutorial import GameplayTutorialCore
 
 
@@ -142,6 +143,13 @@ class Game:
         self.objective_selected = 0
         self.tracked_mission = None
         self.active_missions = []
+        self.mission_book = {}
+        self.mission_state = {}
+        self.mission_board_giver = None
+        self.mission_board_selected = 0
+        self.mission_key_items = {}
+        self.mission_flags = {}
+        self.mission_complete_count = 0
         self.spells = []
         self.unlocked_magics = []
         self.spell_last_cast = {}
@@ -291,6 +299,96 @@ class Game:
         else:
             self.lore_archive = {}
         self.rogue_cfg = load_json(ROGUE_FILE)
+        if MISSIONS_FILE and os.path.isfile(MISSIONS_FILE):
+            try:
+                self.mission_book = game_missions.load_mission_book(MISSIONS_FILE)
+            except Exception:
+                self.mission_book = game_missions.empty_mission_book()
+        else:
+            self.mission_book = game_missions.empty_mission_book()
+        self._normalize_mission_state()
+
+    def _normalize_mission_state(self):
+        state = game_missions.normalize_state(getattr(self, "mission_state", None), getattr(self, "mission_book", None))
+        self.mission_state = state
+        self.mission_key_items = state.get("key_items", {})
+        self.mission_flags = state.get("flags", {})
+        self.mission_complete_count = int(state.get("completed_count", 0))
+        self.kaltsit_completed = self.mission_complete_count
+        self.active_missions = list(state.get("active", {}).values())
+        if not getattr(self, "tracked_mission", None):
+            self.tracked_mission = state.get("tracked")
+        if not getattr(self, "mission_board_giver", None):
+            self.mission_board_giver = state.get("board_giver")
+
+    def _mission_state_active(self):
+        self._normalize_mission_state()
+        return self.mission_state.get("active", {})
+
+    def _mission_runtime(self, mission_id):
+        self._normalize_mission_state()
+        mid = str(mission_id or "")
+        runtime = self.mission_state.get("active", {}).get(mid)
+        if runtime:
+            return runtime
+        runtime = self.mission_state.get("completed_data", {}).get(mid)
+        if runtime:
+            return runtime
+        return game_missions.get_runtime(self, mid)
+
+    def get_mission_definitions(self, giver_id=None):
+        self._normalize_mission_state()
+        if giver_id is None:
+            return list(self.mission_book.get("missions", []))
+        return game_missions.get_giver_missions(self, giver_id)
+
+    def get_mission_board_entries(self, giver_id):
+        self._normalize_mission_state()
+        return [game_missions.get_summary(self, row.get("id")) for row in game_missions.get_giver_missions(self, giver_id)]
+
+    def open_mission_board(self, giver_id, source="interaction"):
+        self._normalize_mission_state()
+        self.mission_board_giver = str(giver_id or "")
+        self.mission_board_selected = 0
+        self.dialog_data = None
+        self.dialog_node = None
+        self.dialog_selected = 0
+        self.active_npc = str(giver_id or "")
+        self.dialog_source = source
+        self.ui_mode = "mission_board"
+
+    def accept_mission(self, mission_id):
+        ok = game_missions.accept_mission(self, mission_id)
+        if ok:
+            self._normalize_mission_state()
+            self.push_message(tr(self.lang, "msg.mission_accepted"))
+        return ok
+
+    def turn_in_mission(self, mission_id):
+        runtime = self._mission_runtime(mission_id)
+        ok = game_missions.complete_mission(self, mission_id)
+        if ok and runtime:
+            self.on_mission_completed(runtime)
+            self._normalize_mission_state()
+        return ok
+
+    def record_mission_key_interact(self, target_id=None, key_id=None, consume=False, flag=None):
+        if game_missions.record_key_interaction(self, target_id=target_id, key_id=key_id, consume=consume, flag=flag):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_completion_event(self):
+        if game_missions.update_on_mission_complete(self):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_enemy_death(self, enemy_id):
+        if game_missions.update_on_enemy_death(self, enemy_id):
+            self._normalize_mission_state()
+            return True
+        return False
 
     def _load_item_defs(self, raw_defs):
         defs = {}
@@ -1063,18 +1161,8 @@ class Game:
         self.add_exp(int(mob.get("exp_reward", 10)))
         self.tutorial_notify("enemy_killed", enemy_id=ent.eid)
 
-        # Mission progress (multi-mission)
-        for mission in self.get_active_missions():
-            if mission.get("done"):
-                continue
-            mtype = mission.get("type")
-            if mtype == "kill_any":
-                mission["progress"] = min(mission["target"], mission.get("progress", 0) + 1)
-            elif mtype == "kill_specific" and ent.eid == mission.get("mob"):
-                mission["progress"] = min(mission["target"], mission.get("progress", 0) + 1)
-            if mission.get("progress", 0) >= mission.get("target", 0):
-                mission["done"] = True
-                self.on_kaltsit_mission_complete(mission)
+        # Mission progress (mission framework v0)
+        self.record_mission_enemy_death(ent.eid)
 
     def push_message(self, text):
         self.message_queue.append({
@@ -1511,17 +1599,23 @@ class Game:
                 continue
             ent.x, ent.y = tx, ty
 
-    def on_kaltsit_mission_complete(self, mission=None):
-        mission = mission or self.kaltsit_mission or {}
-        if mission.get("rewarded"):
+    def on_mission_completed(self, mission=None):
+        runtime = mission or self.kaltsit_mission or {}
+        if not runtime:
             return
-        mission["rewarded"] = True
-        self.kaltsit_completed += 1
-        self.push_message(tr(self.lang, "msg.mission_complete_count", count=self.kaltsit_completed))
-        if self.kaltsit_completed >= 10 and not self.monst3r_unlocked:
+        self._normalize_mission_state()
+        self.mission_complete_count = int(getattr(self, "mission_complete_count", 0)) + 1
+        self.mission_state["completed_count"] = self.mission_complete_count
+        self.kaltsit_completed = self.mission_complete_count
+        self.push_message(tr(self.lang, "msg.mission_complete_count", count=self.mission_complete_count))
+        self.record_mission_completion_event()
+        if self.mission_complete_count >= 10 and not self.monst3r_unlocked:
             self.kaltsit_reward_ready = True
-        if self.kaltsit_completed >= 10 and not self.wisadel_unlocked:
+        if self.mission_complete_count >= 10 and not self.wisadel_unlocked:
             self.ines_reward_ready = True
+
+    def on_kaltsit_mission_complete(self, mission=None):
+        self.on_mission_completed(mission=mission)
 
     def ensure_wisadel_entity(self):
         if not self.wisadel_unlocked:
@@ -1752,8 +1846,8 @@ class Game:
         if not missions:
             return lines
         for mission in missions:
-            giver = str(mission.get("giver", "kaltsit"))
-            giver_name = giver.capitalize()
+            giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
+            giver_name = mission.get("giver_name", giver)
             text = self._mission_text_short(mission)
             if text:
                 lines.append(f"{giver_name}: {text}")
@@ -1762,40 +1856,20 @@ class Game:
     def get_trackable_missions(self):
         missions = []
         for mission in self.get_active_missions():
-            giver = str(mission.get("giver", "kaltsit"))
+            giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
             missions.append({
-                "id": giver,
-                "name": giver.capitalize(),
+                "id": mission.get("id", giver),
+                "name": mission.get("title", giver),
+                "giver": giver,
                 "text": self._mission_text_short(mission),
-                "done": bool(mission.get("done", False)),
+                "done": self._mission_ready_to_turn_in(mission),
+                "status": game_missions.get_status(self, mission.get("id", giver)) if hasattr(game_missions, "get_status") else "active",
             })
         return missions
 
     def _mission_text_short(self, mission):
-        mtype = mission.get("type")
-        if mtype == "kill_specific":
-            return tr(
-                self.lang,
-                "mission.kill_specific",
-                mob=mission.get("mob", "slime"),
-                progress=mission.get("progress", 0),
-                target=mission.get("target", 1),
-            )
-        if mtype == "kill_any":
-            return tr(
-                self.lang,
-                "mission.kill_any",
-                progress=mission.get("progress", 0),
-                target=mission.get("target", 1),
-            )
-        if mtype == "reach_layer":
-            return tr(
-                self.lang,
-                "mission.reach_layer",
-                progress=mission.get("progress", 0),
-                target=mission.get("target", 1),
-            )
-        return ""
+        text = game_missions.get_objective_summary(mission)
+        return text[0] if text else ""
 
     def set_tracked_selected_mission(self):
         missions = self.get_trackable_missions()
@@ -1826,40 +1900,42 @@ class Game:
         return []
 
     def _ensure_active_missions(self):
-        pool = getattr(self, "active_missions", None)
-        if not isinstance(pool, list):
-            pool = []
-            self.active_missions = pool
-        legacy = getattr(self, "kaltsit_mission", None)
-        if isinstance(legacy, dict):
-            giver = str(legacy.get("giver", "kaltsit"))
-            if not any(isinstance(m, dict) and str(m.get("giver", "kaltsit")) == giver and not m.get("done") for m in pool):
-                pool.append(legacy)
+        self._normalize_mission_state()
+        pool = list(self.mission_state.get("active", {}).values())
+        self.active_missions = pool
         return pool
 
     def get_active_missions(self):
         pool = self._ensure_active_missions()
-        out = [m for m in pool if isinstance(m, dict) and not m.get("done")]
-        # Keep legacy pointer consistent for old call sites/save compatibility.
+        out = [m for m in pool if isinstance(m, dict) and not m.get("completed")]
         self.kaltsit_mission = out[0] if out else None
         return out
 
     def get_mission_by_giver(self, giver):
         giver = str(giver or "kaltsit")
         for m in self.get_active_missions():
-            if str(m.get("giver", "kaltsit")) == giver:
+            if str(m.get("giver_id", m.get("giver", "kaltsit"))) == giver:
                 return m
         return None
 
     def add_active_mission(self, mission):
         if not isinstance(mission, dict):
             return
-        mission["giver"] = str(mission.get("giver", "kaltsit"))
-        pool = self._ensure_active_missions()
-        pool.append(mission)
+        mid = str(mission.get("id", mission.get("giver", "kaltsit")))
+        runtime = game_missions.normalize_runtime(mission, getattr(self, "mission_book", None))
+        self.mission_state.setdefault("active", {})[mid] = runtime
+        self.mission_state.setdefault("accepted", [])
+        if mid not in self.mission_state["accepted"]:
+            self.mission_state["accepted"].append(mid)
         if not getattr(self, "tracked_mission", None):
-            self.tracked_mission = mission.get("giver")
-        self.kaltsit_mission = mission
+            self.tracked_mission = mid
+        self.kaltsit_mission = runtime
+        if hasattr(game_missions, "ensure_key_items_for_mission"):
+            game_missions.ensure_key_items_for_mission(self, runtime)
+        self._normalize_mission_state()
+
+    def _mission_ready_to_turn_in(self, mission):
+        return game_missions.is_ready_to_turn_in(mission)
 
     def get_skill_tree_nodes(self):
         return [

@@ -229,3 +229,6 @@ Backup_version_v001/
 Backup_version_v002/
 daily_log
 daily_log.*
+temp_lore_storage
+temp_mission
+tmp_rtic_tiles_sample*.png

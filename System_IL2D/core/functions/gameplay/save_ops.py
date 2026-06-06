@@ -3,6 +3,7 @@ import os
 from ..world.map import npc_data
 from ..support.i18n import tr
 from ..support.utils import SAVE_DIR, load_json
+from . import missions as game_missions
 
 
 def open_save(game):
@@ -11,6 +12,8 @@ def open_save(game):
 
 
 def save_game(game):
+    if hasattr(game, "_normalize_mission_state"):
+        game._normalize_mission_state()
     slot = game.save_selected + 1
     save_path = os.path.join(SAVE_DIR, f"slot_{slot}.json")
     payload = {
@@ -36,6 +39,11 @@ def save_game(game):
         "active_missions": getattr(game, "active_missions", []),
         "tracked_mission": getattr(game, "tracked_mission", None),
         "objective_selected": int(getattr(game, "objective_selected", 0)),
+        "mission_state": getattr(game, "mission_state", {}),
+        "mission_complete_count": int(getattr(game, "mission_complete_count", getattr(game, "kaltsit_completed", 0))),
+        "mission_key_items": getattr(game, "mission_key_items", {}),
+        "mission_flags": getattr(game, "mission_flags", {}),
+        "mission_board_giver": getattr(game, "mission_board_giver", None),
         "kaltsit_intro_done": game.kaltsit_intro_done,
         "ines_intro_done": game.ines_intro_done,
         "kaltsit_completed": game.kaltsit_completed,
@@ -110,6 +118,28 @@ def load_save(game, slot):
         game.active_missions = [m for m in loaded_active if isinstance(m, dict)]
     game.tracked_mission = data.get("tracked_mission", getattr(game, "tracked_mission", None))
     game.objective_selected = int(data.get("objective_selected", getattr(game, "objective_selected", 0)))
+    loaded_mission_state = data.get("mission_state", None)
+    if isinstance(loaded_mission_state, dict):
+        game.mission_state = game_missions.normalize_state(loaded_mission_state, getattr(game, "mission_book", None))
+    else:
+        legacy_state = {
+            "active": {str(m.get("id", f"legacy_{i}")): m for i, m in enumerate(getattr(game, "active_missions", [])) if isinstance(m, dict)},
+            "accepted": [str(m.get("id", f"legacy_{i}")) for i, m in enumerate(getattr(game, "active_missions", [])) if isinstance(m, dict)],
+            "completed": [],
+            "completed_data": {},
+            "unlocked": [],
+            "flags": {},
+            "key_items": {},
+            "tracked": getattr(game, "tracked_mission", None),
+            "board_giver": data.get("mission_board_giver", None),
+            "completed_count": int(data.get("mission_complete_count", data.get("kaltsit_completed", 0)) or 0),
+        }
+        game.mission_state = game_missions.normalize_state(legacy_state, getattr(game, "mission_book", None))
+    state_ref = getattr(game, "mission_state", {}) if isinstance(getattr(game, "mission_state", {}), dict) else {}
+    game.mission_key_items = data.get("mission_key_items", state_ref.get("key_items", getattr(game, "mission_key_items", {})))
+    game.mission_flags = data.get("mission_flags", state_ref.get("flags", getattr(game, "mission_flags", {})))
+    game.mission_board_giver = data.get("mission_board_giver", state_ref.get("board_giver", getattr(game, "mission_board_giver", None)))
+    game.mission_complete_count = int(data.get("mission_complete_count", state_ref.get("completed_count", data.get("kaltsit_completed", game.mission_complete_count if hasattr(game, "mission_complete_count") else 0))))
     game.kaltsit_intro_done = data.get("kaltsit_intro_done", game.kaltsit_intro_done)
     game.ines_intro_done = data.get("ines_intro_done", game.ines_intro_done)
     game.kaltsit_completed = data.get("kaltsit_completed", game.kaltsit_completed)
@@ -144,6 +174,8 @@ def load_save(game, slot):
     if hasattr(game, "mark_map_explored"):
         game.mark_map_explored(game.map.name)
     game.level_stat_selected = 0
+    if hasattr(game, "_normalize_mission_state"):
+        game._normalize_mission_state()
     # Loading an existing save should not auto-open startup NPC dialog.
     game.ui_mode = None
     game.dialog_data = None

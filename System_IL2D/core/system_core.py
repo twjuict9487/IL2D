@@ -794,10 +794,15 @@ def _handle_esc_menu_key(ctx, event):
                         else:
                             idx = max(0, idx - 2)
                         game.item_selected = idx
-            elif game.ui_mode == "objective":
-                missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
-                if missions:
-                    game.objective_selected = max(0, game.objective_selected - 1)
+            elif game.ui_mode in ("objective", "mission_board"):
+                if game.ui_mode == "objective":
+                    missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
+                    if missions:
+                        game.objective_selected = max(0, game.objective_selected - 1)
+                else:
+                    missions = game.get_mission_board_entries(getattr(game, "mission_board_giver", None)) if hasattr(game, "get_mission_board_entries") else []
+                    if missions:
+                        game.mission_board_selected = max(0, game.mission_board_selected - 1)
             elif game.ui_mode == "hotbar":
                 if event.key in (pygame.K_LEFT, pygame.K_a):
                     game.hotbar_slot_selected = max(0, game.hotbar_slot_selected - 1)
@@ -889,10 +894,15 @@ def _handle_esc_menu_key(ctx, event):
                         else:
                             idx = min(len(items) - 1, idx + 2)
                         game.item_selected = idx
-            elif game.ui_mode == "objective":
-                missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
-                if missions:
-                    game.objective_selected = min(len(missions) - 1, game.objective_selected + 1)
+            elif game.ui_mode in ("objective", "mission_board"):
+                if game.ui_mode == "objective":
+                    missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
+                    if missions:
+                        game.objective_selected = min(len(missions) - 1, game.objective_selected + 1)
+                else:
+                    missions = game.get_mission_board_entries(getattr(game, "mission_board_giver", None)) if hasattr(game, "get_mission_board_entries") else []
+                    if missions:
+                        game.mission_board_selected = min(len(missions) - 1, game.mission_board_selected + 1)
             elif game.ui_mode == "hotbar":
                 if event.key in (pygame.K_RIGHT, pygame.K_d):
                     game.hotbar_slot_selected = min(9, game.hotbar_slot_selected + 1)
@@ -998,6 +1008,21 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "objective":
                 if hasattr(game, "set_tracked_selected_mission"):
                     game.set_tracked_selected_mission()
+            elif game.ui_mode == "mission_board":
+                giver = getattr(game, "mission_board_giver", None)
+                missions = game.get_mission_board_entries(giver) if giver and hasattr(game, "get_mission_board_entries") else []
+                if missions:
+                    idx = max(0, min(len(missions) - 1, int(getattr(game, "mission_board_selected", 0))))
+                    row = missions[idx]
+                    status = row.get("status")
+                    if status == "available":
+                        if hasattr(game, "accept_mission"):
+                            game.accept_mission(row.get("id"))
+                    elif status == "ready":
+                        if hasattr(game, "turn_in_mission"):
+                            game.turn_in_mission(row.get("id"))
+                    elif status == "active":
+                        game.tracked_mission = row.get("id")
             elif game.ui_mode == "hotbar":
                 if game.hotbar_mode == "item":
                     items = game.get_item_list()
@@ -1478,20 +1503,30 @@ def _handle_mouse_esc_menu(ctx, pos):
                     game.handle_leave_confirm()
                     break
                 y += font.get_height() + 6
-        elif game.ui_mode == "objective":
+        elif game.ui_mode in ("objective", "mission_board"):
             y = panel.y + 48
-            # Skip default objective lines area, click only on mission tracking list.
-            y += (font.get_height() + 6) * len(game.get_objective_lines())
-            y += 8 + font.get_height() + 6
-            missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
-            for i, _ in enumerate(missions):
-                rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
-                if rect.collidepoint(mx, my):
-                    game.objective_selected = i
-                    if hasattr(game, "set_tracked_selected_mission"):
-                        game.set_tracked_selected_mission()
-                    break
-                y += font.get_height() + 8
+            if game.ui_mode == "objective":
+                # Skip default objective lines area, click only on mission tracking list.
+                y += (font.get_height() + 6) * len(game.get_objective_lines())
+                y += 8 + font.get_height() + 6
+                missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
+                for i, _ in enumerate(missions):
+                    rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
+                    if rect.collidepoint(mx, my):
+                        game.objective_selected = i
+                        if hasattr(game, "set_tracked_selected_mission"):
+                            game.set_tracked_selected_mission()
+                        break
+                    y += font.get_height() + 8
+            else:
+                giver = getattr(game, "mission_board_giver", None)
+                missions = game.get_mission_board_entries(giver) if giver and hasattr(game, "get_mission_board_entries") else []
+                for i, _ in enumerate(missions):
+                    rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
+                    if rect.collidepoint(mx, my):
+                        game.mission_board_selected = i
+                        break
+                    y += font.get_height() + 8
 
 
 def _handle_mouse_game(ctx, pos):

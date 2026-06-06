@@ -1381,6 +1381,60 @@ def draw_menu_detail(screen, panel, game):
             _draw_text_outline(screen, font, label, color, (255, 255, 255), (left_rect.x + 8, y))
             _draw_text_outline(screen, font, equip_label, (230, 230, 230), (255, 255, 255), (right_rect.x + 8, y))
             y += font.get_height() + 6
+    elif game.ui_mode == "mission_board":
+        giver = getattr(game, "mission_board_giver", None)
+        missions = game.get_mission_board_entries(giver) if giver and hasattr(game, "get_mission_board_entries") else []
+        title = tr(game.lang, "mission.board.title")
+        _draw_text_outline(screen, font, title, (210, 230, 255), (255, 255, 255), (panel.x + 20, y))
+        y += font.get_height() + 8
+        if not missions:
+            _draw_text_outline(screen, font, tr(game.lang, "mission.board.no_missions"), (220, 220, 220), (255, 255, 255), (panel.x + 20, y))
+        else:
+            selected = max(0, min(len(missions) - 1, int(getattr(game, "mission_board_selected", 0))))
+            left_w = max(260, min(320, panel.width // 3))
+            left_x = panel.x + 16
+            right_x = panel.x + left_w + 28
+            right_w = panel.width - left_w - 44
+            _draw_text_outline(screen, font, tr(game.lang, "mission.board.list"), (210, 230, 255), (255, 255, 255), (left_x, y))
+            _draw_text_outline(screen, font, tr(game.lang, "mission.board.detail"), (210, 230, 255), (255, 255, 255), (right_x, y))
+            y += font.get_height() + 8
+            list_y = y
+            list_font_gap = font.get_height() + 8
+            for i, row in enumerate(missions):
+                rect = pygame.Rect(left_x, list_y - 2 + i * list_font_gap, left_w - 12, font.get_height() + 6)
+                _draw_readability_row(screen, rect, selected=(i == selected))
+                status = row.get("status", "available")
+                status_label = tr(game.lang, f"mission.board.{status}") if tr(game.lang, f"mission.board.{status}") else status
+                line = f"{row.get('title', 'Mission')} [{status_label}]"
+                color = (255, 247, 170) if i == selected else (230, 230, 230)
+                _draw_text_outline(screen, font, _fit_text(font, line, left_w - 20), color, (0, 0, 0), (left_x + 8, list_y + i * list_font_gap), thickness=2)
+            detail = missions[selected]
+            detail_y = list_y
+            sections = [
+                (tr(game.lang, "mission.board.briefing"), detail.get("briefing", [])),
+                (tr(game.lang, "preview.objectives"), detail.get("objectives", [])),
+                (tr(game.lang, "mission.board.rewards"), detail.get("rewards", [])),
+                (tr(game.lang, "mission.board.unlocks"), detail.get("unlocks", [])),
+            ]
+            status = detail.get("status", "available")
+            status_line = tr(game.lang, f"mission.board.{status}") if tr(game.lang, f"mission.board.{status}") else status
+            _draw_text_outline(screen, font, _fit_text(font, f"{detail.get('title', '')} [{status_line}]", right_w), (255, 255, 160), (0, 0, 0), (right_x, detail_y), thickness=2)
+            detail_y += font.get_height() + 8
+            for heading, lines in sections:
+                _draw_text_outline(screen, font, heading, (210, 230, 255), (255, 255, 255), (right_x, detail_y))
+                detail_y += font.get_height() + 5
+                if not lines:
+                    _draw_text_outline(screen, font, "-", (200, 200, 200), (255, 255, 255), (right_x + 10, detail_y))
+                    detail_y += font.get_height() + 4
+                    continue
+                for raw in lines[:6]:
+                    text = str(raw)
+                    wrapped = _wrap_text(font, text, right_w - 16)
+                    for wrap_line in wrapped[:3]:
+                        _draw_text_outline(screen, font, wrap_line, (230, 230, 230), (0, 0, 0), (right_x + 10, detail_y), thickness=2)
+                        detail_y += font.get_height() + 3
+                detail_y += 4
+            _draw_text_outline(screen, font, tr(game.lang, "mission.board.hint"), (180, 200, 220), (255, 255, 255), (right_x, min(panel.bottom - font.get_height() - 24, detail_y + 8)))
     elif game.ui_mode == "objective":
         for line in game.get_objective_lines():
             _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
@@ -1507,6 +1561,8 @@ def draw_player_ui(game, screen):
 
 def draw_messages(game, screen):
     if not game.message_queue:
+        return
+    if getattr(game, "ui_mode", None) == "mission_board":
         return
     font = _get_font(14)
     messages = list(game.message_queue)[-3:]
@@ -1776,6 +1832,83 @@ def draw_dialog(game, screen):
             pygame.draw.rect(screen, _flicker_color(), rect, 2, border_radius=4)
         screen.blit(surf, (img_x + img_size + 12, resp_y))
         resp_y += font2.get_height() + 6
+
+
+def draw_mission_board(game, screen):
+    if getattr(game, "ui_mode", None) != "mission_board":
+        return
+    giver = getattr(game, "mission_board_giver", None)
+    missions = game.get_mission_board_entries(giver) if giver and hasattr(game, "get_mission_board_entries") else []
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 140))
+    screen.blit(shade, (0, 0))
+
+    panel = pygame.Rect(18, 18, screen.get_width() - 36, screen.get_height() - 36 - 48)
+    pygame.draw.rect(screen, (18, 24, 38), panel, border_radius=10)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=10)
+
+    title_font = _get_font(24, bold=True)
+    body_font = _get_font(16)
+    small_font = _get_font(14)
+
+    title = tr(game.lang, "mission.board.title")
+    giver_name = str(giver or "").strip() or "NPC"
+    _draw_text_outline(screen, title_font, title, (245, 245, 245), (0, 0, 0), (panel.x + 18, panel.y + 16), thickness=2)
+    _draw_text_outline(screen, body_font, giver_name, (210, 230, 255), (0, 0, 0), (panel.x + 180, panel.y + 22), thickness=2)
+
+    if not missions:
+        _draw_text_outline(screen, body_font, tr(game.lang, "mission.board.no_missions"), (220, 220, 220), (0, 0, 0), (panel.x + 20, panel.y + 70), thickness=2)
+        _draw_text_outline(screen, small_font, tr(game.lang, "mission.board.hint"), (180, 205, 225), (0, 0, 0), (panel.x + 20, panel.bottom - 28), thickness=2)
+        return
+
+    selected = max(0, min(len(missions) - 1, int(getattr(game, "mission_board_selected", 0))))
+    left_w = max(280, min(340, panel.width // 3))
+    left_x = panel.x + 18
+    right_x = panel.x + left_w + 30
+    right_w = panel.width - left_w - 48
+    list_y = panel.y + 64
+    list_gap = body_font.get_height() + 8
+
+    _draw_text_outline(screen, body_font, tr(game.lang, "mission.board.list"), (210, 230, 255), (0, 0, 0), (left_x, panel.y + 52), thickness=2)
+    _draw_text_outline(screen, body_font, tr(game.lang, "mission.board.detail"), (210, 230, 255), (0, 0, 0), (right_x, panel.y + 52), thickness=2)
+
+    for i, row in enumerate(missions):
+        rect = pygame.Rect(left_x, list_y + i * list_gap - 2, left_w - 10, body_font.get_height() + 6)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        status = str(row.get("status", "available"))
+        status_label = tr(game.lang, f"mission.board.{status}")
+        line = f"{row.get('title', 'Mission')} [{status_label}]"
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, body_font, _fit_text(body_font, line, left_w - 18), color, (0, 0, 0), (left_x + 8, list_y + i * list_gap), thickness=2)
+
+    detail = missions[selected]
+    status = str(detail.get("status", "available"))
+    status_label = tr(game.lang, f"mission.board.{status}")
+    _draw_text_outline(screen, body_font, _fit_text(body_font, f"{detail.get('title', '')} [{status_label}]", right_w), (255, 255, 160), (0, 0, 0), (right_x, list_y), thickness=2)
+    y = list_y + body_font.get_height() + 10
+
+    sections = [
+        (tr(game.lang, "mission.board.briefing"), detail.get("briefing", [])),
+        (tr(game.lang, "preview.objectives"), detail.get("objectives", [])),
+        (tr(game.lang, "mission.board.rewards"), detail.get("rewards", [])),
+        (tr(game.lang, "mission.board.unlocks"), detail.get("unlocks", [])),
+    ]
+    for heading, lines in sections:
+        _draw_text_outline(screen, body_font, heading, (210, 230, 255), (0, 0, 0), (right_x, y), thickness=2)
+        y += body_font.get_height() + 4
+        if not lines:
+            _draw_text_outline(screen, small_font, "-", (200, 200, 200), (0, 0, 0), (right_x + 10, y), thickness=1)
+            y += small_font.get_height() + 4
+            continue
+        for raw in lines[:8]:
+            wrapped = _wrap_text(small_font, str(raw), right_w - 20)
+            for wrap_line in wrapped[:3]:
+                _draw_text_outline(screen, small_font, wrap_line, (230, 230, 230), (0, 0, 0), (right_x + 10, y), thickness=1)
+                y += small_font.get_height() + 3
+        y += 6
+
+    ready_hint = tr(game.lang, "mission.board.hint")
+    _draw_text_outline(screen, small_font, ready_hint, (180, 205, 225), (0, 0, 0), (right_x, panel.bottom - 28), thickness=2)
 
 
 def draw_blackjack(game, screen):
@@ -2217,6 +2350,7 @@ def draw(game, screen):
     draw_messages(game, screen)
     draw_blackjack_bet(game, screen)
     draw_dialog(game, screen)
+    draw_mission_board(game, screen)
     draw_blackjack(game, screen)
     draw_shop(game, screen)
     draw_interact_picker(game, screen)
