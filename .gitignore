@@ -231,4 +231,7 @@ daily_log
 daily_log.*
 temp_lore_storage
 temp_mission
+temp_mission_reworked
 tmp_rtic_tiles_sample*.png
+AI_Rules
+AGENTS.md

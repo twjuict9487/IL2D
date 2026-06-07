@@ -30,6 +30,11 @@ def enter_rogue_layer(game, new_entry=False):
         game.map = GameMap(resolve_map_file(special_map))
         if hasattr(game, "mark_map_explored"):
             game.mark_map_explored(game.map.name)
+        if hasattr(game, "record_mission_map_explore"):
+            try:
+                game.record_mission_map_explore(game.map.name)
+            except Exception:
+                pass
         game.map_max_h_mob = game.map.mob_limit
         game.player.x, game.player.y = game.map.spawn
         game.entities = [
@@ -52,6 +57,11 @@ def enter_rogue_layer(game, new_entry=False):
     game.map = GameMap.from_data("rogue", data)
     if hasattr(game, "mark_map_explored"):
         game.mark_map_explored(game.map.name)
+    if hasattr(game, "record_mission_map_explore"):
+        try:
+            game.record_mission_map_explore(game.map.name)
+        except Exception:
+            pass
     game.map_max_h_mob = game.map.mob_limit
     game.player.x, game.player.y = game.map.spawn
     game.place_npcs_for_map()

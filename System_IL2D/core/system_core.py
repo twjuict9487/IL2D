@@ -1039,7 +1039,10 @@ def _handle_esc_menu_key(ctx, event):
                         if hasattr(game, "turn_in_mission"):
                             game.turn_in_mission(row.get("id"))
                     elif status == "active":
-                        game.tracked_mission = row.get("id")
+                        if hasattr(game, "set_tracked_mission"):
+                            game.set_tracked_mission(row.get("id"))
+                        else:
+                            game.tracked_mission = row.get("id")
             elif game.ui_mode == "hotbar":
                 if game.hotbar_mode == "item":
                     items = game.get_item_list()

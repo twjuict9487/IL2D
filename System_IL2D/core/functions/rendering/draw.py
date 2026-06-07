@@ -1468,6 +1468,8 @@ def draw_menu_detail(screen, panel, game):
                 tracked_id = tracked_runtime.get("id", tracked_id)
         if tracked_runtime:
             tracked_name = str(tracked_runtime.get("name") or tracked_runtime.get("title") or tracked_runtime.get("giver_name") or tracked_id or "Mission").strip()
+            if tracked_name in {"", "Mission", str(tracked_id or "")} and hasattr(game, "_giver_display_name"):
+                tracked_name = game._giver_display_name(tracked_runtime.get("giver_id") or tracked_runtime.get("giver") or tracked_id, fallback=tracked_name)
             _draw_text_outline(screen, font, tracked_name, (255, 247, 170), (255, 255, 255), (panel.x + 20, y), thickness=2)
             y += font.get_height() + 6
             tracked_lines = []
@@ -1480,8 +1482,9 @@ def draw_menu_detail(screen, panel, game):
                     tracked_runtime.get("accept_lines", [])
                 ) if isinstance(line, str) and line.strip()]
             if not tracked_lines:
-                empty_text = tr(game.lang, "mission.board.no_missions") or "no missions"
-                tracked_lines = [empty_text]
+                tracked_lines = game.get_tracking_summary_lines() if hasattr(game, "get_tracking_summary_lines") else []
+            if not tracked_lines:
+                tracked_lines = [tracked_name or str(tracked_id or "Mission")]
             max_bottom = panel.bottom - font.get_height() - 26
             truncated = False
             for line in tracked_lines:
@@ -1495,7 +1498,7 @@ def draw_menu_detail(screen, panel, game):
             if truncated:
                 _draw_text_outline(screen, font, "↓ More", (180, 205, 225), (255, 255, 255), (panel.x + 24, panel.bottom - font.get_height() - 18), thickness=2)
         else:
-            empty_text = tr(game.lang, "mission.board.no_missions") or "no missions"
+            empty_text = tracked_id or tr(game.lang, "mission.board.no_missions") or "no missions"
             _draw_text_outline(screen, font, empty_text, (220, 220, 220), (255, 255, 255), (panel.x + 20, y))
     elif game.ui_mode == "skill_tree":
         nodes = game.get_skill_tree_nodes()
@@ -1781,7 +1784,7 @@ def _draw_world_map(screen, panel, game, font):
             # Name directly on map area (can overflow as requested).
             _draw_text_outline(screen, font, label, (235, 245, 255), (0, 0, 0), (r.x - 2, r.y - 18))
         else:
-            _draw_text_outline(screen, font, "???", (180, 180, 180), (0, 0, 0), (r.x + 2, r.y - 18))
+            _draw_text_outline(screen, font, "未命名", (180, 180, 180), (0, 0, 0), (r.x + 2, r.y - 18))
 
     if cur in rects:
         r = rects[cur]
@@ -2257,6 +2260,28 @@ def draw(game, screen):
         for p in game.map.portals:
             if isinstance(p, dict) and p.get("visible", True):
                 portal_set.add((p.get("x"), p.get("y")))
+    mission_target_map = {}
+    show_data_targets = False
+    show_terminal_targets = False
+    if hasattr(game, "get_active_missions"):
+        for mission in game.get_active_missions():
+            if not isinstance(mission, dict):
+                continue
+            for obj in mission.get("objectives", []) or []:
+                if not isinstance(obj, dict) or obj.get("done"):
+                    continue
+                typ = str(obj.get("type", "")).strip()
+                if typ == "collect_data":
+                    show_data_targets = True
+                elif typ == "upload_data":
+                    show_terminal_targets = True
+    for target in getattr(game.map, "mission_targets", []) or []:
+        if not isinstance(target, dict):
+            continue
+        try:
+            mission_target_map[(int(target.get("x", -1)), int(target.get("y", -1)))] = target
+        except Exception:
+            continue
     tiles_x = map_view_w + 2
     tiles_y = map_view_h + 2
     for y in range(tiles_y):
@@ -2300,6 +2325,18 @@ def draw(game, screen):
                     overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
                     overlay.fill((180, 60, 220, 160))
                     screen.blit(overlay, (tile_x, tile_y))
+                target = mission_target_map.get((mx, my))
+                if target:
+                    kind = str(target.get("kind", "")).strip().lower()
+                    show_target = (kind == "data" and show_data_targets) or (kind == "terminal" and show_terminal_targets)
+                    if show_target:
+                        pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() / 350.0)
+                        alpha = int(80 + 70 * pulse)
+                        tint = (255, 235, 120, alpha) if kind == "data" else (180, 255, 220, alpha)
+                        overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
+                        overlay.fill(tint)
+                        screen.blit(overlay, (tile_x, tile_y))
+                        pygame.draw.rect(screen, (255, 245, 170) if kind == "data" else (210, 255, 235), (tile_x + 1, tile_y + 1, tile_w - 2, tile_h - 2), 2)
     view_rect = pygame.Rect(cam_px, cam_py, view_w_px, view_h_px)
     for ent in game.entities:
         ent_size = getattr(ent, "size", 1)
@@ -2381,6 +2418,27 @@ def draw(game, screen):
         for line in tracking_lines:
             _draw_text_outline(screen, tfont, line, (230, 230, 230), (0, 0, 0), (box_x + 8, yy), thickness=1)
             yy += line_h
+    mission_upload = getattr(game, "mission_upload", None)
+    if mission_upload:
+        bar_w = min(screen.get_width() - 80, 420)
+        bar_h = 18
+        bar_x = (screen.get_width() - bar_w) // 2
+        bar_y = screen.get_height() - bar_h - 26
+        upload_font = _get_font(13)
+        upload_box = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
+        upload_box.fill((15, 18, 28, 220))
+        screen.blit(upload_box, (bar_x, bar_y))
+        pygame.draw.rect(screen, (210, 235, 245), pygame.Rect(bar_x, bar_y, bar_w, bar_h), 1)
+        started = float(mission_upload.get("started", 0.0) or 0.0)
+        duration = max(1.0, float(mission_upload.get("duration", 1.0) or 1.0))
+        progress = max(0.0, min(1.0, (time.time() - started) / duration)) if started else 0.0
+        fill_w = max(0, int((bar_w - 4) * progress))
+        if fill_w > 0:
+            pygame.draw.rect(screen, (120, 230, 180), pygame.Rect(bar_x + 2, bar_y + 2, fill_w, bar_h - 4))
+        label = tr(game.lang, "msg.upload_started")
+        if progress >= 1.0:
+            label = tr(game.lang, "msg.upload_complete")
+        _draw_text_outline(screen, upload_font, _fit_text(upload_font, label, bar_w - 10), (245, 245, 245), (0, 0, 0), (bar_x + 6, bar_y - 18), thickness=1)
 
     if getattr(game, "transition_active", False):
         t = game.transition_timer / max(game.transition_duration, 0.001)
@@ -2820,7 +2878,7 @@ def draw_mission_board(game, screen):
         _draw_text_outline(screen, detail_small, status_label, (255, 220, 160), (0, 0, 0), (right.x + 10, dy), thickness=2)
         dy += detail_small.get_height() + 6
     reason_key = ""
-    if status not in ("available", "ready", "active", "completed"):
+    if status not in ("briefing", "ready_to_return", "available", "ready", "active", "completed"):
         try:
             reason_key = game_missions.mission_acceptance_reason(game, entry.get("id"), giver_id=entry.get("giver_id"))
         except Exception:
@@ -3205,7 +3263,7 @@ def draw_mission_board(game, screen):
         name = str(row.get("name") or row.get("title") or row.get("id") or "")
         status = str(row.get("status") or "")
         status_reason = ""
-        if status not in ("available", "ready", "active", "completed"):
+        if status not in ("briefing", "ready_to_return", "available", "ready", "active", "completed"):
             try:
                 giver_id = getattr(game, "mission_board_giver", None) or row.get("giver_id") or row.get("provider")
                 if hasattr(game_missions, "mission_acceptance_reason"):
@@ -3240,7 +3298,7 @@ def draw_mission_board(game, screen):
         status_label = tr(game.lang, f"mission.board.{status}") or status
         _draw_text_outline(screen, detail_small, status_label, (255, 220, 160), (0, 0, 0), (right.x + 10, dy), thickness=2)
         dy += detail_small.get_height() + 6
-    if status not in ("available", "ready", "active", "completed"):
+    if status not in ("briefing", "ready_to_return", "available", "ready", "active", "completed"):
         try:
             reason_key = game_missions.mission_acceptance_reason(game, entry.get("id"), giver_id=entry.get("giver_id"))
         except Exception:
@@ -3607,7 +3665,7 @@ def draw_mission_board(game, screen):
         _draw_text_outline(screen, detail_small, giver, (205, 225, 245), (0, 0, 0), (right.x + 10, dy), thickness=2)
         dy += detail_small.get_height() + 10
     status = str(entry.get("status") or "").strip().lower()
-    if status not in ("available", "ready", "active", "completed"):
+    if status not in ("briefing", "ready_to_return", "available", "ready", "active", "completed"):
         status_reason = ""
         try:
             giver_id = getattr(game, "mission_board_giver", None) or entry.get("giver_id") or entry.get("provider")

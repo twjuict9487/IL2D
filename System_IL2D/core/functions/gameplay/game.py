@@ -160,6 +160,7 @@ class Game:
         self.mission_key_items = {}
         self.mission_flags = {}
         self.mission_complete_count = 0
+        self.mission_upload = None
         self.spells = []
         self.unlocked_magics = []
         self.spell_last_cast = {}
@@ -328,6 +329,8 @@ class Game:
         self.active_missions = list(state.get("active", {}).values())
         if not getattr(self, "tracked_mission", None):
             self.tracked_mission = state.get("tracked")
+        elif state.get("tracked") != getattr(self, "tracked_mission", None):
+            state["tracked"] = getattr(self, "tracked_mission", None)
         if not getattr(self, "mission_board_giver", None):
             self.mission_board_giver = state.get("board_giver")
 
@@ -393,8 +396,55 @@ class Game:
             self._normalize_mission_state()
         return ok
 
-    def record_mission_key_interact(self, target_id=None, key_id=None, consume=False, flag=None):
-        if game_missions.record_key_interaction(self, target_id=target_id, key_id=key_id, consume=consume, flag=flag):
+    def has_pending_upload_mission(self):
+        for mission in self.get_active_missions():
+            for obj in mission.get("objectives", []) or []:
+                if isinstance(obj, dict) and str(obj.get("type", "")).strip() == "upload_data" and not obj.get("done"):
+                    return True
+        return False
+
+    def start_mission_upload(self, target_id=None, key_id=None, flag=None):
+        if self.mission_upload:
+            return True
+        self.mission_upload = {
+            "target_id": str(target_id or "").strip(),
+            "key_id": str(key_id or "").strip(),
+            "flag": str(flag or "").strip() or None,
+            "started": time.time(),
+            "duration": float(random.randint(1, 20)),
+        }
+        self.ui_mode = "mission_upload"
+        self.push_message(tr(self.lang, "msg.upload_started"))
+        return True
+
+    def _tick_mission_upload(self):
+        upload = getattr(self, "mission_upload", None)
+        if not upload:
+            return False
+        started = float(upload.get("started", 0.0) or 0.0)
+        duration = max(1.0, float(upload.get("duration", 1.0) or 1.0))
+        if (time.time() - started) < duration:
+            return False
+        ok = game_missions.record_key_interaction(
+            self,
+            target_id=upload.get("target_id"),
+            key_id=upload.get("key_id"),
+            consume=True,
+            flag=upload.get("flag"),
+            target_kind="terminal",
+        )
+        self.mission_upload = None
+        if self.ui_mode == "mission_upload":
+            self.ui_mode = None
+        if ok:
+            self._normalize_mission_state()
+            self.push_message(tr(self.lang, "msg.upload_complete"))
+        return ok
+
+    def record_mission_key_interact(self, target_id=None, key_id=None, consume=False, flag=None, target_kind=None):
+        if str(target_kind or "").strip() == "terminal" and self.has_pending_upload_mission():
+            return self.start_mission_upload(target_id=target_id, key_id=key_id, flag=flag)
+        if game_missions.record_key_interaction(self, target_id=target_id, key_id=key_id, consume=consume, flag=flag, target_kind=target_kind):
             self._normalize_mission_state()
             return True
         return False
@@ -407,6 +457,42 @@ class Game:
 
     def record_mission_enemy_death(self, enemy_id):
         if game_missions.update_on_enemy_death(self, enemy_id):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_talk(self, npc_id=None):
+        if hasattr(game_missions, "update_on_talk_to_npc") and game_missions.update_on_talk_to_npc(self, npc_id):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_item_gain(self, item_name=None, amount=1, source=None):
+        if hasattr(game_missions, "update_on_item_gain") and game_missions.update_on_item_gain(self, item_name=item_name, amount=amount, source=source):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_module_play(self, module_id=None):
+        if hasattr(game_missions, "update_on_module_play") and game_missions.update_on_module_play(self, module_id):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_protect_target(self, target_id=None):
+        if hasattr(game_missions, "update_on_protect_target") and game_missions.update_on_protect_target(self, target_id):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_event(self, event_name, amount=1, **ctx):
+        if hasattr(game_missions, "update_on_event") and game_missions.update_on_event(self, event_name, amount=amount, **ctx):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_mission_map_explore(self, map_name=None):
+        if hasattr(game_missions, "update_on_map_explored") and game_missions.update_on_map_explored(self, map_name):
             self._normalize_mission_state()
             return True
         return False
@@ -643,6 +729,8 @@ class Game:
         if not isinstance(getattr(self, "explored_maps", None), set):
             self.explored_maps = set()
         self.explored_maps.add(map_name)
+        if hasattr(game_missions, "update_on_map_explored") and game_missions.update_on_map_explored(self, map_name):
+            self._normalize_mission_state()
 
     def _normalize_map_ref(self, name):
         if not name:
@@ -762,10 +850,42 @@ class Game:
         return None
 
     def _npc_layout_for_map(self, map_name=None):
-        name = map_name or getattr(self, "map", None)
-        if hasattr(name, "name"):
-            name = name.name
-        name = str(name or "")
+        def _normalize_layout(raw):
+            layout = {}
+            if isinstance(raw, dict):
+                for npc_id, spot in raw.items():
+                    if not isinstance(npc_id, str):
+                        continue
+                    if not isinstance(spot, (list, tuple)) or len(spot) < 2:
+                        continue
+                    try:
+                        layout[npc_id] = (int(spot[0]), int(spot[1]))
+                    except Exception:
+                        continue
+            return layout
+
+        current_map = getattr(self, "map", None)
+        current_name = str(getattr(current_map, "name", "") or "")
+        requested_name = map_name or current_map
+        if hasattr(requested_name, "name"):
+            requested_name = requested_name.name
+        requested_name = str(requested_name or "")
+
+        if requested_name and requested_name == current_name:
+            layout = _normalize_layout(getattr(current_map, "npc_layout", {}) or {})
+            if layout:
+                return layout
+
+        if requested_name:
+            try:
+                map_path = resolve_map_file(requested_name)
+                map_data = load_json(map_path)
+                layout = _normalize_layout(map_data.get("npc_layout", {}))
+                if layout:
+                    return layout
+            except Exception:
+                pass
+
         layouts = {
             "map_1.json": {
                 "dev": (2, 8),
@@ -786,7 +906,7 @@ class Game:
                 "priestess": (11, 2),
             },
         }
-        return layouts.get(name, {})
+        return layouts.get(requested_name, {})
 
     def _build_world_map_graph(self):
         nodes = {}
@@ -1161,6 +1281,11 @@ class Game:
                     count = count * 3
                 if name and random.random() < chance:
                     self.inventory[name] = self.inventory.get(name, 0) + count
+                    if hasattr(self, "record_mission_item_gain"):
+                        try:
+                            self.record_mission_item_gain(name, count, source="drop")
+                        except Exception:
+                            pass
                     dropped_items.append(f"{name} x{count}")
         if dropped_items:
             lines.append(tr(self.lang, "reward.dropped", text=", ".join(dropped_items)))
@@ -1177,6 +1302,11 @@ class Game:
                 if c <= 0:
                     continue
                 self.inventory[name] = self.inventory.get(name, 0) + c
+                if hasattr(self, "record_mission_item_gain"):
+                    try:
+                        self.record_mission_item_gain(name, c, source="drop_bonus")
+                    except Exception:
+                        pass
                 lines.append(tr(self.lang, "reward.dropped", text=f"{name} x{c}"))
         self.push_message_lines(lines)
         self.add_exp(int(mob.get("exp_reward", 10)))
@@ -1517,6 +1647,8 @@ class Game:
         self.black_alpha = 0
 
     def update(self, player_tick=False):
+        if self._tick_mission_upload():
+            return
         if self.is_ui_blocking():
             return
         if player_tick:
@@ -1551,6 +1683,8 @@ class Game:
 
     def update_time(self, dt):
         self.tutorial_update(dt)
+        if self._tick_mission_upload():
+            return
         if self.transition_active:
             self.update_transition(dt)
             return
@@ -1878,19 +2012,27 @@ class Game:
         missions = []
         for mission in self.get_active_missions():
             giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
-            name = self._mission_display_name(mission, fallback=giver)
+            giver_label = self._giver_display_name(giver, fallback=giver)
+            name = self._mission_display_name(mission, fallback=giver_label, prefer_giver=True)
+            if name in {"", "Mission", giver}:
+                name = giver_label or giver or "Mission"
             text = self._mission_text_short(mission) or self._mission_long_text(mission)
+            mission_id = str(mission.get("id", giver) or giver)
+            status = str(game_missions.get_status(self, mission_id) if hasattr(game_missions, "get_status") else "active")
+            if not text or text in {mission_id, giver, name, "Mission"}:
+                if status in {"ready", "ready_to_return", "done"}:
+                    text = tr(self.lang, "mission.board.ready_to_return") or "ready to return"
+                else:
+                    text = tr(self.lang, "mission.board.active") or "active"
             if not name:
                 name = giver or "Mission"
-            if not text:
-                text = ""
             missions.append({
-                "id": mission.get("id", giver),
+                "id": mission_id,
                 "name": name,
                 "giver": giver,
                 "text": text,
                 "done": self._mission_ready_to_turn_in(mission),
-                "status": game_missions.get_status(self, mission.get("id", giver)) if hasattr(game_missions, "get_status") else "active",
+                "status": status,
             })
         return missions
 
@@ -1927,14 +2069,29 @@ class Game:
         text = game_missions.get_objective_summary(mission)
         return text[0] if text else ""
 
+    def _giver_display_name(self, giver_id, fallback=None):
+        raw = str(giver_id or "").strip()
+        book = getattr(self, "mission_book", None) or {}
+        display = (book.get("giver_display", {}) or {}).get(raw)
+        if display:
+            return str(display)
+        return str(fallback or raw or "Mission")
+
+    def set_tracked_mission(self, mission_id):
+        mid = str(mission_id or "").strip() or None
+        self.tracked_mission = mid
+        if isinstance(getattr(self, "mission_state", None), dict):
+            self.mission_state["tracked"] = mid
+        return mid
+
     def set_tracked_selected_mission(self):
         missions = self.get_trackable_missions()
         if not missions:
-            self.tracked_mission = None
+            self.set_tracked_mission(None)
             return
         idx = max(0, min(len(missions) - 1, int(getattr(self, "objective_selected", 0))))
         mid = missions[idx].get("id")
-        self.tracked_mission = mid
+        self.set_tracked_mission(mid)
 
     def toggle_track_selected_mission(self):
         # Backward-compatible alias: tracking is a reminder target, not a toggle.
@@ -1945,14 +2102,19 @@ class Game:
         tracked = getattr(self, "tracked_mission", None)
         if missions and not any(m.get("id") == tracked for m in missions):
             tracked = missions[0].get("id")
-            self.tracked_mission = tracked
+            self.set_tracked_mission(tracked)
         for row in missions:
             if row.get("id") != tracked:
                 continue
             text = row.get("text", "")
-            if not text:
-                return []
-            return [f"{row.get('name', 'Mission')}: {text}"]
+            name = str(row.get("name", "Mission") or "Mission").strip()
+            if name in {"Mission", str(tracked or "")}:
+                name = self._giver_display_name(row.get("giver", tracked), fallback=name)
+            if text:
+                return [f"{name}: {text}"]
+            if name:
+                return [name]
+            return [str(tracked or "Mission")]
         return []
 
     def _ensure_active_missions(self):
@@ -1978,13 +2140,20 @@ class Game:
         if not isinstance(mission, dict):
             return
         mid = str(mission.get("id", mission.get("giver", "kaltsit")))
-        runtime = game_missions.normalize_runtime(mission, getattr(self, "mission_book", None))
+        payload = dict(mission)
+        if not str(payload.get("id", "") or "").strip():
+            payload["id"] = mid
+        if not str(payload.get("giver_id", "") or "").strip():
+            payload["giver_id"] = str(payload.get("giver", mid) or mid)
+        if not str(payload.get("giver_name", "") or "").strip():
+            payload["giver_name"] = str(payload.get("giver", payload.get("giver_id", mid)) or mid)
+        runtime = game_missions.normalize_runtime(payload, getattr(self, "mission_book", None))
         self.mission_state.setdefault("active", {})[mid] = runtime
         self.mission_state.setdefault("accepted", [])
         if mid not in self.mission_state["accepted"]:
             self.mission_state["accepted"].append(mid)
         if not getattr(self, "tracked_mission", None):
-            self.tracked_mission = mid
+            self.set_tracked_mission(mid)
         self.kaltsit_mission = runtime
         if hasattr(game_missions, "ensure_key_items_for_mission"):
             game_missions.ensure_key_items_for_mission(self, runtime)
@@ -2667,19 +2836,17 @@ def _game_accept_mission(self, mission_id):
     ctx = getattr(self, "mission_board_context", None)
     if isinstance(ctx, dict):
         giver_id = ctx.get("giver_id")
-    if not giver_id:
-        giver_id = getattr(self, "active_npc", None)
     ok, reason, _entry = game_missions.can_accept_mission(self, mission_id, giver_id=giver_id)
     if not ok:
         _set_mission_feedback(self, reason, mission_id=mission_id)
         return False
-    result = _ORIG_GAME_ACCEPT_MISSION(self, mission_id) if _ORIG_GAME_ACCEPT_MISSION else True
-    success = bool(result[0]) if isinstance(result, tuple) else bool(result)
+    success = bool(game_missions.accept_mission(self, mission_id))
     if not success:
         _set_mission_feedback(self, "mission.accept_failed", mission_id=mission_id)
-        return result
+        return False
+    self._normalize_mission_state()
     _set_mission_feedback(self, "msg.mission_accepted", mission_id=mission_id)
-    return result
+    return True
 
 
 if "Game" in globals():

@@ -2,14 +2,15 @@
   "version": 1,
   "source_file": "temp_mission",
   "giver_aliases": {
-    "???": "ines",
-    "????": "closure",
+    "凱爾希": "kaltsit",
+    "伊內絲": "ines",
+    "可露希爾": "closure",
     "Priestess": "priestess"
   },
   "giver_display": {
-    "kaltsit": "???",
-    "ines": "???",
-    "closure": "????",
+    "kaltsit": "凱爾希",
+    "ines": "伊內絲",
+    "closure": "可露希爾",
     "priestess": "Priestess"
   },
   "missions": [
@@ -41,7 +42,54 @@
         "補給箱",
         "解鎖：異常讀數"
       ],
-      "id": "凱爾希_1"
+      "id": "凱爾希_1",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "在任意地圖完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "消滅 50 名敵對目標。",
+          "target": 50,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "成功撤離 2 次。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "補給箱",
+          "count": 1,
+          "text": "補給箱"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 2,
@@ -72,7 +120,54 @@
         "資料碎片 ×1",
         "解鎖：遺失檔案"
       ],
-      "id": "凱爾希_2"
+      "id": "凱爾希_2",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "從敵方據點回收 3 份情報檔案。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "在 2 次任務中未陷入失能狀態。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有回收資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 350,
+          "text": "350 Robux"
+        },
+        {
+          "type": "item",
+          "name": "資料碎片 ×1",
+          "count": 1,
+          "text": "資料碎片 ×1"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 3,
@@ -102,7 +197,54 @@
         "檔案存取卡",
         "解鎖：候選者 #042"
       ],
-      "id": "凱爾希_3"
+      "id": "凱爾希_3",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 4 次任務。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_data",
+          "text": "回收 3 份加密資料。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_data",
+          "text": "將資料帶回基地。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "檔案存取卡",
+          "count": 1,
+          "text": "檔案存取卡"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 4,
@@ -132,7 +274,54 @@
         "候選者檔案碎片",
         "解鎖：候選者 #137"
       ],
-      "id": "凱爾希_4"
+      "id": "凱爾希_4",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_data",
+          "text": "回收 3 份候選者紀錄。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "消滅 100 名敵對目標。",
+          "target": 100,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 650,
+          "text": "650 Robux"
+        },
+        {
+          "type": "item",
+          "name": "候選者檔案碎片",
+          "count": 1,
+          "text": "候選者檔案碎片"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 5,
@@ -162,7 +351,54 @@
         "加密資料封包",
         "解鎖：驗證失敗"
       ],
-      "id": "凱爾希_5"
+      "id": "凱爾希_5",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 5 份候選者紀錄。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "完成 3 次高風險任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "成功撤離。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 800,
+          "text": "800 Robux"
+        },
+        {
+          "type": "item",
+          "name": "加密資料封包",
+          "count": 1,
+          "text": "加密資料封包"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 6,
@@ -181,6 +417,7 @@
       "objective_lines": [
         "上傳所有候選者資料。",
         "完成 3 次任務。",
+        "保護資料終端不被摧毀。",
         "保護資料終端不被摧毀。"
       ],
       "return_lines": [
@@ -193,7 +430,44 @@
         "系統診斷報告",
         "解鎖：同步錯誤"
       ],
-      "id": "凱爾希_6"
+      "id": "凱爾希_6",
+      "objectives": [
+        {
+          "type": "upload_data",
+          "text": "上傳所有候選者資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "upload_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 0,
+          "text": "1,000 Robux"
+        },
+        {
+          "type": "item",
+          "name": "系統診斷報告",
+          "count": 1,
+          "text": "系統診斷報告"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 7,
@@ -225,7 +499,54 @@
         "機密存取權杖",
         "解鎖：候選者"
       ],
-      "id": "凱爾希_7"
+      "id": "凱爾希_7",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 6 次任務。",
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_item",
+          "text": "回收同步紀錄 ×5。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "1,250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "機密存取權杖",
+          "count": 1,
+          "text": "機密存取權杖"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 8,
@@ -262,7 +583,72 @@
         "任務線完成",
         "伊內絲"
       ],
-      "id": "凱爾希_8"
+      "id": "凱爾希_8",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收最終人員紀錄。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 2 次任務。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "talk_to_npc",
+          "text": "向凱爾希報告。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "1,500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "專屬角色外觀",
+          "count": 1,
+          "text": "專屬角色外觀"
+        },
+        {
+          "type": "item",
+          "name": "凱爾希好感度提升",
+          "count": 1,
+          "text": "凱爾希好感度提升"
+        },
+        {
+          "type": "item",
+          "name": "任務線完成",
+          "count": 1,
+          "text": "任務線完成"
+        },
+        {
+          "type": "item",
+          "name": "伊內絲",
+          "count": 1,
+          "text": "伊內絲"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 1,
@@ -281,7 +667,8 @@
       "objective_lines": [
         "完成 3 次任務。",
         "標記 5 名敵方偵察單位。",
-        "成功撤離。"
+        "成功撤離。",
+        "標記 5 名敵方偵察單位。"
       ],
       "return_lines": [
         "果然有。",
@@ -292,7 +679,44 @@
         "補給箱",
         "解鎖：未償還的債務"
       ],
-      "id": "伊內絲_1"
+      "id": "伊內絲_1",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "成功撤離。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "補給箱",
+          "count": 1,
+          "text": "補給箱"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 2,
@@ -321,7 +745,54 @@
         "稀有物資",
         "解鎖：無聲監視"
       ],
-      "id": "伊內絲_2"
+      "id": "伊內絲_2",
+      "objectives": [
+        {
+          "type": "kill_enemy",
+          "text": "擊敗 75 名敵人。",
+          "target": 75,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_item",
+          "text": "回收 3 份走私貨物。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 2 次任務。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "kill_enemy",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 350,
+          "text": "350 Robux"
+        },
+        {
+          "type": "item",
+          "name": "稀有物資",
+          "count": 1,
+          "text": "稀有物資"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 3,
@@ -350,7 +821,54 @@
         "情報包",
         "解鎖：失蹤的信使"
       ],
-      "id": "伊內絲_3"
+      "id": "伊內絲_3",
+      "objectives": [
+        {
+          "type": "collect_item",
+          "text": "回收 4 份監視紀錄。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "不觸發警報完成 1 次任務。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_item",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "情報包",
+          "count": 1,
+          "text": "情報包"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 4,
@@ -380,7 +898,54 @@
         "加密信件",
         "解鎖：交錯訊號"
       ],
-      "id": "伊內絲_4"
+      "id": "伊內絲_4",
+      "objectives": [
+        {
+          "type": "collect_item",
+          "text": "回收遺失包裹。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 4 次任務。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "消滅包裹持有者。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_item",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 650,
+          "text": "650 Robux"
+        },
+        {
+          "type": "item",
+          "name": "加密信件",
+          "count": 1,
+          "text": "加密信件"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 5,
@@ -410,7 +975,54 @@
         "資料碎片 ×1",
         "解鎖：舊時代的幽靈"
       ],
-      "id": "伊內絲_5"
+      "id": "伊內絲_5",
+      "objectives": [
+        {
+          "type": "collect_item",
+          "text": "回收 5 份通訊紀錄。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_item",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 800,
+          "text": "800 Robux"
+        },
+        {
+          "type": "item",
+          "name": "資料碎片 ×1",
+          "count": 1,
+          "text": "資料碎片 ×1"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 6,
@@ -438,7 +1050,55 @@
         "舊式識別牌",
         "解鎖：間諜帳冊"
       ],
-      "id": "伊內絲_6"
+      "id": "伊內絲_6",
+      "objectives": [
+        {
+          "type": "kill_elite_enemy",
+          "text": "擊敗精英敵人 10 名。",
+          "target": 10,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return",
+          "elite_only": true
+        },
+        {
+          "type": "collect_item",
+          "text": "回收 3 份舊紀錄。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "完成 3 次高風險任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "kill_elite_enemy",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 0,
+          "text": "1,000 Robux"
+        },
+        {
+          "type": "item",
+          "name": "舊式識別牌",
+          "count": 1,
+          "text": "舊式識別牌"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 7,
@@ -468,7 +1128,54 @@
         "資料碎片 ×1",
         "解鎖：仍被隱藏之物"
       ],
-      "id": "伊內絲_7"
+      "id": "伊內絲_7",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收帳冊頁面 ×6。",
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "消滅帳冊持有者。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "1,250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "資料碎片 ×1",
+          "count": 1,
+          "text": "資料碎片 ×1"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 8,
@@ -502,7 +1209,72 @@
         "任務線完成",
         "可露希爾"
       ],
-      "id": "伊內絲_8"
+      "id": "伊內絲_8",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收最終情報。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "talk_to_npc",
+          "text": "向伊內絲提交資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "1,500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "專屬角色外觀",
+          "count": 1,
+          "text": "專屬角色外觀"
+        },
+        {
+          "type": "item",
+          "name": "伊內絲好感度提升",
+          "count": 1,
+          "text": "伊內絲好感度提升"
+        },
+        {
+          "type": "item",
+          "name": "任務線完成",
+          "count": 1,
+          "text": "任務線完成"
+        },
+        {
+          "type": "item",
+          "name": "可露希爾",
+          "count": 1,
+          "text": "可露希爾"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 1,
@@ -533,7 +1305,54 @@
         "工程補給箱",
         "解鎖：異常耗電"
       ],
-      "id": "可露希爾_1"
+      "id": "可露希爾_1",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "使用任意裝備擊敗 50 名敵人。",
+          "target": 50,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "成功撤離 2 次。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "工程補給箱",
+          "count": 1,
+          "text": "工程補給箱"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 2,
@@ -563,7 +1382,54 @@
         "能源核心",
         "解鎖：未登錄終端"
       ],
-      "id": "可露希爾_2"
+      "id": "可露希爾_2",
+      "objectives": [
+        {
+          "type": "collect_item",
+          "text": "回收 3 個能源模組。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 2 次任務。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳能源紀錄。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_item",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 350,
+          "text": "350 Robux"
+        },
+        {
+          "type": "item",
+          "name": "能源核心",
+          "count": 1,
+          "text": "能源核心"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 3,
@@ -582,6 +1448,7 @@
       "objective_lines": [
         "回收 4 份系統紀錄。",
         "完成 3 次任務。",
+        "保護資料終端。",
         "保護資料終端。"
       ],
       "return_lines": [
@@ -593,7 +1460,44 @@
         "系統存取卡",
         "解鎖：幽靈程序"
       ],
-      "id": "可露希爾_3"
+      "id": "可露希爾_3",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 4 份系統紀錄。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "系統存取卡",
+          "count": 1,
+          "text": "系統存取卡"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 4,
@@ -622,7 +1526,54 @@
         "程序核心",
         "解鎖：權限衝突"
       ],
-      "id": "可露希爾_4"
+      "id": "可露希爾_4",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 5 份程序碎片。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 4 次任務。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "擊敗 100 名敵人。",
+          "target": 100,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 650,
+          "text": "650 Robux"
+        },
+        {
+          "type": "item",
+          "name": "程序核心",
+          "count": 1,
+          "text": "程序核心"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 5,
@@ -651,7 +1602,54 @@
         "加密權杖",
         "解鎖：封存協議"
       ],
-      "id": "可露希爾_5"
+      "id": "可露希爾_5",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 5 份權限紀錄。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 800,
+          "text": "800 Robux"
+        },
+        {
+          "type": "item",
+          "name": "加密權杖",
+          "count": 1,
+          "text": "加密權杖"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 6,
@@ -669,6 +1667,7 @@
       "objective_lines": [
         "回收 3 份封存紀錄。",
         "完成 3 次高風險任務。",
+        "保護資料節點。",
         "保護資料節點。"
       ],
       "return_lines": [
@@ -680,7 +1679,44 @@
         "封存金鑰",
         "解鎖：管理員"
       ],
-      "id": "可露希爾_6"
+      "id": "可露希爾_6",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 3 份封存紀錄。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "完成 3 次高風險任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 0,
+          "text": "1,000 Robux"
+        },
+        {
+          "type": "item",
+          "name": "封存金鑰",
+          "count": 1,
+          "text": "封存金鑰"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 7,
@@ -710,7 +1746,54 @@
         "管理員權杖",
         "解鎖：最後權限"
       ],
-      "id": "可露希爾_7"
+      "id": "可露希爾_7",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收管理員紀錄 ×6。",
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "1,250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "管理員權杖",
+          "count": 1,
+          "text": "管理員權杖"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 8,
@@ -743,7 +1826,66 @@
         "任務線完成",
         "Priestess"
       ],
-      "id": "可露希爾_8"
+      "id": "可露希爾_8",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收最終系統紀錄。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 2 次任務。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "talk_to_npc",
+          "text": "向可露希爾 報告。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "1,500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "專屬角色外觀可露希爾 好感度提升",
+          "count": 1,
+          "text": "專屬角色外觀可露希爾 好感度提升"
+        },
+        {
+          "type": "item",
+          "name": "任務線完成",
+          "count": 1,
+          "text": "任務線完成"
+        },
+        {
+          "type": "item",
+          "name": "Priestess",
+          "count": 1,
+          "text": "Priestess"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 1,
@@ -772,7 +1914,54 @@
         "記憶碎片",
         "解鎖：殘留回聲"
       ],
-      "id": "priestess_1"
+      "id": "priestess_1",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_data",
+          "text": "回收 3 份異常訊號。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "成功撤離。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "記憶碎片",
+          "count": 1,
+          "text": "記憶碎片"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 2,
@@ -800,7 +1989,54 @@
         "記憶碎片",
         "解鎖：被遺忘之人"
       ],
-      "id": "priestess_2"
+      "id": "priestess_2",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 4 份回聲紀錄。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 2 次任務。",
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 350,
+          "text": "350 Robux"
+        },
+        {
+          "type": "item",
+          "name": "記憶碎片",
+          "count": 1,
+          "text": "記憶碎片"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 3,
@@ -828,7 +2064,54 @@
         "古老資料片段",
         "解鎖：第一個答案"
       ],
-      "id": "priestess_3"
+      "id": "priestess_3",
+      "objectives": [
+        {
+          "type": "complete_missions",
+          "text": "完成 4 次任務。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "collect_data",
+          "text": "回收 3 份人物紀錄。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "kill_enemy",
+          "text": "擊敗 75 名敵人。",
+          "target": 75,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "complete_missions",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "古老資料片段",
+          "count": 1,
+          "text": "古老資料片段"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 4,
@@ -857,7 +2140,54 @@
         "記憶核心",
         "解鎖：失落年代"
       ],
-      "id": "priestess_4"
+      "id": "priestess_4",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 5 份資料碎片。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 4 次任務。",
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "成功撤離。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 650,
+          "text": "650 Robux"
+        },
+        {
+          "type": "item",
+          "name": "記憶核心",
+          "count": 1,
+          "text": "記憶核心"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 5,
@@ -884,7 +2214,54 @@
         "古代資料庫存取權",
         "解鎖：觀測者"
       ],
-      "id": "priestess_5"
+      "id": "priestess_5",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收 5 份古代紀錄。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 800,
+          "text": "800 Robux"
+        },
+        {
+          "type": "item",
+          "name": "古代資料庫存取權",
+          "count": 1,
+          "text": "古代資料庫存取權"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 6,
@@ -902,6 +2279,7 @@
       "objective_lines": [
         "回收觀測紀錄 ×5。",
         "完成 3 次高風險任務。",
+        "保護資料節點。",
         "保護資料節點。"
       ],
       "return_lines": [
@@ -912,7 +2290,44 @@
         "觀測資料",
         "解鎖：最後紀錄"
       ],
-      "id": "priestess_6"
+      "id": "priestess_6",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收觀測紀錄 ×5。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "high_risk_mission",
+          "text": "完成 3 次高風險任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 0,
+          "text": "1,000 Robux"
+        },
+        {
+          "type": "item",
+          "name": "觀測資料",
+          "count": 1,
+          "text": "觀測資料"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 7,
@@ -939,7 +2354,54 @@
         "完整紀錄檔",
         "解鎖：重逢"
       ],
-      "id": "priestess_7"
+      "id": "priestess_7",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收最終紀錄頁面 ×6。",
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 5 次任務。",
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "upload_data",
+          "text": "上傳所有資料。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 250,
+          "text": "1,250 Robux"
+        },
+        {
+          "type": "item",
+          "name": "完整紀錄檔",
+          "count": 1,
+          "text": "完整紀錄檔"
+        }
+      ],
+      "unlocks": []
     },
     {
       "index": 8,
@@ -972,7 +2434,66 @@
         "Priestess 好感度提升",
         "任務線完成"
       ],
-      "id": "priestess_8"
+      "id": "priestess_8",
+      "objectives": [
+        {
+          "type": "collect_data",
+          "text": "回收最終記憶。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "complete_missions",
+          "text": "完成 3 次任務。",
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
+        },
+        {
+          "type": "talk_to_npc",
+          "text": "與 Priestess 對話。",
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
+        }
+      ],
+      "mission_type": "collect_data",
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 500,
+          "text": "1,500 Robux"
+        },
+        {
+          "type": "item",
+          "name": "專屬角色外觀",
+          "count": 1,
+          "text": "專屬角色外觀"
+        },
+        {
+          "type": "item",
+          "name": "Priestess 好感度提升",
+          "count": 1,
+          "text": "Priestess 好感度提升"
+        },
+        {
+          "type": "item",
+          "name": "任務線完成",
+          "count": 1,
+          "text": "任務線完成"
+        }
+      ],
+      "unlocks": []
     }
   ]
 }

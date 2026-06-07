@@ -285,6 +285,7 @@ def player_interact(game):
                 key_id=target.get("required_key"),
                 consume=bool(target.get("consume_key", False)),
                 flag=target.get("set_flag"),
+                target_kind=target.get("kind"),
             )
         msg = target.get("message")
         if msg and hasattr(game, "push_message"):
@@ -338,6 +339,11 @@ def try_harvest_bush(game):
         if bt == "07":
             count = random.randint(1, 3)
             game.inventory["berry"] = game.inventory.get("berry", 0) + count
+            if hasattr(game, "record_mission_item_gain"):
+                try:
+                    game.record_mission_item_gain("berry", count, source="bush")
+                except Exception:
+                    pass
             unit = "berry" if count == 1 else "berries"
             game.push_message(tr(game.lang, "msg.harvested_berry", count=count, unit=unit))
             game.map.grid[ny][nx] = "08"
@@ -392,6 +398,11 @@ def open_dialog(game, npc_id, source="script"):
                     dialog_node = value
                     break
     _set_dialog_state(game, npc_id, dialog_data, dialog_node or "start", source=source)
+    if source == "interaction" and hasattr(game, "record_mission_talk"):
+        try:
+            game.record_mission_talk(npc_id)
+        except Exception:
+            pass
 
 
 def _open_kaltsit_mission_dialog(game, npc_id="kaltsit", source="script"):

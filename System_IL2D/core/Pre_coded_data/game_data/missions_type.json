@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "source_file": "missions_type",
+  "states": [
+    "briefing",
+    "active",
+    "ready_to_return",
+    "completed"
+  ],
+  "objective_modes": {
+    "counter": "counter",
+    "flag": "flag"
+  },
+  "aliases": {
+    "mission_complete": "complete_missions",
+    "mission_complete_high_risk": "high_risk_mission",
+    "kill": "kill_enemy",
+    "kill_elite": "kill_elite_enemy",
+    "talk": "talk_to_npc",
+    "dialog": "talk_to_npc",
+    "turn_in": "talk_to_npc",
+    "return": "talk_to_npc"
+  },
+  "disabled_types": [
+    "extract_success",
+    "protect_target",
+    "play_module",
+    "stealth_completion",
+    "mark_enemy"
+  ],
+  "complete_missions": {
+    "mode": "counter",
+    "source": "mission_complete",
+    "status": "ready_to_return",
+    "label": "Complete missions"
+  },
+  "high_risk_mission": {
+    "mode": "counter",
+    "source": "mission_complete",
+    "status": "ready_to_return",
+    "label": "High risk mission"
+  },
+  "kill_enemy": {
+    "mode": "counter",
+    "source": "enemy_death",
+    "status": "ready_to_return",
+    "label": "Kill enemies"
+  },
+  "kill_elite_enemy": {
+    "mode": "counter",
+    "source": "enemy_death",
+    "status": "ready_to_return",
+    "elite_only": true,
+    "label": "Kill elite enemies"
+  },
+  "collect_item": {
+    "mode": "counter",
+    "source": "item_gain",
+    "status": "ready_to_return",
+    "label": "Collect items"
+  },
+  "collect_data": {
+    "mode": "counter",
+    "source": "interaction",
+    "status": "ready_to_return",
+    "label": "Collect data"
+  },
+  "upload_data": {
+    "mode": "flag",
+    "source": "interaction",
+    "status": "ready_to_return",
+    "label": "Upload data"
+  },
+  "talk_to_npc": {
+    "mode": "flag",
+    "source": "dialog",
+    "status": "ready_to_return",
+    "label": "Talk to NPC"
+  }
+}
