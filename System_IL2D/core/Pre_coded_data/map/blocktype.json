@@ -221,8 +221,9 @@
     "draw_scale": 1.0
   },
   "31": {
-    "walkable": false,
-    "base": "02",
+    "walkable": true,
+    "on_step": "portal",
+    "base": "03",
     "tileset_json": "RITC_tileset (2).json",
     "tileset_ref": "ritc_gate_frame",
     "zh_comment": "RITC ????",

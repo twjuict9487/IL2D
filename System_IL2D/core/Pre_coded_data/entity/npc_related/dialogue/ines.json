@@ -10,5 +10,22 @@
         "next": "end"
       }
     ]
-  }
+  },
+  "pointers": [
+    {
+      "text": "Gift",
+      "text_zh": "禮物",
+      "next": "gift"
+    },
+    {
+      "text": "Mission Board",
+      "text_zh": "任務看板",
+      "next": "mission_board"
+    },
+    {
+      "text": "Legacy Mission",
+      "text_zh": "舊式任務",
+      "next": "legacy_mission"
+    }
+  ]
 }

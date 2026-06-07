@@ -1,10 +1,11 @@
-import os
+﻿import os
 import math
 import time
 import json
 import pygame
 try:
     from ..support.utils import clamp
+    from ..gameplay import missions as game_missions
     from ..world.map import mobs_data, npc_data, blocktypes, player_data
     from ..support.i18n import tr
     from ..support.asset_resolver import ensure_primed_from_file, resolve_image_candidates, resolve_atlas_candidates, resolve_folder_candidates
@@ -14,6 +15,7 @@ except ImportError:
     if _ROOT not in sys.path:
         sys.path.insert(0, _ROOT)
     from System_IL2D.core.functions.support.utils import clamp
+    from System_IL2D.core.functions.gameplay import missions as game_missions
     from System_IL2D.core.functions.world.map import mobs_data, npc_data, blocktypes, player_data
     from System_IL2D.core.functions.support.i18n import tr
     from System_IL2D.core.functions.support.asset_resolver import ensure_primed_from_file, resolve_image_candidates, resolve_atlas_candidates, resolve_folder_candidates
@@ -32,11 +34,11 @@ _DIALOG_NPC_FALLBACK_IMAGE = {
     "priestess": "priestess_nobg.png",
     "carmen": "carmen_nobg.png",
     "closure": "Closure_nobg.png",
-    "kaltsit": "头像_凯尔希.png",
-    "ines": "头像_伊内丝.png",
-    "monst3r": "头像_Mon3tr.png",
-    "wisadel": "头像_维什戴尔.png",
-    "shu": "头像_黍.png",
+    "kaltsit": "憭游?_?臬?撣?png",
+    "ines": "憭游?_隡?銝?png",
+    "monst3r": "憭游?_Mon3tr.png",
+    "wisadel": "憭游?_蝏港??游?.png",
+    "shu": "憭游?_暺?png",
 }
 
 
@@ -1410,11 +1412,13 @@ def draw_menu_detail(screen, panel, game):
                 _draw_text_outline(screen, font, _fit_text(font, line, left_w - 20), color, (0, 0, 0), (left_x + 8, list_y + i * list_font_gap), thickness=2)
             detail = missions[selected]
             detail_y = list_y
+            detail_bottom = panel.bottom - font.get_height() - 26
+            detail_truncated = False
             sections = [
                 (tr(game.lang, "mission.board.briefing"), detail.get("briefing", [])),
                 (tr(game.lang, "preview.objectives"), detail.get("objectives", [])),
                 (tr(game.lang, "mission.board.rewards"), detail.get("rewards", [])),
-                (tr(game.lang, "mission.board.unlocks"), detail.get("unlocks", [])),
+                (tr(game.lang, "mission.board.completion"), detail.get("return_lines", [])),
             ]
             status = detail.get("status", "available")
             status_line = tr(game.lang, f"mission.board.{status}") if tr(game.lang, f"mission.board.{status}") else status
@@ -1431,31 +1435,68 @@ def draw_menu_detail(screen, panel, game):
                     text = str(raw)
                     wrapped = _wrap_text(font, text, right_w - 16)
                     for wrap_line in wrapped[:3]:
+                        if detail_y + font.get_height() + 6 > detail_bottom:
+                            detail_truncated = True
+                            break
                         _draw_text_outline(screen, font, wrap_line, (230, 230, 230), (0, 0, 0), (right_x + 10, detail_y), thickness=2)
                         detail_y += font.get_height() + 3
+                    if detail_truncated:
+                        break
+                if detail_truncated:
+                    break
                 detail_y += 4
+            if detail_truncated:
+                _draw_text_outline(screen, font, "↓ More", (180, 205, 225), (255, 255, 255), (right_x, panel.bottom - font.get_height() - 18), thickness=2)
             _draw_text_outline(screen, font, tr(game.lang, "mission.board.hint"), (180, 200, 220), (255, 255, 255), (right_x, min(panel.bottom - font.get_height() - 24, detail_y + 8)))
     elif game.ui_mode == "objective":
         for line in game.get_objective_lines():
             _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             y += font.get_height() + 6
         y += 8
-        _draw_text_outline(screen, font, "missions", (210, 230, 255), (255, 255, 255), (panel.x + 20, y))
+        missions_title = tr(game.lang, "mission.board.briefing") or "briefing"
+        _draw_text_outline(screen, font, missions_title, (210, 230, 255), (255, 255, 255), (panel.x + 20, y))
         y += font.get_height() + 6
-        missions = game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []
-        if not missions:
-            _draw_text_outline(screen, font, "no mission", (220, 220, 220), (255, 255, 255), (panel.x + 20, y))
-        else:
-            selected = max(0, min(len(missions) - 1, int(getattr(game, "objective_selected", 0))))
-            tracked = getattr(game, "tracked_mission", None)
-            for i, row in enumerate(missions):
+        tracked_lines = []
+        tracked_id = getattr(game, "tracked_mission", None)
+        tracked_runtime = None
+        if hasattr(game, "_mission_runtime") and tracked_id:
+            tracked_runtime = game._mission_runtime(tracked_id)
+        if not tracked_runtime and hasattr(game, "get_active_missions"):
+            active = [m for m in game.get_active_missions() if isinstance(m, dict)]
+            if active:
+                tracked_runtime = active[0]
+                tracked_id = tracked_runtime.get("id", tracked_id)
+        if tracked_runtime:
+            tracked_name = str(tracked_runtime.get("name") or tracked_runtime.get("title") or tracked_runtime.get("giver_name") or tracked_id or "Mission").strip()
+            _draw_text_outline(screen, font, tracked_name, (255, 247, 170), (255, 255, 255), (panel.x + 20, y), thickness=2)
+            y += font.get_height() + 6
+            tracked_lines = []
+            if hasattr(game_missions, "get_objective_summary"):
+                tracked_lines = game_missions.get_objective_summary(tracked_runtime)
+            if not tracked_lines:
+                tracked_lines = [line for line in (
+                    tracked_runtime.get("description_lines", []) or
+                    tracked_runtime.get("objective_lines", []) or
+                    tracked_runtime.get("accept_lines", [])
+                ) if isinstance(line, str) and line.strip()]
+            if not tracked_lines:
+                empty_text = tr(game.lang, "mission.board.no_missions") or "no missions"
+                tracked_lines = [empty_text]
+            max_bottom = panel.bottom - font.get_height() - 26
+            truncated = False
+            for line in tracked_lines:
+                if y + font.get_height() + 8 > max_bottom:
+                    truncated = True
+                    break
                 rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
-                _draw_readability_row(screen, rect, selected=(i == selected))
-                marker = "[tracking]" if row.get("id") == tracked else "[ ]"
-                line = f"{marker} {row.get('name', 'Mission')}: {row.get('text', '')}"
-                color = (255, 247, 170) if i == selected else (230, 230, 230)
-                _draw_text_outline(screen, font, _fit_text(font, line, panel.width - 44), color, (0, 0, 0), (panel.x + 24, y), thickness=2)
+                _draw_readability_row(screen, rect, selected=False)
+                _draw_text_outline(screen, font, _fit_text(font, str(line), panel.width - 44), (230, 230, 230), (0, 0, 0), (panel.x + 24, y), thickness=2)
                 y += font.get_height() + 8
+            if truncated:
+                _draw_text_outline(screen, font, "↓ More", (180, 205, 225), (255, 255, 255), (panel.x + 24, panel.bottom - font.get_height() - 18), thickness=2)
+        else:
+            empty_text = tr(game.lang, "mission.board.no_missions") or "no missions"
+            _draw_text_outline(screen, font, empty_text, (220, 220, 220), (255, 255, 255), (panel.x + 20, y))
     elif game.ui_mode == "skill_tree":
         nodes = game.get_skill_tree_nodes()
         if not nodes:
@@ -1886,12 +1927,14 @@ def draw_mission_board(game, screen):
     status_label = tr(game.lang, f"mission.board.{status}")
     _draw_text_outline(screen, body_font, _fit_text(body_font, f"{detail.get('title', '')} [{status_label}]", right_w), (255, 255, 160), (0, 0, 0), (right_x, list_y), thickness=2)
     y = list_y + body_font.get_height() + 10
+    detail_bottom = panel.bottom - body_font.get_height() - 26
+    detail_truncated = False
 
     sections = [
         (tr(game.lang, "mission.board.briefing"), detail.get("briefing", [])),
         (tr(game.lang, "preview.objectives"), detail.get("objectives", [])),
         (tr(game.lang, "mission.board.rewards"), detail.get("rewards", [])),
-        (tr(game.lang, "mission.board.unlocks"), detail.get("unlocks", [])),
+        (tr(game.lang, "mission.board.completion"), detail.get("return_lines", [])),
     ]
     for heading, lines in sections:
         _draw_text_outline(screen, body_font, heading, (210, 230, 255), (0, 0, 0), (right_x, y), thickness=2)
@@ -1903,9 +1946,18 @@ def draw_mission_board(game, screen):
         for raw in lines[:8]:
             wrapped = _wrap_text(small_font, str(raw), right_w - 20)
             for wrap_line in wrapped[:3]:
+                if y + small_font.get_height() + 4 > detail_bottom:
+                    detail_truncated = True
+                    break
                 _draw_text_outline(screen, small_font, wrap_line, (230, 230, 230), (0, 0, 0), (right_x + 10, y), thickness=1)
                 y += small_font.get_height() + 3
+            if detail_truncated:
+                break
+        if detail_truncated:
+            break
         y += 6
+    if detail_truncated:
+        _draw_text_outline(screen, small_font, "↓ More", (180, 205, 225), (0, 0, 0), (right_x, panel.bottom - small_font.get_height() - 18), thickness=2)
 
     ready_hint = tr(game.lang, "mission.board.hint")
     _draw_text_outline(screen, small_font, ready_hint, (180, 205, 225), (0, 0, 0), (right_x, panel.bottom - 28), thickness=2)
@@ -1942,7 +1994,7 @@ def draw_blackjack(game, screen):
 
     y0 = panel.y + 78
     def _fmt_cards(cards):
-        suit_map = {"♥": "H", "♦": "D", "♣": "C", "♠": "S", "?": "?"}
+        suit_map = {"H": "H", "D": "D", "C": "C", "S": "S", "?": "?"}
         out = []
         for card in cards or []:
             try:
@@ -2394,3 +2446,1228 @@ def draw(game, screen):
         y = 12
         screen.blit(box, (x, y))
         screen.blit(surf, (x + 10, y + 5))
+
+
+def _wrap_text(font, text, max_width):
+    text = str(text or "")
+    if not text:
+        return [""]
+    if font.size(text)[0] <= max_width:
+        return [text]
+    import re
+    tokens = re.findall(r"\s+|[^\s]+", text)
+    lines = []
+    line = ""
+    for token in tokens:
+        if token.isspace() and not line:
+            continue
+        test = line + token
+        if font.size(test)[0] <= max_width:
+            line = test
+            continue
+        if line:
+            lines.append(line.rstrip())
+            line = ""
+        if token.isspace():
+            continue
+        piece = ""
+        for ch in token:
+            test_piece = piece + ch
+            if font.size(test_piece)[0] <= max_width or not piece:
+                piece = test_piece
+            else:
+                lines.append(piece.rstrip())
+                piece = ch
+        line = piece
+    if line:
+        lines.append(line.rstrip())
+    return lines or [text]
+
+
+def _dialog_node_lines(node, lang=None):
+    if not isinstance(node, dict):
+        return ["..."]
+    preferred = []
+    if str(lang or "").lower() == "zh":
+        preferred.extend(["text_zh", "text"])
+    else:
+        preferred.extend(["text", "text_zh"])
+    preferred.extend(["body", "content", "message", "line", "description", "dialog"])
+    for key in preferred:
+        value = node.get(key)
+        if value in (None, ""):
+            continue
+        lines = []
+        if isinstance(value, list):
+            for item in value:
+                if item in (None, ""):
+                    continue
+                lines.extend(str(item).splitlines() or [str(item)])
+        else:
+            lines.extend(str(value).splitlines() or [str(value)])
+        if lines:
+            return lines
+    if not lines and isinstance(node.get("lines"), list):
+        lines = []
+        for item in node.get("lines") or []:
+            if item in (None, ""):
+                continue
+            lines.extend(str(item).splitlines() or [str(item)])
+        if lines:
+            return lines
+    return ["..."]
+
+
+def _dialog_node_options(node):
+    if not isinstance(node, dict):
+        return []
+    for key in ("responses", "options", "choices", "replies", "answers"):
+        value = node.get(key)
+        if isinstance(value, list) and value:
+            return list(value)
+    return []
+
+
+def _resolve_dialog_node(dialog_data, node_ref):
+    if isinstance(node_ref, dict):
+        return node_ref
+    if not isinstance(dialog_data, dict) or not node_ref:
+        return None
+    key = str(node_ref)
+    node = dialog_data.get(key)
+    if isinstance(node, dict):
+        return node
+    for key_name in ("start", "root", "entry", "default", "dialog", "dialogue", "node"):
+        node = dialog_data.get(key_name)
+        if isinstance(node, dict):
+            return node
+        if isinstance(node, str):
+            candidate = dialog_data.get(node)
+            if isinstance(candidate, dict):
+                return candidate
+    for value in dialog_data.values():
+        if isinstance(value, dict):
+            return value
+    return None
+
+
+def _dialog_layout(screen):
+    pad = 18
+    panel_h = max(260, screen.get_height() // 3 + 24)
+    panel = pygame.Rect(pad, screen.get_height() - panel_h - pad, screen.get_width() - pad * 2, panel_h)
+    left_w = min(max(200, panel.width // 4), 260)
+    left = pygame.Rect(panel.x + 16, panel.y + 16, left_w, panel.height - 32)
+    portrait_size = min(left.width - 16, left.height - 72)
+    portrait_size = max(96, portrait_size)
+    portrait = pygame.Rect(
+        left.x + max(0, (left.width - portrait_size) // 2),
+        left.y + 4,
+        portrait_size,
+        portrait_size,
+    )
+    name_rect = pygame.Rect(left.x + 6, portrait.bottom + 8, left.width - 12, max(28, left.bottom - portrait.bottom - 12))
+    right = pygame.Rect(left.right + 14, panel.y + 16, panel.right - (left.right + 30), panel.height - 32)
+    return {
+        "panel": panel,
+        "left": left,
+        "portrait": portrait,
+        "name": name_rect,
+        "right": right,
+    }
+
+
+def _ui_option_text(option, lang=None):
+    if isinstance(option, dict):
+        if str(lang or "").lower() == "zh":
+            for key in ("text_zh", "label_zh", "title_zh", "name_zh", "caption_zh", "option_zh"):
+                value = option.get(key)
+                if value not in (None, ""):
+                    return str(value)
+        for key in ("label", "text", "title", "name", "caption", "option"):
+            value = option.get(key)
+            if value not in (None, ""):
+                return str(value)
+        return str(option.get("id", ""))
+    return str(option)
+
+
+def _ui_option_selected(game, attr_names, default=0):
+    for name in attr_names:
+        if hasattr(game, name):
+            try:
+                return int(getattr(game, name))
+            except Exception:
+                return default
+    return default
+
+
+def _ui_draw_scroll_hints(screen, rect, font, top_more=False, bottom_more=False):
+    if top_more:
+        _draw_text_outline(screen, font, "↑ More", (210, 225, 245), (0, 0, 0), (rect.right - 78, rect.y + 4), thickness=1)
+    if bottom_more:
+        _draw_text_outline(screen, font, "↓ More", (210, 225, 245), (0, 0, 0), (rect.right - 78, rect.bottom - font.get_height() - 6), thickness=1)
+
+
+def _ui_draw_feedback(game, screen, rect, font):
+    feedback = getattr(game, "mission_feedback", None) or {}
+    if not isinstance(feedback, dict):
+        return
+    text = str(feedback.get("text", "") or "").strip()
+    if not text:
+        return
+    created = float(feedback.get("created", 0.0) or 0.0)
+    duration = max(0.1, float(feedback.get("duration", 2.5) or 2.5))
+    if created and (time.time() - created) > duration:
+        return
+    box = pygame.Rect(rect.x + 12, rect.y + 12, rect.width - 24, font.get_height() + 12)
+    pygame.draw.rect(screen, (20, 28, 42), box, border_radius=6)
+    pygame.draw.rect(screen, (200, 220, 240), box, 1, border_radius=6)
+    _draw_text_outline(screen, font, _fit_text(font, text, box.width - 16), (255, 240, 180), (0, 0, 0), (box.x + 8, box.y + 6), thickness=1)
+
+
+def _ui_visible_range(total, selected, max_visible):
+    if total <= max_visible:
+        return 0, total
+    selected = max(0, min(total - 1, selected))
+    half = max_visible // 2
+    start = max(0, selected - half)
+    start = min(start, total - max_visible)
+    end = start + max_visible
+    return start, end
+
+
+def draw_interact_picker(game, screen):
+    if game.ui_mode != "interact_pick":
+        return
+    candidates = list(getattr(game, "interact_candidates", []) or [])
+    if not candidates:
+        return
+    font = _get_font(14)
+    title_font = _get_font(15, bold=True)
+    box_w = min(360, max(220, screen.get_width() // 3))
+    max_visible = min(8, max(4, screen.get_height() // 72))
+    row_h = font.get_height() + 8
+    total_h = 34 + min(len(candidates), max_visible) * row_h + 14
+    box_h = min(screen.get_height() - 80, total_h)
+    x = screen.get_width() - box_w - 12
+    y = screen.get_height() - box_h - 60
+    box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    box.fill((10, 14, 24, 228))
+    screen.blit(box, (x, y))
+    pygame.draw.rect(screen, (180, 220, 255), pygame.Rect(x, y, box_w, box_h), 2, border_radius=6)
+    _draw_text_outline(screen, title_font, "Choose NPC", (240, 240, 240), (0, 0, 0), (x + 10, y + 8), thickness=2)
+    selected = _ui_option_selected(game, ("interact_selected", "dialog_selected", "mission_board_selected"), 0) % len(candidates)
+    scroll = int(getattr(game, "interact_scroll", 0) or 0)
+    start, end = _ui_visible_range(len(candidates), selected, max_visible)
+    start = max(0, min(start + scroll, max(0, len(candidates) - max_visible)))
+    end = min(len(candidates), start + max_visible)
+    yy = y + 30
+    for i in range(start, end):
+        eid = _ui_option_text(candidates[i], getattr(game, "lang", None))
+        rect = pygame.Rect(x + 8, yy - 1, box_w - 16, row_h)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, font, _fit_text(font, eid, rect.width - 16), color, (0, 0, 0), (x + 14, yy + 2), thickness=2)
+        yy += row_h
+    _ui_draw_scroll_hints(screen, pygame.Rect(x, y, box_w, box_h), font, top_more=start > 0, bottom_more=end < len(candidates))
+
+
+def draw_dialog(game, screen):
+    if getattr(game, "ui_mode", None) != "dialog":
+        return
+    pad = 18
+    panel_h = max(210, screen.get_height() // 3)
+    panel = pygame.Rect(pad, screen.get_height() - panel_h - pad, screen.get_width() - pad * 2, panel_h)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 90))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (12, 18, 30), panel, border_radius=10)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=10)
+    speaker_font = _get_font(16, bold=True)
+    body_font = _get_font(15)
+    title = str(getattr(game, "dialog_speaker_name", "") or getattr(game, "dialog_npc_name", "") or getattr(game, "dialog_title", "") or "")
+    if title:
+        _draw_text_outline(screen, speaker_font, title, (255, 245, 200), (0, 0, 0), (panel.x + 16, panel.y + 12), thickness=2)
+    top_y = panel.y + (38 if title else 18)
+    text_source = getattr(game, "dialog_text_lines", None)
+    if text_source is None:
+        text_source = getattr(game, "dialog_lines", None)
+    if text_source is None:
+        text_source = getattr(game, "dialog_text", "")
+    if (not text_source) and getattr(game, "dialog_node", None):
+        text_source = _dialog_node_lines(getattr(game, "dialog_node"), getattr(game, "lang", None))
+    if isinstance(text_source, str):
+        dialog_lines = []
+        for part in text_source.splitlines() or [text_source]:
+            dialog_lines.extend(_wrap_text(body_font, part, panel.width - 32))
+    else:
+        dialog_lines = []
+        for item in list(text_source or []):
+            dialog_lines.extend(_wrap_text(body_font, str(item), panel.width - 32))
+    option_source = getattr(game, "dialog_options", None)
+    if option_source is None:
+        option_source = getattr(game, "dialog_responses", None)
+    if option_source is None:
+        option_source = getattr(game, "dialog_choices", None)
+    if (not option_source) and getattr(game, "dialog_node", None):
+        option_source = _dialog_node_options(getattr(game, "dialog_node"))
+    options = list(option_source or [])
+    text_bottom = panel.y + panel.height - (26 if options else 18)
+    max_text_lines = max(3, (text_bottom - top_y) // (body_font.get_height() + 4))
+    scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+    text_selected = int(getattr(game, "dialog_selected", 0) or 0)
+    if len(dialog_lines) > max_text_lines:
+        start = max(0, min(scroll, len(dialog_lines) - max_text_lines))
+        end = start + max_text_lines
+    else:
+        start = 0
+        end = len(dialog_lines)
+    yy = top_y
+    for line in dialog_lines[start:end]:
+        _draw_text_outline(screen, body_font, line, (240, 240, 240), (0, 0, 0), (panel.x + 16, yy), thickness=2)
+        yy += body_font.get_height() + 4
+    _ui_draw_scroll_hints(screen, panel, body_font, top_more=start > 0, bottom_more=end < len(dialog_lines))
+    if options:
+        opt_font = _get_font(14)
+        opt_row_h = opt_font.get_height() + 8
+        opt_top = max(yy + 8, panel.y + 86)
+        visible_rows = max(3, (panel.bottom - opt_top - 18) // opt_row_h)
+        start_opt, end_opt = _ui_visible_range(len(options), text_selected, visible_rows)
+        opt_scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+        start_opt = max(0, min(start_opt + opt_scroll, max(0, len(options) - visible_rows)))
+        end_opt = min(len(options), start_opt + visible_rows)
+        for i in range(start_opt, end_opt):
+            opt = options[i]
+            label = _ui_option_text(opt, getattr(game, "lang", None))
+            rect = pygame.Rect(panel.x + 14, opt_top + (i - start_opt) * opt_row_h, panel.width - 28, opt_row_h - 2)
+            _draw_readability_row(screen, rect, selected=(i == text_selected))
+            color = (255, 247, 170) if i == text_selected else (230, 230, 230)
+            _draw_text_outline(screen, opt_font, _fit_text(opt_font, label, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 4), thickness=2)
+        _ui_draw_scroll_hints(screen, pygame.Rect(panel.x, opt_top, panel.width, panel.bottom - opt_top), opt_font, top_more=start_opt > 0, bottom_more=end_opt < len(options))
+
+
+def draw_mission_board(game, screen):
+    if getattr(game, "ui_mode", None) not in ("mission_board", "objective"):
+        return
+    pad = 18
+    panel = pygame.Rect(pad, pad, screen.get_width() - pad * 2, screen.get_height() - pad * 2)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 100))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (10, 18, 28), panel, border_radius=12)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=12)
+    title_font = _get_font(20, bold=True)
+    body_font = _get_font(15)
+    small_font = _get_font(13)
+    _draw_text_outline(screen, title_font, tr(game.lang, "mission.board.title"), (245, 245, 250), (0, 0, 0), (panel.x + 18, panel.y + 14), thickness=2)
+    _ui_draw_feedback(game, screen, panel, body_font)
+    entries = list(getattr(game, "mission_board_entries", []) or [])
+    if not entries and hasattr(game, "get_mission_board_entries"):
+        giver = None
+        ctx = getattr(game, "mission_board_context", None)
+        if isinstance(ctx, dict):
+            giver = ctx.get("giver_id")
+        try:
+            entries = list(game.get_mission_board_entries(giver) or [])
+        except Exception:
+            entries = []
+    if not entries:
+        empty = tr(game.lang, "mission.board.no_missions")
+        _draw_text_outline(screen, body_font, empty, (230, 230, 230), (0, 0, 0), (panel.x + 18, panel.y + 58), thickness=2)
+        return
+    left_w = max(260, int(panel.width * 0.36))
+    left = pygame.Rect(panel.x + 14, panel.y + 52, left_w, panel.height - 66)
+    right = pygame.Rect(left.right + 12, panel.y + 52, panel.right - (left.right + 26), panel.height - 66)
+    pygame.draw.rect(screen, (15, 24, 36), left, border_radius=8)
+    pygame.draw.rect(screen, (15, 24, 36), right, border_radius=8)
+    pygame.draw.rect(screen, (120, 150, 180), left, 1, border_radius=8)
+    pygame.draw.rect(screen, (120, 150, 180), right, 1, border_radius=8)
+    selected = int(getattr(game, "mission_board_selected", 0) or 0) % len(entries)
+    list_font = _get_font(14)
+    row_h = list_font.get_height() + 10
+    max_rows = max(4, (left.height - 18) // row_h)
+    board_scroll = int(getattr(game, "mission_board_scroll", 0) or 0)
+    start, end = _ui_visible_range(len(entries), selected, max_rows)
+    start = max(0, min(start + board_scroll, max(0, len(entries) - max_rows)))
+    end = min(len(entries), start + max_rows)
+    yy = left.y + 10
+    for i in range(start, end):
+        row = entries[i]
+        rect = pygame.Rect(left.x + 8, yy, left.width - 16, row_h - 2)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        name = str(row.get("name") or row.get("title") or row.get("id") or "")
+        status = str(row.get("status") or "")
+        label = f"{name}  [{status}]".strip()
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, list_font, _fit_text(list_font, label, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 5), thickness=2)
+        yy += row_h
+    _ui_draw_scroll_hints(screen, left, list_font, top_more=start > 0, bottom_more=end < len(entries))
+    entry = entries[selected]
+    detail_font = _get_font(15)
+    detail_small = _get_font(13)
+    dy = right.y + 10
+    mission_name = str(entry.get("name") or entry.get("title") or entry.get("id") or "")
+    giver = str(entry.get("giver_name") or entry.get("provider") or entry.get("giver_id") or "")
+    status = str(entry.get("status") or "")
+    if mission_name:
+        _draw_text_outline(screen, title_font, _fit_text(title_font, mission_name, right.width - 20), (250, 250, 250), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += title_font.get_height() + 8
+    if giver:
+        _draw_text_outline(screen, detail_small, giver, (205, 225, 245), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += detail_small.get_height() + 10
+    if status:
+        status_label = tr(game.lang, f"mission.board.{status}") or status
+        _draw_text_outline(screen, detail_small, status_label, (255, 220, 160), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += detail_small.get_height() + 6
+    reason_key = ""
+    if status not in ("available", "ready", "active", "completed"):
+        try:
+            reason_key = game_missions.mission_acceptance_reason(game, entry.get("id"), giver_id=entry.get("giver_id"))
+        except Exception:
+            reason_key = ""
+    if reason_key:
+        reason_text = tr(game.lang, reason_key) or reason_key
+        if reason_text and reason_text != reason_key:
+            _draw_text_outline(screen, detail_small, reason_text, (255, 200, 160), (0, 0, 0), (right.x + 10, dy), thickness=2)
+            dy += detail_small.get_height() + 8
+    detail_blocks = []
+    for key in ("description_lines", "accept_lines", "objective_lines", "reward_lines", "return_lines"):
+        value = entry.get(key)
+        if isinstance(value, list) and value:
+            detail_blocks.append((key, value))
+    if not detail_blocks:
+        desc = entry.get("description", "")
+        if desc:
+            detail_blocks.append(("description", _wrap_text(detail_font, str(desc), right.width - 24)))
+    block_titles = {
+        "description_lines": tr(game.lang, "mission.board.briefing"),
+        "accept_lines": tr(game.lang, "mission.board.available"),
+        "objective_lines": tr(game.lang, "mission.board.list"),
+        "reward_lines": tr(game.lang, "mission.board.rewards"),
+        "return_lines": tr(game.lang, "mission.board.completion"),
+        "description": tr(game.lang, "mission.board.briefing"),
+    }
+    detail_height = right.height - (dy - right.y) - 12
+    line_h = detail_font.get_height() + 4
+    detail_lines = []
+    for key, value in detail_blocks:
+        detail_lines.append(block_titles.get(key, key.replace("_", " ").title()) + ":")
+        for line in value:
+            if isinstance(line, str):
+                detail_lines.extend(_wrap_text(detail_font, line, right.width - 24))
+            else:
+                detail_lines.extend(_wrap_text(detail_font, str(line), right.width - 24))
+        detail_lines.append("")
+    if detail_lines and detail_lines[-1] == "":
+        detail_lines.pop()
+    detail_scroll = int(getattr(game, "mission_detail_scroll", 0) or 0)
+    max_detail_lines = max(4, detail_height // line_h)
+    dstart, dend = _ui_visible_range(len(detail_lines), detail_scroll, max_detail_lines)
+    dstart = min(max(0, dstart), max(0, len(detail_lines) - max_detail_lines))
+    dend = min(len(detail_lines), dstart + max_detail_lines)
+    yy = dy
+    for line in detail_lines[dstart:dend]:
+        if not line:
+            yy += detail_font.get_height() // 2
+            continue
+        color = (235, 235, 235)
+        if line.endswith(":"):
+            color = (200, 220, 245)
+        _draw_text_outline(screen, detail_font, line, color, (0, 0, 0), (right.x + 10, yy), thickness=2)
+        yy += line_h
+    _ui_draw_scroll_hints(screen, right, detail_font, top_more=dstart > 0, bottom_more=dend < len(detail_lines))
+    hint = tr(game.lang, "mission.board.hint")
+    _draw_text_outline(screen, small_font, hint, (180, 205, 225), (0, 0, 0), (panel.x + 18, panel.bottom - 28), thickness=2)
+def _wrap_text(font, text, max_width):
+    text = str(text or "")
+    if not text:
+        return [""]
+    if font.size(text)[0] <= max_width:
+        return [text]
+    import re
+    tokens = re.findall(r"\s+|[^\s]+", text)
+    lines = []
+    line = ""
+    for token in tokens:
+        if token.isspace() and not line:
+            continue
+        test = line + token
+        if font.size(test)[0] <= max_width:
+            line = test
+            continue
+        if line:
+            lines.append(line.rstrip())
+            line = ""
+        if token.isspace():
+            continue
+        piece = ""
+        for ch in token:
+            test_piece = piece + ch
+            if font.size(test_piece)[0] <= max_width or not piece:
+                piece = test_piece
+            else:
+                lines.append(piece.rstrip())
+                piece = ch
+        line = piece
+    if line:
+        lines.append(line.rstrip())
+    return lines or [text]
+
+
+def _ui_option_text(option, lang=None):
+    if isinstance(option, dict):
+        lang_l = str(lang or "").lower()
+        preferred_keys = (
+            ("text_zh", "label", "text", "title", "name", "caption", "option")
+            if lang_l == "zh"
+            else ("label", "text", "title", "name", "caption", "option", "text_zh")
+        )
+        for key in preferred_keys:
+            value = option.get(key)
+            if value not in (None, ""):
+                return str(value)
+        return str(option.get("id", ""))
+    return str(option)
+
+
+def _ui_option_state(option):
+    if not isinstance(option, dict):
+        return True, "", ""
+    status = str(option.get("status", "") or "").strip().lower()
+    available = True
+    if option.get("available") is False:
+        available = False
+    if option.get("enabled") is False:
+        available = False
+    if option.get("locked") is True:
+        available = False
+    if status in {"locked", "unavailable", "disabled", "hidden"}:
+        available = False
+    reason = ""
+    for key in ("reason", "reason_key", "message", "note", "hint", "locked_reason", "unavailable_reason"):
+        value = option.get(key)
+        if value not in (None, ""):
+            reason = str(value).strip()
+            break
+    return available, reason, status
+
+
+def _ui_option_selected(game, attr_names, default=0):
+    for name in attr_names:
+        if hasattr(game, name):
+            try:
+                return int(getattr(game, name))
+            except Exception:
+                return default
+    return default
+
+
+def _ui_draw_scroll_hints(screen, rect, font, top_more=False, bottom_more=False):
+    if top_more:
+        _draw_text_outline(screen, font, "↑ More", (210, 225, 245), (0, 0, 0), (rect.right - 78, rect.y + 4), thickness=1)
+    if bottom_more:
+        _draw_text_outline(screen, font, "↓ More", (210, 225, 245), (0, 0, 0), (rect.right - 78, rect.bottom - font.get_height() - 6), thickness=1)
+
+
+def _ui_draw_feedback(game, screen, rect, font):
+    feedback = getattr(game, "mission_feedback", None) or {}
+    if not isinstance(feedback, dict):
+        return
+    text = str(feedback.get("text", "") or "").strip()
+    if not text:
+        return
+    created = float(feedback.get("created", 0.0) or 0.0)
+    duration = max(0.1, float(feedback.get("duration", 2.5) or 2.5))
+    if created and (time.time() - created) > duration:
+        return
+    box = pygame.Rect(rect.x + 12, rect.y + 12, rect.width - 24, font.get_height() + 12)
+    pygame.draw.rect(screen, (20, 28, 42), box, border_radius=6)
+    pygame.draw.rect(screen, (200, 220, 240), box, 1, border_radius=6)
+    _draw_text_outline(screen, font, _fit_text(font, text, box.width - 16), (255, 240, 180), (0, 0, 0), (box.x + 8, box.y + 6), thickness=1)
+
+
+def _ui_visible_range(total, selected, max_visible):
+    if total <= max_visible:
+        return 0, total
+    selected = max(0, min(total - 1, selected))
+    half = max_visible // 2
+    start = max(0, selected - half)
+    start = min(start, total - max_visible)
+    end = start + max_visible
+    return start, end
+
+
+def draw_interact_picker(game, screen):
+    if game.ui_mode != "interact_pick":
+        return
+    candidates = list(getattr(game, "interact_candidates", []) or [])
+    if not candidates:
+        return
+    font = _get_font(14)
+    title_font = _get_font(15, bold=True)
+    box_w = min(360, max(220, screen.get_width() // 3))
+    max_visible = min(8, max(4, screen.get_height() // 72))
+    row_h = font.get_height() + 8
+    total_h = 34 + min(len(candidates), max_visible) * row_h + 14
+    box_h = min(screen.get_height() - 80, total_h)
+    x = screen.get_width() - box_w - 12
+    y = screen.get_height() - box_h - 60
+    box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    box.fill((10, 14, 24, 228))
+    screen.blit(box, (x, y))
+    pygame.draw.rect(screen, (180, 220, 255), pygame.Rect(x, y, box_w, box_h), 2, border_radius=6)
+    _draw_text_outline(screen, title_font, "Choose NPC", (240, 240, 240), (0, 0, 0), (x + 10, y + 8), thickness=2)
+    selected = _ui_option_selected(game, ("interact_selected", "dialog_selected", "mission_board_selected"), 0) % len(candidates)
+    scroll = int(getattr(game, "interact_scroll", 0) or 0)
+    start, end = _ui_visible_range(len(candidates), selected, max_visible)
+    start = max(0, min(start + scroll, max(0, len(candidates) - max_visible)))
+    end = min(len(candidates), start + max_visible)
+    yy = y + 30
+    for i in range(start, end):
+        eid = _ui_option_text(candidates[i], getattr(game, "lang", None))
+        rect = pygame.Rect(x + 8, yy - 1, box_w - 16, row_h)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, font, _fit_text(font, eid, rect.width - 16), color, (0, 0, 0), (x + 14, yy + 2), thickness=2)
+        yy += row_h
+    _ui_draw_scroll_hints(screen, pygame.Rect(x, y, box_w, box_h), font, top_more=start > 0, bottom_more=end < len(candidates))
+
+
+def draw_dialog(game, screen):
+    if getattr(game, "ui_mode", None) != "dialog":
+        return
+    layout = _dialog_layout(screen)
+    panel = layout["panel"]
+    left = layout["left"]
+    portrait_box = layout["portrait"]
+    name_box = layout["name"]
+    right = layout["right"]
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 90))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (12, 18, 30), panel, border_radius=12)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=12)
+    pygame.draw.rect(screen, (14, 22, 36), left, border_radius=10)
+    pygame.draw.rect(screen, (120, 150, 180), left, 1, border_radius=10)
+    pygame.draw.rect(screen, (10, 16, 26), portrait_box.inflate(8, 8), border_radius=10)
+    pygame.draw.rect(screen, (180, 220, 255), portrait_box.inflate(8, 8), 1, border_radius=10)
+    speaker_font = _get_font(16, bold=True)
+    body_font = _get_font(15)
+    opt_font = _get_font(14)
+    title = str(getattr(game, "dialog_speaker_name", "") or getattr(game, "dialog_npc_name", "") or getattr(game, "dialog_title", "") or getattr(game, "active_npc", "") or "")
+    npc_id = str(getattr(game, "active_npc", "") or "").strip()
+    ent_def = {}
+    if npc_id and hasattr(game, "get_entity_def"):
+        try:
+            ent_def = game.get_entity_def(npc_id) or {}
+        except Exception:
+            ent_def = {}
+    portrait = _get_dialog_portrait(game, npc_id, ent_def, (portrait_box.width, portrait_box.height))
+    if portrait is not None:
+        px = portrait_box.x + max(0, (portrait_box.width - portrait.get_width()) // 2)
+        py = portrait_box.y + max(0, (portrait_box.height - portrait.get_height()) // 2)
+        screen.blit(portrait, (px, py))
+    else:
+        placeholder = _fit_text(speaker_font, title or "NPC", portrait_box.width - 12)
+        _draw_text_outline(screen, speaker_font, placeholder, (220, 230, 245), (0, 0, 0), (portrait_box.x + 8, portrait_box.y + portrait_box.height // 2 - speaker_font.get_height() // 2), thickness=2)
+    name_lines = _wrap_text(speaker_font, title or npc_id or "NPC", max(80, name_box.width - 8))
+    if not name_lines:
+        name_lines = ["NPC"]
+    name_y = name_box.y + max(0, (name_box.height - len(name_lines) * (speaker_font.get_height() + 2)) // 2)
+    for line in name_lines[:2]:
+        text = _fit_text(speaker_font, line, name_box.width - 8)
+        text_w = speaker_font.size(text)[0]
+        text_x = name_box.x + max(0, (name_box.width - text_w) // 2)
+        _draw_text_outline(screen, speaker_font, text, (255, 245, 200), (0, 0, 0), (text_x, name_y), thickness=2)
+        name_y += speaker_font.get_height() + 2
+    text_source = getattr(game, "dialog_text_lines", None)
+    if text_source is None:
+        text_source = getattr(game, "dialog_lines", None)
+    if text_source is None:
+        text_source = getattr(game, "dialog_text", "")
+    option_source = getattr(game, "dialog_options", None)
+    if option_source is None:
+        option_source = getattr(game, "dialog_responses", None)
+    if option_source is None:
+        option_source = getattr(game, "dialog_choices", None)
+    node = _resolve_dialog_node(getattr(game, "dialog_data", None), getattr(game, "dialog_node", None))
+    if not text_source:
+        text_source = _dialog_node_lines(node, getattr(game, "lang", None))
+    options = list(option_source or [])
+    if not options:
+        options = _dialog_node_options(node)
+    body_width = max(120, right.width - 20)
+    if isinstance(text_source, str):
+        dialog_lines = []
+        for part in text_source.splitlines() or [text_source]:
+            dialog_lines.extend(_wrap_text(body_font, part, body_width))
+    else:
+        dialog_lines = []
+        for item in list(text_source or []):
+            dialog_lines.extend(_wrap_text(body_font, str(item), body_width))
+    if not dialog_lines:
+        dialog_lines = ["..."]
+    text_top = right.y + 6
+    opt_row_h = opt_font.get_height() + 8
+    reserve_rows = min(max(len(options), 1), 4) if options else 0
+    text_bottom = right.bottom - (opt_row_h * reserve_rows + 18 if reserve_rows else 18)
+    max_text_lines = max(3, (text_bottom - text_top) // (body_font.get_height() + 4))
+    scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+    text_selected = int(getattr(game, "dialog_selected", 0) or 0)
+    if len(dialog_lines) > max_text_lines:
+        start = max(0, min(scroll, len(dialog_lines) - max_text_lines))
+        end = start + max_text_lines
+    else:
+        start = 0
+        end = len(dialog_lines)
+    yy = text_top
+    for line in dialog_lines[start:end]:
+        _draw_text_outline(screen, body_font, line, (240, 240, 240), (0, 0, 0), (right.x + 8, yy), thickness=2)
+        yy += body_font.get_height() + 4
+    _ui_draw_scroll_hints(screen, right, body_font, top_more=start > 0, bottom_more=end < len(dialog_lines))
+    if options:
+        opt_top = max(yy + 10, right.y + 88)
+        visible_rows = max(2, (right.bottom - opt_top - 18) // opt_row_h)
+        start_opt, end_opt = _ui_visible_range(len(options), text_selected, visible_rows)
+        opt_scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+        start_opt = max(0, min(start_opt + opt_scroll, max(0, len(options) - visible_rows)))
+        end_opt = min(len(options), start_opt + visible_rows)
+        for i in range(start_opt, end_opt):
+            opt = options[i]
+            label = _ui_option_text(opt, getattr(game, "lang", None))
+            available, reason, status = _ui_option_state(opt)
+            if not available:
+                suffix = reason or {
+                    "locked": tr(game.lang, "mission.locked"),
+                    "unavailable": tr(game.lang, "msg.option_unavailable"),
+                    "disabled": tr(game.lang, "msg.option_unavailable"),
+                    "hidden": tr(game.lang, "msg.option_unavailable"),
+                }.get(status, tr(game.lang, "msg.option_unavailable"))
+                label = f"{label}  [{suffix}]"
+            rect = pygame.Rect(right.x + 4, opt_top + (i - start_opt) * opt_row_h, right.width - 8, opt_row_h - 2)
+            _draw_readability_row(screen, rect, selected=(i == text_selected))
+            color = (255, 247, 170) if i == text_selected else (230, 230, 230)
+            if not available:
+                color = (170, 180, 190) if i != text_selected else (205, 210, 220)
+            _draw_text_outline(screen, opt_font, _fit_text(opt_font, label, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 4), thickness=2)
+        _ui_draw_scroll_hints(screen, pygame.Rect(right.x, opt_top, right.width, right.bottom - opt_top), opt_font, top_more=start_opt > 0, bottom_more=end_opt < len(options))
+
+
+def draw_mission_board(game, screen):
+    if getattr(game, "ui_mode", None) not in ("mission_board", "objective"):
+        return
+    pad = 18
+    panel = pygame.Rect(pad, pad, screen.get_width() - pad * 2, screen.get_height() - pad * 2)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 100))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (10, 18, 28), panel, border_radius=12)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=12)
+    title_font = _get_font(20, bold=True)
+    body_font = _get_font(15)
+    small_font = _get_font(13)
+    _draw_text_outline(screen, title_font, tr(game.lang, "mission.board.title"), (245, 245, 250), (0, 0, 0), (panel.x + 18, panel.y + 14), thickness=2)
+    _ui_draw_feedback(game, screen, panel, body_font)
+    entries = list(getattr(game, "mission_board_entries", []) or [])
+    if not entries and hasattr(game, "get_mission_board_entries"):
+        giver = None
+        ctx = getattr(game, "mission_board_context", None)
+        if isinstance(ctx, dict):
+            giver = ctx.get("giver_id")
+        try:
+            entries = list(game.get_mission_board_entries(giver) or [])
+        except Exception:
+            entries = []
+    if not entries:
+        empty = tr(game.lang, "mission.board.no_missions")
+        _draw_text_outline(screen, body_font, empty, (230, 230, 230), (0, 0, 0), (panel.x + 18, panel.y + 58), thickness=2)
+        return
+    left_w = max(260, int(panel.width * 0.36))
+    left = pygame.Rect(panel.x + 14, panel.y + 52, left_w, panel.height - 66)
+    right = pygame.Rect(left.right + 12, panel.y + 52, panel.right - (left.right + 26), panel.height - 66)
+    pygame.draw.rect(screen, (15, 24, 36), left, border_radius=8)
+    pygame.draw.rect(screen, (15, 24, 36), right, border_radius=8)
+    pygame.draw.rect(screen, (120, 150, 180), left, 1, border_radius=8)
+    pygame.draw.rect(screen, (120, 150, 180), right, 1, border_radius=8)
+    selected = int(getattr(game, "mission_board_selected", 0) or 0) % len(entries)
+    list_font = _get_font(14)
+    row_h = list_font.get_height() + 10
+    max_rows = max(4, (left.height - 18) // row_h)
+    board_scroll = int(getattr(game, "mission_board_scroll", 0) or 0)
+    start, end = _ui_visible_range(len(entries), selected, max_rows)
+    start = max(0, min(start + board_scroll, max(0, len(entries) - max_rows)))
+    end = min(len(entries), start + max_rows)
+    yy = left.y + 10
+    for i in range(start, end):
+        row = entries[i]
+        rect = pygame.Rect(left.x + 8, yy, left.width - 16, row_h - 2)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        name = str(row.get("name") or row.get("title") or row.get("id") or "")
+        status = str(row.get("status") or "")
+        status_reason = ""
+        if status not in ("available", "ready", "active", "completed"):
+            try:
+                giver_id = getattr(game, "mission_board_giver", None) or row.get("giver_id") or row.get("provider")
+                if hasattr(game_missions, "mission_acceptance_reason"):
+                    reason_key = str(game_missions.mission_acceptance_reason(game, row.get("id"), giver_id=giver_id) or "")
+                    if reason_key:
+                        status_reason = tr(game.lang, reason_key)
+                        if not status_reason or status_reason == reason_key:
+                            status_reason = reason_key
+            except Exception:
+                status_reason = ""
+        label = f"{name}  [{status}]".strip() if status else name
+        if status_reason:
+            label = f"{label}  [{status_reason}]"
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, list_font, _fit_text(list_font, label, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 5), thickness=2)
+        yy += row_h
+    _ui_draw_scroll_hints(screen, left, list_font, top_more=start > 0, bottom_more=end < len(entries))
+    entry = entries[selected]
+    detail_font = _get_font(15)
+    detail_small = _get_font(13)
+    dy = right.y + 10
+    mission_name = str(entry.get("name") or entry.get("title") or entry.get("id") or "")
+    giver = str(entry.get("giver_name") or entry.get("provider") or entry.get("giver_id") or "")
+    if mission_name:
+        _draw_text_outline(screen, title_font, _fit_text(title_font, mission_name, right.width - 20), (250, 250, 250), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += title_font.get_height() + 8
+    if giver:
+        _draw_text_outline(screen, detail_small, giver, (205, 225, 245), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += detail_small.get_height() + 10
+    status = str(entry.get("status") or "")
+    if status:
+        status_label = tr(game.lang, f"mission.board.{status}") or status
+        _draw_text_outline(screen, detail_small, status_label, (255, 220, 160), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += detail_small.get_height() + 6
+    if status not in ("available", "ready", "active", "completed"):
+        try:
+            reason_key = game_missions.mission_acceptance_reason(game, entry.get("id"), giver_id=entry.get("giver_id"))
+        except Exception:
+            reason_key = ""
+        if reason_key:
+            reason_text = tr(game.lang, reason_key) or reason_key
+            _draw_text_outline(screen, detail_small, reason_text, (255, 205, 165), (0, 0, 0), (right.x + 10, dy), thickness=2)
+            dy += detail_small.get_height() + 8
+    detail_blocks = []
+    for key in ("description_lines", "accept_lines", "objective_lines", "reward_lines", "return_lines"):
+        value = entry.get(key)
+        if isinstance(value, list) and value:
+            detail_blocks.append((key, value))
+    if not detail_blocks:
+        desc = entry.get("description", "")
+        if desc:
+            detail_blocks.append(("description", _wrap_text(detail_font, str(desc), right.width - 24)))
+    block_titles = {
+        "description_lines": tr(game.lang, "mission.board.briefing"),
+        "accept_lines": tr(game.lang, "mission.board.available"),
+        "objective_lines": tr(game.lang, "mission.board.list"),
+        "reward_lines": tr(game.lang, "mission.board.rewards"),
+        "return_lines": tr(game.lang, "mission.board.completion"),
+        "description": tr(game.lang, "mission.board.briefing"),
+    }
+    detail_height = right.height - (dy - right.y) - 12
+    line_h = detail_font.get_height() + 4
+    detail_lines = []
+    for key, value in detail_blocks:
+        detail_lines.append(block_titles.get(key, key.replace("_", " ").title()) + ":")
+        for line in value:
+            if isinstance(line, str):
+                detail_lines.extend(_wrap_text(detail_font, line, right.width - 24))
+            else:
+                detail_lines.extend(_wrap_text(detail_font, str(line), right.width - 24))
+        detail_lines.append("")
+    if detail_lines and detail_lines[-1] == "":
+        detail_lines.pop()
+    detail_scroll = int(getattr(game, "mission_detail_scroll", 0) or 0)
+    max_detail_lines = max(4, detail_height // line_h)
+    dstart, dend = _ui_visible_range(len(detail_lines), detail_scroll, max_detail_lines)
+    dstart = min(max(0, dstart), max(0, len(detail_lines) - max_detail_lines))
+    dend = min(len(detail_lines), dstart + max_detail_lines)
+    yy = dy
+    for line in detail_lines[dstart:dend]:
+        if not line:
+            yy += detail_font.get_height() // 2
+            continue
+        color = (235, 235, 235)
+        if line.endswith(":"):
+            color = (200, 220, 245)
+        _draw_text_outline(screen, detail_font, line, color, (0, 0, 0), (right.x + 10, yy), thickness=2)
+        yy += line_h
+    _ui_draw_scroll_hints(screen, right, detail_font, top_more=dstart > 0, bottom_more=dend < len(detail_lines))
+    hint = tr(game.lang, "mission.board.hint")
+    _draw_text_outline(screen, small_font, hint, (180, 205, 225), (0, 0, 0), (panel.x + 18, panel.bottom - 28), thickness=2)
+def _wrap_text(font, text, max_width):
+    text = str(text or "")
+    if not text:
+        return [""]
+    if font.size(text)[0] <= max_width:
+        return [text]
+    import re
+    tokens = re.findall(r"\s+|[^\s]+", text)
+    lines = []
+    line = ""
+    for token in tokens:
+        if token.isspace() and not line:
+            continue
+        test = line + token
+        if font.size(test)[0] <= max_width:
+            line = test
+            continue
+        if line:
+            lines.append(line.rstrip())
+            line = ""
+        if token.isspace():
+            continue
+        piece = ""
+        for ch in token:
+            test_piece = piece + ch
+            if font.size(test_piece)[0] <= max_width or not piece:
+                piece = test_piece
+            else:
+                lines.append(piece.rstrip())
+                piece = ch
+        line = piece
+    if line:
+        lines.append(line.rstrip())
+    return lines or [text]
+
+
+def _ui_option_text(option, lang=None):
+    if isinstance(option, dict):
+        lang_l = str(lang or "").lower()
+        preferred_keys = (
+            ("text_zh", "label", "text", "title", "name", "caption", "option")
+            if lang_l == "zh"
+            else ("label", "text", "title", "name", "caption", "option", "text_zh")
+        )
+        for key in preferred_keys:
+            value = option.get(key)
+            if value not in (None, ""):
+                return str(value)
+        return str(option.get("id", ""))
+    return str(option)
+
+
+def _ui_option_selected(game, attr_names, default=0):
+    for name in attr_names:
+        if hasattr(game, name):
+            try:
+                return int(getattr(game, name))
+            except Exception:
+                return default
+    return default
+
+
+def _ui_draw_scroll_hints(screen, rect, font, top_more=False, bottom_more=False):
+    if top_more:
+        _draw_text_outline(screen, font, "↑ More", (210, 225, 245), (0, 0, 0), (rect.right - 78, rect.y + 4), thickness=1)
+    if bottom_more:
+        _draw_text_outline(screen, font, "↓ More", (210, 225, 245), (0, 0, 0), (rect.right - 78, rect.bottom - font.get_height() - 6), thickness=1)
+
+
+def _ui_draw_feedback(game, screen, rect, font):
+    feedback = getattr(game, "mission_feedback", None) or {}
+    if not isinstance(feedback, dict):
+        return
+    text = str(feedback.get("text", "") or "").strip()
+    if not text:
+        return
+    created = float(feedback.get("created", 0.0) or 0.0)
+    duration = max(0.1, float(feedback.get("duration", 2.5) or 2.5))
+    if created and (time.time() - created) > duration:
+        return
+    box = pygame.Rect(rect.x + 12, rect.y + 12, rect.width - 24, font.get_height() + 12)
+    pygame.draw.rect(screen, (20, 28, 42), box, border_radius=6)
+    pygame.draw.rect(screen, (200, 220, 240), box, 1, border_radius=6)
+    _draw_text_outline(screen, font, _fit_text(font, text, box.width - 16), (255, 240, 180), (0, 0, 0), (box.x + 8, box.y + 6), thickness=1)
+
+
+def _ui_visible_range(total, selected, max_visible):
+    if total <= max_visible:
+        return 0, total
+    selected = max(0, min(total - 1, selected))
+    half = max_visible // 2
+    start = max(0, selected - half)
+    start = min(start, total - max_visible)
+    end = start + max_visible
+    return start, end
+
+
+def draw_interact_picker(game, screen):
+    if game.ui_mode != "interact_pick":
+        return
+    candidates = list(getattr(game, "interact_candidates", []) or [])
+    if not candidates:
+        return
+    font = _get_font(14)
+    title_font = _get_font(15, bold=True)
+    box_w = min(360, max(220, screen.get_width() // 3))
+    max_visible = min(8, max(4, screen.get_height() // 72))
+    row_h = font.get_height() + 8
+    total_h = 34 + min(len(candidates), max_visible) * row_h + 14
+    box_h = min(screen.get_height() - 80, total_h)
+    x = screen.get_width() - box_w - 12
+    y = screen.get_height() - box_h - 60
+    box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    box.fill((10, 14, 24, 228))
+    screen.blit(box, (x, y))
+    pygame.draw.rect(screen, (180, 220, 255), pygame.Rect(x, y, box_w, box_h), 2, border_radius=6)
+    _draw_text_outline(screen, title_font, "Choose NPC", (240, 240, 240), (0, 0, 0), (x + 10, y + 8), thickness=2)
+    selected = _ui_option_selected(game, ("interact_selected", "dialog_selected", "mission_board_selected"), 0) % len(candidates)
+    scroll = int(getattr(game, "interact_scroll", 0) or 0)
+    start, end = _ui_visible_range(len(candidates), selected, max_visible)
+    start = max(0, min(start + scroll, max(0, len(candidates) - max_visible)))
+    end = min(len(candidates), start + max_visible)
+    yy = y + 30
+    for i in range(start, end):
+        eid = _ui_option_text(candidates[i], getattr(game, "lang", None))
+        rect = pygame.Rect(x + 8, yy - 1, box_w - 16, row_h)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, font, _fit_text(font, eid, rect.width - 16), color, (0, 0, 0), (x + 14, yy + 2), thickness=2)
+        yy += row_h
+    _ui_draw_scroll_hints(screen, pygame.Rect(x, y, box_w, box_h), font, top_more=start > 0, bottom_more=end < len(candidates))
+
+
+def draw_dialog(game, screen):
+    if getattr(game, "ui_mode", None) != "dialog":
+        return
+    layout = _dialog_layout(screen)
+    panel = layout["panel"]
+    left = layout["left"]
+    portrait_box = layout["portrait"]
+    name_box = layout["name"]
+    right = layout["right"]
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 90))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (12, 18, 30), panel, border_radius=12)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=12)
+    pygame.draw.rect(screen, (14, 22, 36), left, border_radius=10)
+    pygame.draw.rect(screen, (120, 150, 180), left, 1, border_radius=10)
+    pygame.draw.rect(screen, (10, 16, 26), portrait_box.inflate(8, 8), border_radius=10)
+    pygame.draw.rect(screen, (180, 220, 255), portrait_box.inflate(8, 8), 1, border_radius=10)
+    speaker_font = _get_font(16, bold=True)
+    body_font = _get_font(15)
+    opt_font = _get_font(14)
+    title = str(getattr(game, "dialog_speaker_name", "") or getattr(game, "dialog_npc_name", "") or getattr(game, "dialog_title", "") or getattr(game, "active_npc", "") or "")
+    npc_id = str(getattr(game, "active_npc", "") or "").strip()
+    ent_def = {}
+    if npc_id and hasattr(game, "get_entity_def"):
+        try:
+            ent_def = game.get_entity_def(npc_id) or {}
+        except Exception:
+            ent_def = {}
+    portrait = _get_dialog_portrait(game, npc_id, ent_def, (portrait_box.width, portrait_box.height))
+    if portrait is not None:
+        px = portrait_box.x + max(0, (portrait_box.width - portrait.get_width()) // 2)
+        py = portrait_box.y + max(0, (portrait_box.height - portrait.get_height()) // 2)
+        screen.blit(portrait, (px, py))
+    else:
+        placeholder = _fit_text(speaker_font, title or "NPC", portrait_box.width - 12)
+        _draw_text_outline(screen, speaker_font, placeholder, (220, 230, 245), (0, 0, 0), (portrait_box.x + 8, portrait_box.y + portrait_box.height // 2 - speaker_font.get_height() // 2), thickness=2)
+    name_lines = _wrap_text(speaker_font, title or npc_id or "NPC", max(80, name_box.width - 8))
+    if not name_lines:
+        name_lines = ["NPC"]
+    name_y = name_box.y + max(0, (name_box.height - len(name_lines) * (speaker_font.get_height() + 2)) // 2)
+    for line in name_lines[:2]:
+        text = _fit_text(speaker_font, line, name_box.width - 8)
+        text_w = speaker_font.size(text)[0]
+        text_x = name_box.x + max(0, (name_box.width - text_w) // 2)
+        _draw_text_outline(screen, speaker_font, text, (255, 245, 200), (0, 0, 0), (text_x, name_y), thickness=2)
+        name_y += speaker_font.get_height() + 2
+    text_source = getattr(game, "dialog_text_lines", None)
+    if text_source is None:
+        text_source = getattr(game, "dialog_lines", None)
+    if text_source is None:
+        text_source = getattr(game, "dialog_text", "")
+    option_source = getattr(game, "dialog_options", None)
+    if option_source is None:
+        option_source = getattr(game, "dialog_responses", None)
+    if option_source is None:
+        option_source = getattr(game, "dialog_choices", None)
+    node = _resolve_dialog_node(getattr(game, "dialog_data", None), getattr(game, "dialog_node", None))
+    if not text_source:
+        text_source = _dialog_node_lines(node, getattr(game, "lang", None))
+    options = list(option_source or [])
+    if not options:
+        options = _dialog_node_options(node)
+    body_width = max(120, right.width - 20)
+    if isinstance(text_source, str):
+        dialog_lines = []
+        for part in text_source.splitlines() or [text_source]:
+            dialog_lines.extend(_wrap_text(body_font, part, body_width))
+    else:
+        dialog_lines = []
+        for item in list(text_source or []):
+            dialog_lines.extend(_wrap_text(body_font, str(item), body_width))
+    if not dialog_lines:
+        dialog_lines = ["..."]
+    text_top = right.y + 6
+    opt_row_h = opt_font.get_height() + 8
+    reserve_rows = min(max(len(options), 1), 4) if options else 0
+    text_bottom = right.bottom - (opt_row_h * reserve_rows + 18 if reserve_rows else 18)
+    max_text_lines = max(3, (text_bottom - text_top) // (body_font.get_height() + 4))
+    scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+    text_selected = int(getattr(game, "dialog_selected", 0) or 0)
+    if len(dialog_lines) > max_text_lines:
+        start = max(0, min(scroll, len(dialog_lines) - max_text_lines))
+        end = start + max_text_lines
+    else:
+        start = 0
+        end = len(dialog_lines)
+    yy = text_top
+    for line in dialog_lines[start:end]:
+        _draw_text_outline(screen, body_font, line, (240, 240, 240), (0, 0, 0), (right.x + 8, yy), thickness=2)
+        yy += body_font.get_height() + 4
+    _ui_draw_scroll_hints(screen, right, body_font, top_more=start > 0, bottom_more=end < len(dialog_lines))
+    if options:
+        opt_top = max(yy + 10, right.y + 88)
+        visible_rows = max(2, (right.bottom - opt_top - 18) // opt_row_h)
+        start_opt, end_opt = _ui_visible_range(len(options), text_selected, visible_rows)
+        opt_scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+        start_opt = max(0, min(start_opt + opt_scroll, max(0, len(options) - visible_rows)))
+        end_opt = min(len(options), start_opt + visible_rows)
+        for i in range(start_opt, end_opt):
+            opt = options[i]
+            label = _ui_option_text(opt, getattr(game, "lang", None))
+            rect = pygame.Rect(right.x + 4, opt_top + (i - start_opt) * opt_row_h, right.width - 8, opt_row_h - 2)
+            _draw_readability_row(screen, rect, selected=(i == text_selected))
+            color = (255, 247, 170) if i == text_selected else (230, 230, 230)
+            _draw_text_outline(screen, opt_font, _fit_text(opt_font, label, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 4), thickness=2)
+        _ui_draw_scroll_hints(screen, pygame.Rect(right.x, opt_top, right.width, right.bottom - opt_top), opt_font, top_more=start_opt > 0, bottom_more=end_opt < len(options))
+
+def draw_mission_board(game, screen):
+    if getattr(game, "ui_mode", None) not in ("mission_board", "objective"):
+        return
+    pad = 18
+    panel = pygame.Rect(pad, pad, screen.get_width() - pad * 2, screen.get_height() - pad * 2)
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 100))
+    screen.blit(shade, (0, 0))
+    pygame.draw.rect(screen, (10, 18, 28), panel, border_radius=12)
+    pygame.draw.rect(screen, (180, 220, 255), panel, 2, border_radius=12)
+    title_font = _get_font(20, bold=True)
+    body_font = _get_font(15)
+    small_font = _get_font(13)
+    _draw_text_outline(screen, title_font, tr(game.lang, "mission.board.title"), (245, 245, 250), (0, 0, 0), (panel.x + 18, panel.y + 14), thickness=2)
+    _ui_draw_feedback(game, screen, panel, body_font)
+    entries = list(getattr(game, "mission_board_entries", []) or [])
+    if not entries and hasattr(game, "get_mission_board_entries"):
+        giver = None
+        ctx = getattr(game, "mission_board_context", None)
+        if isinstance(ctx, dict):
+            giver = ctx.get("giver_id")
+        try:
+            entries = list(game.get_mission_board_entries(giver) or [])
+        except Exception:
+            entries = []
+    if not entries:
+        empty = tr(game.lang, "mission.board.no_missions")
+        _draw_text_outline(screen, body_font, empty, (230, 230, 230), (0, 0, 0), (panel.x + 18, panel.y + 58), thickness=2)
+        return
+    left_w = max(260, int(panel.width * 0.36))
+    left = pygame.Rect(panel.x + 14, panel.y + 52, left_w, panel.height - 66)
+    right = pygame.Rect(left.right + 12, panel.y + 52, panel.right - (left.right + 26), panel.height - 66)
+    pygame.draw.rect(screen, (15, 24, 36), left, border_radius=8)
+    pygame.draw.rect(screen, (15, 24, 36), right, border_radius=8)
+    pygame.draw.rect(screen, (120, 150, 180), left, 1, border_radius=8)
+    pygame.draw.rect(screen, (120, 150, 180), right, 1, border_radius=8)
+    selected = int(getattr(game, "mission_board_selected", 0) or 0) % len(entries)
+    list_font = _get_font(14)
+    row_h = list_font.get_height() + 10
+    max_rows = max(4, (left.height - 18) // row_h)
+    board_scroll = int(getattr(game, "mission_board_scroll", 0) or 0)
+    start, end = _ui_visible_range(len(entries), selected, max_rows)
+    start = max(0, min(start + board_scroll, max(0, len(entries) - max_rows)))
+    end = min(len(entries), start + max_rows)
+    yy = left.y + 10
+    for i in range(start, end):
+        row = entries[i]
+        rect = pygame.Rect(left.x + 8, yy, left.width - 16, row_h - 2)
+        _draw_readability_row(screen, rect, selected=(i == selected))
+        name = str(row.get("name") or row.get("title") or row.get("id") or "")
+        status = str(row.get("status") or "")
+        label = f"{name}  [{status}]".strip()
+        color = (255, 247, 170) if i == selected else (230, 230, 230)
+        _draw_text_outline(screen, list_font, _fit_text(list_font, label, rect.width - 14), color, (0, 0, 0), (rect.x + 8, rect.y + 5), thickness=2)
+        yy += row_h
+    _ui_draw_scroll_hints(screen, left, list_font, top_more=start > 0, bottom_more=end < len(entries))
+    entry = entries[selected]
+    detail_font = _get_font(15)
+    detail_small = _get_font(13)
+    dy = right.y + 10
+    mission_name = str(entry.get("name") or entry.get("title") or entry.get("id") or "")
+    giver = str(entry.get("giver_name") or entry.get("provider") or entry.get("giver_id") or "")
+    if mission_name:
+        _draw_text_outline(screen, title_font, _fit_text(title_font, mission_name, right.width - 20), (250, 250, 250), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += title_font.get_height() + 8
+    if giver:
+        _draw_text_outline(screen, detail_small, giver, (205, 225, 245), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += detail_small.get_height() + 10
+    status = str(entry.get("status") or "").strip().lower()
+    if status not in ("available", "ready", "active", "completed"):
+        status_reason = ""
+        try:
+            giver_id = getattr(game, "mission_board_giver", None) or entry.get("giver_id") or entry.get("provider")
+            if hasattr(game_missions, "mission_acceptance_reason"):
+                reason_key = str(game_missions.mission_acceptance_reason(game, entry.get("id"), giver_id=giver_id) or "")
+                if reason_key:
+                    status_reason = tr(game.lang, reason_key)
+                    if not status_reason or status_reason == reason_key:
+                        status_reason = reason_key
+        except Exception:
+            status_reason = ""
+        if not status_reason:
+            status_reason = tr(game.lang, "msg.option_unavailable")
+        _draw_text_outline(screen, detail_small, _fit_text(detail_small, status_reason, right.width - 20), (245, 205, 170), (0, 0, 0), (right.x + 10, dy), thickness=2)
+        dy += detail_small.get_height() + 8
+    detail_blocks = []
+    for key in ("description_lines", "accept_lines", "objective_lines", "reward_lines", "return_lines"):
+        value = entry.get(key)
+        if isinstance(value, list) and value:
+            detail_blocks.append((key, value))
+    if not detail_blocks:
+        desc = entry.get("description", "")
+        if desc:
+            detail_blocks.append(("description", _wrap_text(detail_font, str(desc), right.width - 24)))
+    block_titles = {
+        "description_lines": tr(game.lang, "mission.board.briefing"),
+        "accept_lines": tr(game.lang, "mission.board.available"),
+        "objective_lines": tr(game.lang, "mission.board.list"),
+        "reward_lines": tr(game.lang, "mission.board.rewards"),
+        "return_lines": tr(game.lang, "mission.board.completion"),
+        "description": tr(game.lang, "mission.board.briefing"),
+    }
+    detail_height = right.height - (dy - right.y) - 12
+    line_h = detail_font.get_height() + 4
+    detail_lines = []
+    for key, value in detail_blocks:
+        detail_lines.append(block_titles.get(key, key.replace("_", " ").title()) + ":")
+        for line in value:
+            if isinstance(line, str):
+                detail_lines.extend(_wrap_text(detail_font, line, right.width - 24))
+            else:
+                detail_lines.extend(_wrap_text(detail_font, str(line), right.width - 24))
+        detail_lines.append("")
+    if detail_lines and detail_lines[-1] == "":
+        detail_lines.pop()
+    detail_scroll = int(getattr(game, "mission_detail_scroll", 0) or 0)
+    max_detail_lines = max(4, detail_height // line_h)
+    dstart, dend = _ui_visible_range(len(detail_lines), detail_scroll, max_detail_lines)
+    dstart = min(max(0, dstart), max(0, len(detail_lines) - max_detail_lines))
+    dend = min(len(detail_lines), dstart + max_detail_lines)
+    yy = dy
+    for line in detail_lines[dstart:dend]:
+        if not line:
+            yy += detail_font.get_height() // 2
+            continue
+        color = (235, 235, 235)
+        if line.endswith(":"):
+            color = (200, 220, 245)
+        _draw_text_outline(screen, detail_font, line, color, (0, 0, 0), (right.x + 10, yy), thickness=2)
+        yy += line_h
+    _ui_draw_scroll_hints(screen, right, detail_font, top_more=dstart > 0, bottom_more=dend < len(detail_lines))
+    hint = tr(game.lang, "mission.board.hint")
+    _draw_text_outline(screen, small_font, hint, (180, 205, 225), (0, 0, 0), (panel.x + 18, panel.bottom - 28), thickness=2)

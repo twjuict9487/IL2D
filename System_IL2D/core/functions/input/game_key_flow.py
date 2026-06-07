@@ -1,4 +1,36 @@
+import time
+
 import pygame
+
+from ..support.i18n import tr
+
+
+def _set_mission_feedback(game, reason_key, mission_id=None):
+    reason_key = str(reason_key or "").strip()
+    if not reason_key:
+        return
+    text = tr(getattr(game, "lang", "en"), reason_key)
+    if not text or text == reason_key:
+        text = reason_key.replace(".", " ").title()
+    payload = {
+        "text": text,
+        "reason": reason_key,
+        "mission_id": mission_id,
+        "created": time.time(),
+        "duration": 2.5,
+    }
+    game.mission_feedback = payload
+    if hasattr(game, "banner"):
+        game.banner = {
+            "text": text,
+            "created": payload["created"],
+            "duration": payload["duration"],
+        }
+    if hasattr(game, "push_message"):
+        try:
+            game.push_message(text)
+        except Exception:
+            pass
 
 
 def handle_game_key(ctx, event, press_move_fn, set_always_on_top_fn, tile_size, viewport):
@@ -61,9 +93,19 @@ def handle_game_key(ctx, event, press_move_fn, set_always_on_top_fn, tile_size, 
         if event.key in (pygame.K_UP, pygame.K_w):
             if game.interact_candidates:
                 game.interact_selected = (game.interact_selected - 1) % len(game.interact_candidates)
+                if hasattr(game, "interact_scroll"):
+                    game.interact_scroll = max(0, game.interact_scroll - 1)
         elif event.key in (pygame.K_DOWN, pygame.K_s):
             if game.interact_candidates:
                 game.interact_selected = (game.interact_selected + 1) % len(game.interact_candidates)
+                if hasattr(game, "interact_scroll"):
+                    game.interact_scroll = min(game.interact_scroll + 1, max(0, len(game.interact_candidates) - 1))
+        elif event.key in (pygame.K_PAGEUP, pygame.K_HOME):
+            if hasattr(game, "interact_scroll"):
+                game.interact_scroll = max(0, int(getattr(game, "interact_scroll", 0)) - 3)
+        elif event.key in (pygame.K_PAGEDOWN, pygame.K_END):
+            if hasattr(game, "interact_scroll"):
+                game.interact_scroll = min(max(0, len(game.interact_candidates) - 1), int(getattr(game, "interact_scroll", 0)) + 3)
         elif event.key == pygame.K_RETURN:
             game.confirm_interact_choice()
         elif event.key == pygame.K_ESCAPE:
@@ -72,12 +114,25 @@ def handle_game_key(ctx, event, press_move_fn, set_always_on_top_fn, tile_size, 
     if game.ui_mode == "dialog":
         if event.key == pygame.K_UP:
             game.dialog_selected = max(0, game.dialog_selected - 1)
+            if hasattr(game, "dialog_scroll"):
+                game.dialog_scroll = max(0, int(getattr(game, "dialog_scroll", 0)) - 1)
         elif event.key == pygame.K_DOWN:
             game.dialog_selected = game.dialog_selected + 1
+            if hasattr(game, "dialog_scroll"):
+                game.dialog_scroll = max(0, int(getattr(game, "dialog_scroll", 0)) + 1)
+        elif event.key == pygame.K_PAGEUP:
+            if hasattr(game, "dialog_scroll"):
+                game.dialog_scroll = max(0, int(getattr(game, "dialog_scroll", 0)) - 3)
+        elif event.key == pygame.K_PAGEDOWN:
+            if hasattr(game, "dialog_scroll"):
+                game.dialog_scroll = max(0, int(getattr(game, "dialog_scroll", 0)) + 3)
         elif event.key == pygame.K_RETURN:
             game.dialog_choose()
         elif event.key == pygame.K_ESCAPE:
-            game.close_dialog()
+            if hasattr(game, "close_dialog"):
+                game.close_dialog()
+            else:
+                game.ui_mode = None
         return
     if game.ui_mode == "shop":
         if event.key == pygame.K_UP and game.shop_items:
@@ -166,6 +221,58 @@ def handle_game_key(ctx, event, press_move_fn, set_always_on_top_fn, tile_size, 
                 return
             game.ui_mode = None
             return
+        return
+    if game.ui_mode == "mission_board":
+        missions = game.get_mission_board_entries(getattr(game, "mission_board_giver", None)) if hasattr(game, "get_mission_board_entries") else []
+        if event.key in (pygame.K_UP, pygame.K_w):
+            if missions:
+                game.mission_board_selected = max(0, game.mission_board_selected - 1)
+                if hasattr(game, "mission_detail_scroll"):
+                    game.mission_detail_scroll = 0
+                if hasattr(game, "mission_board_scroll"):
+                    game.mission_board_scroll = max(0, int(getattr(game, "mission_board_scroll", 0)) - 1)
+        elif event.key in (pygame.K_DOWN, pygame.K_s):
+            if missions:
+                game.mission_board_selected = min(len(missions) - 1, game.mission_board_selected + 1)
+                if hasattr(game, "mission_detail_scroll"):
+                    game.mission_detail_scroll = 0
+                if hasattr(game, "mission_board_scroll"):
+                    game.mission_board_scroll = min(max(0, len(missions) - 1), int(getattr(game, "mission_board_scroll", 0)) + 1)
+        elif event.key in (pygame.K_PAGEUP, pygame.K_LEFT):
+            if hasattr(game, "mission_detail_scroll"):
+                game.mission_detail_scroll = max(0, int(getattr(game, "mission_detail_scroll", 0)) - 4)
+        elif event.key in (pygame.K_PAGEDOWN, pygame.K_RIGHT):
+            if hasattr(game, "mission_detail_scroll"):
+                game.mission_detail_scroll = max(0, int(getattr(game, "mission_detail_scroll", 0)) + 4)
+        elif event.key == pygame.K_RETURN:
+            giver = getattr(game, "mission_board_giver", None)
+            missions = game.get_mission_board_entries(giver) if giver and hasattr(game, "get_mission_board_entries") else []
+            if missions:
+                idx = max(0, min(len(missions) - 1, int(getattr(game, "mission_board_selected", 0))))
+                row = missions[idx]
+                status = row.get("status")
+                if status == "available":
+                    if hasattr(game, "accept_mission"):
+                        game.accept_mission(row.get("id"))
+                elif status == "ready":
+                    if hasattr(game, "turn_in_mission"):
+                        game.turn_in_mission(row.get("id"))
+                elif status == "active":
+                    game.tracked_mission = row.get("id")
+                else:
+                    giver = getattr(game, "mission_board_giver", None)
+                    reason = ""
+                    try:
+                        from ..gameplay import missions as game_missions
+                        reason = game_missions.mission_acceptance_reason(game, row.get("id"), giver_id=giver)
+                    except Exception:
+                        reason = str(status or "mission.locked")
+                    _set_mission_feedback(game, reason or "mission.locked", mission_id=row.get("id"))
+        elif event.key == pygame.K_ESCAPE:
+            if hasattr(game, "close_mission_board"):
+                game.close_mission_board()
+            else:
+                game.close_dialog()
         return
     if game.ui_mode == "hotbar":
         if event.key == pygame.K_i:

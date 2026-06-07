@@ -13,6 +13,7 @@ try:
     from . import npc_ops as game_npc_ops
     from . import inventory_ops as game_inventory_ops
     from . import save_ops as game_save_ops
+    from . import missions as game_missions
     from .tutorial import GameplayTutorialCore
 except ImportError:
     import sys
@@ -85,10 +86,17 @@ class Game:
         self.dialog_data = None
         self.dialog_node = None
         self.dialog_selected = 0
+        self.dialog_scroll = 0
+        self.dialog_speaker_name = None
+        self.dialog_npc_name = None
+        self.dialog_title = None
         self.active_npc = None
         self.dialog_source = None
+        self.dialog_trace = []
+        self.dialog_trace_last = None
         self.interact_candidates = []
         self.interact_selected = 0
+        self.interact_scroll = 0
 
         self.shop_selected = 0
         self.save_selected = 0
@@ -147,6 +155,8 @@ class Game:
         self.mission_state = {}
         self.mission_board_giver = None
         self.mission_board_selected = 0
+        self.mission_board_scroll = 0
+        self.mission_detail_scroll = 0
         self.mission_key_items = {}
         self.mission_flags = {}
         self.mission_complete_count = 0
@@ -350,9 +360,20 @@ class Game:
         self._normalize_mission_state()
         self.mission_board_giver = str(giver_id or "")
         self.mission_board_selected = 0
+        self.mission_board_scroll = 0
+        self.mission_detail_scroll = 0
         self.dialog_data = None
         self.dialog_node = None
+        self.dialog_text_lines = None
+        self.dialog_lines = None
+        self.dialog_options = None
+        self.dialog_responses = None
+        self.dialog_choices = None
         self.dialog_selected = 0
+        self.dialog_scroll = 0
+        self.dialog_speaker_name = None
+        self.dialog_npc_name = None
+        self.dialog_title = None
         self.active_npc = str(giver_id or "")
         self.dialog_source = source
         self.ui_mode = "mission_board"
@@ -1803,8 +1824,18 @@ class Game:
             }
         }
         self.dialog_node = "node_1"
+        self.dialog_text_lines = [tr(self.lang, "dialog.cheat_warn")]
+        self.dialog_lines = list(self.dialog_text_lines)
+        self.dialog_options = [{"text": tr(self.lang, "dialog.ok"), "next": "end"}]
+        self.dialog_responses = list(self.dialog_options)
+        self.dialog_choices = list(self.dialog_options)
         self.dialog_selected = 0
+        self.dialog_scroll = 0
         self.active_npc = "dev"
+        self.dialog_speaker_name = "DEV"
+        self.dialog_npc_name = "DEV"
+        self.dialog_title = "DEV"
+        self.dialog_source = "script"
         self.ui_mode = "dialog"
         self.push_message(tr(self.lang, "msg.cheat_penalty"))
 
@@ -1841,31 +1872,56 @@ class Game:
             self.objectives = [tr(self.lang, s) if s.startswith("obj.") else s for s in lines]
 
     def get_objective_lines(self):
-        lines = list(self.objectives)
-        missions = self.get_active_missions()
-        if not missions:
-            return lines
-        for mission in missions:
-            giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
-            giver_name = mission.get("giver_name", giver)
-            text = self._mission_text_short(mission)
-            if text:
-                lines.append(f"{giver_name}: {text}")
-        return lines
+        return list(self.objectives)
 
     def get_trackable_missions(self):
         missions = []
         for mission in self.get_active_missions():
             giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
+            name = self._mission_display_name(mission, fallback=giver)
+            text = self._mission_text_short(mission) or self._mission_long_text(mission)
+            if not name:
+                name = giver or "Mission"
+            if not text:
+                text = ""
             missions.append({
                 "id": mission.get("id", giver),
-                "name": mission.get("title", giver),
+                "name": name,
                 "giver": giver,
-                "text": self._mission_text_short(mission),
+                "text": text,
                 "done": self._mission_ready_to_turn_in(mission),
                 "status": game_missions.get_status(self, mission.get("id", giver)) if hasattr(game_missions, "get_status") else "active",
             })
         return missions
+
+    def _mission_display_name(self, mission, fallback="Mission", prefer_giver=False):
+        if not isinstance(mission, dict):
+            return fallback
+        keys = ["title", "name", "giver_name", "giver_id", "giver", "provider", "id"]
+        if prefer_giver:
+            keys = ["giver_name", "giver_id", "giver", "title", "name", "provider", "id"]
+        for key in keys:
+            raw = str(mission.get(key, "") or "").strip()
+            if raw:
+                return raw
+        return fallback
+
+    def _mission_long_text(self, mission):
+        if not isinstance(mission, dict):
+            return ""
+        for key in ("objective_lines", "description_lines", "description", "accept_lines", "return_lines"):
+            raw = mission.get(key)
+            if isinstance(raw, list):
+                for item in raw:
+                    text = str(item or "").strip()
+                    if text:
+                        return text
+            elif isinstance(raw, str):
+                text = raw.strip()
+                if text:
+                    return text
+        mission_id = str(mission.get("id", "") or "").strip()
+        return mission_id
 
     def _mission_text_short(self, mission):
         text = game_missions.get_objective_summary(mission)
@@ -1975,8 +2031,18 @@ class Game:
             }
         }
         self.dialog_node = "node_1"
+        self.dialog_text_lines = [tr(self.lang, "dialog.dev_block")]
+        self.dialog_lines = list(self.dialog_text_lines)
+        self.dialog_options = [{"text": tr(self.lang, "dialog.ok"), "next": "end"}]
+        self.dialog_responses = list(self.dialog_options)
+        self.dialog_choices = list(self.dialog_options)
         self.dialog_selected = 0
+        self.dialog_scroll = 0
         self.active_npc = "dev"
+        self.dialog_speaker_name = "DEV"
+        self.dialog_npc_name = "DEV"
+        self.dialog_title = "DEV"
+        self.dialog_source = "script"
         self.ui_mode = "dialog"
 
     def start_transition(self, action):
@@ -2234,6 +2300,9 @@ class Game:
     def close_dialog(self):
         return game_npc_ops.close_dialog(self)
 
+    def close_mission_board(self):
+        return game_npc_ops.close_mission_board(self)
+
     def gift_to_npc(self):
         return game_npc_ops.gift_to_npc(self)
 
@@ -2475,3 +2544,146 @@ class Game:
 
     def get_equipable_items(self):
         return game_inventory_ops.get_equipable_items(self)
+def _mission_feedback_text(game, reason_key, mission_id=None):
+    reason_key = str(reason_key or "").strip()
+    mission_id = str(mission_id or "").strip()
+    if not reason_key:
+        return ""
+    lookup = {
+        "mission.missing_id": "Mission ID is missing.",
+        "mission.not_found": "Mission not found.",
+        "mission.provider_mismatch": "Provider mismatch.",
+        "mission.already_active": "Mission already active.",
+        "mission.already_completed": "Mission already completed.",
+        "mission.missing_prerequisite": "Missing prerequisite.",
+        "mission.locked": "Mission locked.",
+        "mission.accept_failed": "Unable to accept mission.",
+    }
+    if reason_key.startswith("mission.") or reason_key == "msg.mission_accepted":
+        text = tr(getattr(game, "lang", "en"), reason_key)
+        if text and text != reason_key:
+            return text.replace("{id}", mission_id)
+        return lookup.get(reason_key, reason_key.replace(".", " ").title())
+    return reason_key
+
+
+def _set_mission_feedback(game, reason_key, mission_id=None):
+    text = _mission_feedback_text(game, reason_key, mission_id=mission_id)
+    if not text:
+        return
+    payload = {
+        "text": text,
+        "reason": reason_key,
+        "mission_id": mission_id,
+        "created": time.time(),
+        "duration": 2.5,
+    }
+    game.mission_feedback = payload
+    if hasattr(game, "banner"):
+        game.banner = {
+            "text": text,
+            "created": time.time(),
+            "duration": 2.5,
+        }
+    if hasattr(game, "push_message"):
+        try:
+            game.push_message(text)
+        except Exception:
+            pass
+    elif hasattr(game, "add_message"):
+        try:
+            game.add_message(text)
+        except Exception:
+            pass
+
+
+try:
+    _ORIG_GAME_LOAD_GAME_DATA = Game.load_game_data
+    _ORIG_GAME_OPEN_MISSION_BOARD = Game.open_mission_board
+    _ORIG_GAME_ACCEPT_MISSION = Game.accept_mission
+    _ORIG_GAME_GET_MISSION_BY_GIVER = Game.get_mission_by_giver
+except Exception:
+    _ORIG_GAME_LOAD_GAME_DATA = None
+    _ORIG_GAME_OPEN_MISSION_BOARD = None
+    _ORIG_GAME_ACCEPT_MISSION = None
+    _ORIG_GAME_GET_MISSION_BY_GIVER = None
+
+
+def _game_load_game_data(self):
+    result = _ORIG_GAME_LOAD_GAME_DATA(self) if _ORIG_GAME_LOAD_GAME_DATA else None
+    try:
+        from . import missions as game_missions
+        game_missions.validate_missions(emit=True)
+    except Exception as exc:
+        print(f"[missions] validation skipped: {exc}")
+    return result
+
+
+def _game_open_mission_board(self, giver_id, source="interaction"):
+    self.mission_board_context = {
+        "giver_id": giver_id,
+        "source": source,
+        "opened_at": time.time(),
+    }
+    self.mission_feedback = None
+    if _ORIG_GAME_OPEN_MISSION_BOARD:
+        return _ORIG_GAME_OPEN_MISSION_BOARD(self, giver_id, source=source)
+    return None
+
+
+def _game_get_mission_by_giver(self, giver):
+    try:
+        from . import missions as game_missions
+    except Exception:
+        game_missions = None
+    book = getattr(self, "mission_book", None)
+    giver_key = giver
+    if game_missions is not None and hasattr(game_missions, "_resolve_giver_key"):
+        try:
+            giver_key = game_missions._resolve_giver_key(book, giver)
+        except Exception:
+            giver_key = giver
+    if _ORIG_GAME_GET_MISSION_BY_GIVER:
+        result = _ORIG_GAME_GET_MISSION_BY_GIVER(self, giver_key)
+        if result:
+            return result
+        if giver_key != giver:
+            try:
+                return _ORIG_GAME_GET_MISSION_BY_GIVER(self, giver)
+            except Exception:
+                return result
+        return result
+    return None
+
+
+def _game_accept_mission(self, mission_id):
+    try:
+        from . import missions as game_missions
+    except Exception as exc:
+        _set_mission_feedback(self, "mission.accept_failed", mission_id=mission_id)
+        print(f"[missions] accept failed: {exc}")
+        return False
+    giver_id = None
+    ctx = getattr(self, "mission_board_context", None)
+    if isinstance(ctx, dict):
+        giver_id = ctx.get("giver_id")
+    if not giver_id:
+        giver_id = getattr(self, "active_npc", None)
+    ok, reason, _entry = game_missions.can_accept_mission(self, mission_id, giver_id=giver_id)
+    if not ok:
+        _set_mission_feedback(self, reason, mission_id=mission_id)
+        return False
+    result = _ORIG_GAME_ACCEPT_MISSION(self, mission_id) if _ORIG_GAME_ACCEPT_MISSION else True
+    success = bool(result[0]) if isinstance(result, tuple) else bool(result)
+    if not success:
+        _set_mission_feedback(self, "mission.accept_failed", mission_id=mission_id)
+        return result
+    _set_mission_feedback(self, "msg.mission_accepted", mission_id=mission_id)
+    return result
+
+
+if "Game" in globals():
+    Game.load_game_data = _game_load_game_data
+    Game.open_mission_board = _game_open_mission_board
+    Game.get_mission_by_giver = _game_get_mission_by_giver
+    Game.accept_mission = _game_accept_mission

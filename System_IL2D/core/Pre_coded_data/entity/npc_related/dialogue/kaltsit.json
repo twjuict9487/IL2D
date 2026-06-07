@@ -1,16 +1,47 @@
-﻿{
+{
   "start": "node_1",
   "node_1": {
     "text": "博士，先整理好狀態。洞穴裡的任務目標很簡單：活下來，然後變強。",
     "responses": [
-      {"text": "了解", "next": "node_2"},
-      {"text": "離開", "next": "end"}
+      {
+        "text": "了解",
+        "next": "node_2"
+      },
+      {
+        "text": "離開",
+        "next": "end"
+      }
     ]
   },
   "node_2": {
     "text": "先從清理敵人與資源管理開始，有需要再來找我。",
     "responses": [
-      {"text": "好", "next": "end"}
+      {
+        "text": "好",
+        "next": "end"
+      }
     ]
-  }
+  },
+  "pointers": [
+    {
+      "text": "Gift",
+      "text_zh": "禮物",
+      "next": "gift"
+    },
+    {
+      "text": "Archive",
+      "text_zh": "檔案庫",
+      "next": "lore_archive"
+    },
+    {
+      "text": "Mission Board",
+      "text_zh": "任務看板",
+      "next": "mission_board"
+    },
+    {
+      "text": "Legacy Mission",
+      "text_zh": "舊式任務",
+      "next": "legacy_mission"
+    }
+  ]
 }

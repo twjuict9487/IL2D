@@ -12,5 +12,12 @@
         "next": "end"
       }
     ]
-  }
+  },
+  "pointers": [
+    {
+      "text": "Gift",
+      "text_zh": "禮物",
+      "next": "gift"
+    }
+  ]
 }

@@ -140,6 +140,10 @@ def load_save(game, slot):
     game.mission_flags = data.get("mission_flags", state_ref.get("flags", getattr(game, "mission_flags", {})))
     game.mission_board_giver = data.get("mission_board_giver", state_ref.get("board_giver", getattr(game, "mission_board_giver", None)))
     game.mission_complete_count = int(data.get("mission_complete_count", state_ref.get("completed_count", data.get("kaltsit_completed", game.mission_complete_count if hasattr(game, "mission_complete_count") else 0))))
+    if isinstance(getattr(game, "mission_state", None), dict):
+        game.mission_state["completed_count"] = int(game.mission_complete_count)
+        if game.mission_board_giver is not None:
+            game.mission_state["board_giver"] = game.mission_board_giver
     game.kaltsit_intro_done = data.get("kaltsit_intro_done", game.kaltsit_intro_done)
     game.ines_intro_done = data.get("ines_intro_done", game.ines_intro_done)
     game.kaltsit_completed = data.get("kaltsit_completed", game.kaltsit_completed)

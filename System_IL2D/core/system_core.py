@@ -4,7 +4,7 @@ from core.functions.support.utils import CONFIG_FILE, SAVE_DIR, load_json
 from core.functions.support.asset_resolver import prime_asset_index, resolve_image_candidates
 from core.functions.support.i18n import tr
 from core.functions.gameplay.game import Game
-from core.functions.rendering.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, draw_dev_menu, draw_continue_menu, TILE_SIZE, VIEWPORT, FPS
+from core.functions.rendering.draw import draw, draw_main_menu, draw_esc_menu, draw_player_ui, draw_settings_menu, draw_dev_menu, draw_continue_menu, TILE_SIZE, VIEWPORT, FPS, _dialog_layout, _resolve_dialog_node, _ui_visible_range
 from core.functions.world.map import npc_data
 from core.functions.ui.tutorial_flow import (
     build_tutorial_lines as _ui_build_tutorial_lines,
@@ -247,8 +247,25 @@ def _process_events(ctx):
             _handle_text_input(ctx, event.text)
         elif event.type == pygame.KEYUP:
             _update_held_keys(ctx, event, False)
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            _handle_mouse(ctx, event.pos)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                _handle_mouse(ctx, event.pos)
+            elif event.button in (4, 5):
+                _handle_mouse_scroll(ctx, event.button)
+
+
+def _handle_mouse_scroll(ctx, button):
+    game = ctx["game"]
+    if game.ui_mode == "dialog":
+        step = -3 if button == 4 else 3
+        game.dialog_scroll = max(0, int(getattr(game, "dialog_scroll", 0) or 0) + step)
+    elif game.ui_mode == "mission_board":
+        step = -3 if button == 4 else 3
+        if hasattr(game, "mission_detail_scroll"):
+            game.mission_detail_scroll = max(0, int(getattr(game, "mission_detail_scroll", 0) or 0) + step)
+    elif game.ui_mode == "interact_pick":
+        step = -1 if button == 4 else 1
+        game.interact_scroll = max(0, int(getattr(game, "interact_scroll", 0) or 0) + step)
 
 
 def _handle_key(ctx, event):
@@ -1521,13 +1538,22 @@ def _handle_mouse_esc_menu(ctx, pos):
             else:
                 giver = getattr(game, "mission_board_giver", None)
                 missions = game.get_mission_board_entries(giver) if giver and hasattr(game, "get_mission_board_entries") else []
-                for i, _ in enumerate(missions):
-                    rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
+                left_w = max(260, int(panel.width * 0.36))
+                left = pygame.Rect(panel.x + 14, panel.y + 52, left_w, panel.height - 66)
+                row_h = font.get_height() + 10
+                max_rows = max(4, (left.height - 18) // row_h)
+                board_scroll = int(getattr(game, "mission_board_scroll", 0) or 0)
+                start = max(0, min(board_scroll, max(0, len(missions) - max_rows)))
+                end = min(len(missions), start + max_rows)
+                yy = left.y + 10
+                for i in range(start, end):
+                    rect = pygame.Rect(left.x + 8, yy, left.width - 16, row_h - 2)
                     if rect.collidepoint(mx, my):
                         game.mission_board_selected = i
+                        if hasattr(game, "mission_detail_scroll"):
+                            game.mission_detail_scroll = 0
                         break
-                    y += font.get_height() + 8
-
+                    yy += row_h
 
 def _handle_mouse_game(ctx, pos):
     mx, my = pos
@@ -1552,27 +1578,59 @@ def _handle_mouse_game(ctx, pos):
                 return
         return
     if game.ui_mode == "dialog":
-        panel_h = screen.get_height() // 3
-        panel = pygame.Rect(0, screen.get_height() - panel_h - 12, screen.get_width(), panel_h)
-        img_size = panel_h - 24
-        font2 = pygame.font.SysFont('consolas', 14)
-        responses = game.dialog_data.get(game.dialog_node, {}).get("responses", [])
-        max_width = panel.width - img_size - 36
-        node = game.dialog_data.get(game.dialog_node, {})
-        text = node.get("text_zh", node.get("text", "")) if game.lang == "zh" else node.get("text", "")
-        lines = _wrap_text(font2, text, max_width)
-        text_y = panel.y + 32 + len(lines) * (font2.get_height() + 4)
-        resp_y = panel.bottom - 20 - len(responses) * (font2.get_height() + 6)
-        if resp_y < text_y + 8:
-            resp_y = text_y + 8
-        for i, resp in enumerate(responses):
-            _ = resp.get("text_zh", resp.get("text", "")) if game.lang == "zh" else resp.get("text", "")
-            rect = pygame.Rect(panel.x + img_size + 8, resp_y - 2, panel.width - img_size - 32, font2.get_height() + 4)
+        layout = _dialog_layout(screen)
+        panel = layout["panel"]
+        right = layout["right"]
+        body_font = _get_font(15)
+        opt_font = _get_font(14)
+        title = str(getattr(game, "dialog_speaker_name", "") or getattr(game, "dialog_npc_name", "") or getattr(game, "dialog_title", "") or getattr(game, "active_npc", "") or "")
+        text_source = getattr(game, "dialog_text_lines", None)
+        if text_source is None:
+            text_source = getattr(game, "dialog_lines", None)
+        if text_source is None:
+            node = _resolve_dialog_node(getattr(game, "dialog_data", None), getattr(game, "dialog_node", None))
+            if isinstance(node, dict):
+                text_source = node.get("text_zh", node.get("text", "")) if game.lang == "zh" else node.get("text", node.get("text_zh", ""))
+            else:
+                text_source = ""
+        if isinstance(text_source, str):
+            dialog_lines = []
+            for part in text_source.splitlines() or [text_source]:
+                dialog_lines.extend(_wrap_text(body_font, part, right.width - 20))
+        else:
+            dialog_lines = []
+            for item in list(text_source or []):
+                dialog_lines.extend(_wrap_text(body_font, str(item), right.width - 20))
+        option_source = getattr(game, "dialog_options", None)
+        if option_source is None:
+            option_source = getattr(game, "dialog_responses", None)
+        if option_source is None:
+            option_source = getattr(game, "dialog_choices", None)
+        node = _resolve_dialog_node(getattr(game, "dialog_data", None), getattr(game, "dialog_node", None))
+        if not option_source and isinstance(node, dict):
+            option_source = node.get("responses", [])
+        responses = list(option_source or [])
+        opt_row_h = opt_font.get_height() + 8
+        reserve_rows = min(max(len(responses), 1), 4) if responses else 0
+        text_bottom = right.bottom - (opt_row_h * reserve_rows + 18 if reserve_rows else 18)
+        max_text_lines = max(3, (text_bottom - right.y - 4) // (body_font.get_height() + 4))
+        text_scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+        start = max(0, min(text_scroll, max(0, len(dialog_lines) - max_text_lines)))
+        yy = right.y + 4 + (len(dialog_lines[start:start + max_text_lines]) * (body_font.get_height() + 4))
+        visible_rows = max(2, (right.bottom - max(yy + 10, right.y + 88) - 18) // opt_row_h) if responses else 0
+        selected = int(getattr(game, "dialog_selected", 0) or 0)
+        start_opt, end_opt = _ui_visible_range(len(responses), selected, visible_rows) if responses else (0, 0)
+        opt_scroll = int(getattr(game, "dialog_scroll", 0) or 0)
+        if responses:
+            start_opt = max(0, min(start_opt + opt_scroll, max(0, len(responses) - visible_rows)))
+            end_opt = min(len(responses), start_opt + visible_rows)
+        opt_top = max(yy + 10, right.y + 88)
+        for i in range(start_opt, end_opt):
+            rect = pygame.Rect(right.x + 4, opt_top + (i - start_opt) * opt_row_h, right.width - 8, opt_row_h - 2)
             if rect.collidepoint(mx, my):
                 game.dialog_selected = i
                 game.dialog_choose()
                 break
-            resp_y += font2.get_height() + 6
     elif game.ui_mode == "shop":
         panel = pygame.Rect(screen.get_width() // 10, screen.get_height() // 10, screen.get_width() * 8 // 10, screen.get_height() * 8 // 10)
         font2 = pygame.font.SysFont('consolas', 14)

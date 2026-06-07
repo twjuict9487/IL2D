@@ -5,72 +5,321 @@
     "text": "welcome to my clostore!",
     "text_zh": "歡迎來到我的 Clostore！",
     "responses": [
-      { "text": "Shop", "text_zh": "商店", "next": "shop" },
-      { "text": "Talk", "text_zh": "聊天", "next": "node_2" },
-      { "text": "Game", "text_zh": "遊戲", "next": "game" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Shop",
+        "text_zh": "商店",
+        "next": "shop"
+      },
+      {
+        "text": "Talk",
+        "text_zh": "聊天",
+        "next": "node_2"
+      },
+      {
+        "text": "Game",
+        "text_zh": "遊戲",
+        "next": "game"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "node_2": {
     "text": "Doctor! You smell so good!",
     "text_zh": "博士！你身上的味道好香！",
     "responses": [
-      { "text": "Talk", "text_zh": "繼續聊", "next": "node_3" },
-      { "text": "Back", "text_zh": "返回", "next": "node_1" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Talk",
+        "text_zh": "繼續聊",
+        "next": "node_3"
+      },
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "node_1"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "node_3": {
     "text": "You know what? I prefer the smell of engine oil over blood!",
     "text_zh": "你知道嗎？比起血味，我更喜歡機油味！",
     "responses": [
-      { "text": "Talk", "text_zh": "繼續聊", "next": "node_4" },
-      { "text": "Back", "text_zh": "返回", "next": "node_2" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Talk",
+        "text_zh": "繼續聊",
+        "next": "node_4"
+      },
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "node_2"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "node_4": {
     "text": "Once, there was an engine oil-scented blood bag available. I was a big fan, but they stopped making it because it didn't sell well.",
     "text_zh": "以前真的有機油味血袋，我超愛；但因為賣不好，後來停產了。",
     "responses": [
-      { "text": "Talk", "text_zh": "繼續聊", "next": "node_5" },
-      { "text": "Back", "text_zh": "返回", "next": "node_3" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Talk",
+        "text_zh": "繼續聊",
+        "next": "node_5"
+      },
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "node_3"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "node_5": {
     "text": "As a blood demon, I always feel out of place among my own kind. Maybe that's why I keep dreaming about that engine oil-scented blood bag...",
     "text_zh": "作為血魔，我在同族裡總是格格不入。也許這就是我一直夢到那款機油味血袋的原因吧...",
     "responses": [
-      { "text": "Back", "text_zh": "返回", "next": "node_4" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "node_4"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "game": {
     "text": "Pick a game category.",
     "text_zh": "選一個遊戲分類。",
     "responses": [
-      { "text": "Which game", "text_zh": "玩哪個", "next": "whichgame" },
-      { "text": "Back", "text_zh": "返回", "next": "node_1" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Which game",
+        "text_zh": "玩哪個",
+        "next": "whichgame"
+      },
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "node_1"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "whichgame": {
     "text": "Current lineup and future slots.",
     "text_zh": "目前可玩與未來預留項目。",
     "responses": [
-      { "text": "Blackjack", "text_zh": "21 點", "next": "blackjack" },
-      { "text": "Slot 2 (future)", "text_zh": "項目 2（預留）", "next": "game_future" },
-      { "text": "Slot 3 (future)", "text_zh": "項目 3（預留）", "next": "game_future" },
-      { "text": "Back", "text_zh": "返回", "next": "game" }
+      {
+        "text": "Blackjack",
+        "text_zh": "21 點",
+        "next": "blackjack"
+      },
+      {
+        "text": "Slot 2 (future)",
+        "text_zh": "項目 2（預留）",
+        "next": "game_future"
+      },
+      {
+        "text": "Slot 3 (future)",
+        "text_zh": "項目 3（預留）",
+        "next": "game_future"
+      },
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "game"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
   },
   "game_future": {
     "text": "This game slot is reserved for future development.",
     "text_zh": "這個遊戲欄位保留給後續開發。",
     "responses": [
-      { "text": "Back", "text_zh": "返回", "next": "whichgame" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Back",
+        "text_zh": "返回",
+        "next": "whichgame"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
+    ],
+    "pointers": [
+      {
+        "text": "Archive",
+        "text_zh": "檔案庫",
+        "next": "lore_archive"
+      },
+      {
+        "text": "Mission Board",
+        "text_zh": "任務看板",
+        "next": "mission_board"
+      },
+      {
+        "text": "Gift",
+        "text_zh": "禮物",
+        "next": "gift"
+      }
     ]
-  }
+  },
+  "pointers": [
+    {
+      "text": "Gift",
+      "text_zh": "禮物",
+      "next": "gift"
+    },
+    {
+      "text": "Archive",
+      "text_zh": "檔案庫",
+      "next": "lore_archive"
+    },
+    {
+      "text": "Mission Board",
+      "text_zh": "任務看板",
+      "next": "mission_board"
+    }
+  ]
 }

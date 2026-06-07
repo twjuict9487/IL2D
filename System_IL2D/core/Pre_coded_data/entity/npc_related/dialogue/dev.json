@@ -5,8 +5,23 @@
     "text": "Hello. Want to browse my dev shop?",
     "text_zh": "哈囉，要看看我的開發者商店嗎？",
     "responses": [
-      { "text": "Shop", "text_zh": "商店", "next": "dev_shop" },
-      { "text": "Leave", "text_zh": "離開", "next": "end" }
+      {
+        "text": "Shop",
+        "text_zh": "商店",
+        "next": "dev_shop"
+      },
+      {
+        "text": "Leave",
+        "text_zh": "離開",
+        "next": "end"
+      }
     ]
-  }
+  },
+  "pointers": [
+    {
+      "text": "Gift",
+      "text_zh": "禮物",
+      "next": "gift"
+    }
+  ]
 }
