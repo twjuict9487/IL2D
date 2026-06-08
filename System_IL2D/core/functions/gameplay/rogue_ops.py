@@ -15,14 +15,8 @@ def enter_rogue_layer(game, new_entry=False):
         game.environment_difficulty = 0.0
         game.rogue_difficulty = 0.0
     game.rogue_layer += 1
-    for mission in (game.get_active_missions() if hasattr(game, "get_active_missions") else []):
-        if mission.get("done") or mission.get("type") != "reach_layer":
-            continue
-        mission["progress"] = min(mission["target"], game.rogue_layer)
-        if mission["progress"] >= mission["target"]:
-            mission["done"] = True
-            game.push_message(tr(game.lang, "msg.mission_complete"))
-            game.on_kaltsit_mission_complete(mission)
+    if hasattr(game, "record_legacy_mission_layer"):
+        game.record_legacy_mission_layer(game.rogue_layer)
     cfg = getattr(game, "rogue_cfg", {})
     special_layer = max(1, int(cfg.get("special_layer", 15)))
     special_map = cfg.get("special_map", "rouge_options.json")

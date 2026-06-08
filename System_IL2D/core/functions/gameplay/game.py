@@ -326,11 +326,22 @@ class Game:
         self.mission_flags = state.get("flags", {})
         self.mission_complete_count = int(state.get("completed_count", 0))
         self.kaltsit_completed = self.mission_complete_count
-        self.active_missions = list(state.get("active", {}).values())
-        if not getattr(self, "tracked_mission", None):
-            self.tracked_mission = state.get("tracked")
-        elif state.get("tracked") != getattr(self, "tracked_mission", None):
-            state["tracked"] = getattr(self, "tracked_mission", None)
+        active = state.get("active", {})
+        if isinstance(active, dict):
+            active = {
+                mid: mission
+                for mid, mission in active.items()
+                if isinstance(mission, dict) and str(mission.get("status") or mission.get("state") or "").strip().lower() in {"active", "ready_to_return"}
+            }
+            state["active"] = active
+        self.active_missions = list(active.values()) if isinstance(active, dict) else []
+        tracked = str(getattr(self, "tracked_mission", None) or state.get("tracked") or "").strip() or None
+        if tracked and tracked not in state.get("active", {}):
+            tracked = None
+        if not tracked and state.get("active"):
+            tracked = next(iter(state["active"].keys()))
+        self.tracked_mission = tracked
+        state["tracked"] = tracked
         if not getattr(self, "mission_board_giver", None):
             self.mission_board_giver = state.get("board_giver")
 
@@ -451,6 +462,12 @@ class Game:
 
     def record_mission_completion_event(self):
         if game_missions.update_on_mission_complete(self):
+            self._normalize_mission_state()
+            return True
+        return False
+
+    def record_legacy_mission_layer(self, layer):
+        if game_missions.update_on_legacy_layer(self, layer=layer):
             self._normalize_mission_state()
             return True
         return False
@@ -2010,7 +2027,9 @@ class Game:
 
     def get_trackable_missions(self):
         missions = []
-        for mission in self.get_active_missions():
+        active = [m for m in self.get_active_missions() if isinstance(m, dict)]
+        active.sort(key=lambda m: (int(m.get("order", m.get("index", 0)) or 0), str(m.get("id", ""))))
+        for mission in active:
             giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
             giver_label = self._giver_display_name(giver, fallback=giver)
             name = self._mission_display_name(mission, fallback=giver_label, prefer_giver=True)
@@ -2139,12 +2158,13 @@ class Game:
     def add_active_mission(self, mission):
         if not isinstance(mission, dict):
             return
-        mid = str(mission.get("id", mission.get("giver", "kaltsit")))
+        giver_id = str(mission.get("giver_id", mission.get("giver", "kaltsit")) or "kaltsit")
+        mid = str(mission.get("id", f"legacy_{giver_id}"))
         payload = dict(mission)
         if not str(payload.get("id", "") or "").strip():
             payload["id"] = mid
         if not str(payload.get("giver_id", "") or "").strip():
-            payload["giver_id"] = str(payload.get("giver", mid) or mid)
+            payload["giver_id"] = giver_id
         if not str(payload.get("giver_name", "") or "").strip():
             payload["giver_name"] = str(payload.get("giver", payload.get("giver_id", mid)) or mid)
         runtime = game_missions.normalize_runtime(payload, getattr(self, "mission_book", None))

@@ -48,17 +48,32 @@
         {
           "type": "complete_missions",
           "text": "在任意地圖完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "消滅 50 名敵對目標。",
-          "target": 50
+          "target": 50,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "成功撤離 2 次。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -75,23 +90,7 @@
           "text": "補給箱"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_2"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 3,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "博士。",
-        "在批准你參與更高風險的行動之前，我需要重新確認你的作戰能力。",
-        "這只是例行驗證。"
-      ]
+      "unlocks": []
     },
     {
       "index": 2,
@@ -127,17 +126,32 @@
         {
           "type": "collect_data",
           "text": "從敵方據點回收 3 份情報檔案。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "在 2 次任務中未陷入失能狀態。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有回收資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -154,38 +168,7 @@
           "text": "資料碎片 ×1"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_3"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "凱爾希_2:collect_data"
-      },
-      "description": [
-        "部分行動紀錄中出現了與你相關的異常數據。",
-        "偏差並不明顯。",
-        "但值得調查。"
-      ]
+      "unlocks": []
     },
     {
       "index": 3,
@@ -220,17 +203,32 @@
         {
           "type": "complete_missions",
           "text": "完成 4 次任務。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_data",
           "text": "回收 3 份加密資料。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_data",
           "text": "將資料帶回基地。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -247,23 +245,7 @@
           "text": "檔案存取卡"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_4"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 4,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "一份機密檔案從資料庫中消失了。",
-        "奇怪的是，刪除紀錄比你加入羅德島的時間還要早。",
-        "這正是問題所在。"
-      ]
+      "unlocks": []
     },
     {
       "index": 4,
@@ -298,17 +280,32 @@
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_data",
           "text": "回收 3 份候選者紀錄。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "消滅 100 名敵對目標。",
-          "target": 100
+          "target": 100,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -325,22 +322,7 @@
           "text": "候選者檔案碎片"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_5"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 5,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "回收的紀錄中提及一名身份不明的「候選者 #042」。",
-        "理論上，這份檔案不應存在。"
-      ]
+      "unlocks": []
     },
     {
       "index": 5,
@@ -375,17 +357,32 @@
         {
           "type": "collect_data",
           "text": "回收 5 份候選者紀錄。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "完成 3 次高風險任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "成功撤離。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -402,38 +399,7 @@
           "text": "加密資料封包"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_6"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "凱爾希_5:collect_data"
-      },
-      "description": [
-        "檔案網路中出現了另一個編號。",
-        "候選者 #137。",
-        "與 #042 不同，這份紀錄顯然被刻意隱藏起來。"
-      ]
+      "unlocks": []
     },
     {
       "index": 6,
@@ -470,12 +436,22 @@
         {
           "type": "upload_data",
           "text": "上傳所有候選者資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "upload_data",
@@ -492,26 +468,7 @@
           "text": "系統診斷報告"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_7"
-        }
-      ],
-      "type": "upload_data",
-      "params": {
-        "terminal_id": "mission_house_terminal",
-        "required_flag": null,
-        "duration_range": [
-          1,
-          20
-        ]
-      },
-      "description": [
-        "系統開始拒絕部分回收資料。",
-        "它判定這些紀錄真實存在。",
-        "同時又聲稱它們從未存在過。"
-      ]
+      "unlocks": []
     },
     {
       "index": 7,
@@ -548,17 +505,32 @@
         {
           "type": "complete_missions",
           "text": "完成 6 次任務。",
-          "target": 6
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_item",
           "text": "回收同步紀錄 ×5。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -575,23 +547,7 @@
           "text": "機密存取權杖"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "凱爾希_8"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 6,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "多個系統開始引用一份無法定位的人員檔案。",
-        "同步錯誤正在持續擴散。",
-        "有人在試圖讓某段歷史重新浮現。"
-      ]
+      "unlocks": []
     },
     {
       "index": 8,
@@ -633,17 +589,32 @@
         {
           "type": "collect_data",
           "text": "回收最終人員紀錄。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 2 次任務。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "talk_to_npc",
           "text": "向凱爾希報告。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -678,34 +649,7 @@
           "text": "伊內絲"
         }
       ],
-      "unlocks": [],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "凱爾希_8:collect_data"
-      },
-      "description": [
-        "最後一份封存檔案已完成修復。",
-        "那名失蹤候選者的身份終於得以確認。",
-        "博士。",
-        "那份紀錄屬於你。"
-      ]
+      "unlocks": []
     },
     {
       "index": 1,
@@ -741,12 +685,22 @@
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "成功撤離。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -763,23 +717,7 @@
           "text": "補給箱"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_2"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 3,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "最近有人在打聽你的消息。",
-        "別緊張。",
-        "我只是比他們更早知道而已。"
-      ]
+      "unlocks": []
     },
     {
       "index": 2,
@@ -813,17 +751,32 @@
         {
           "type": "kill_enemy",
           "text": "擊敗 75 名敵人。",
-          "target": 75
+          "target": 75,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_item",
           "text": "回收 3 份走私貨物。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 2 次任務。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "kill_enemy",
@@ -840,24 +793,7 @@
           "text": "稀有物資"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_3"
-        }
-      ],
-      "type": "kill_enemy",
-      "params": {
-        "mob_id": "*",
-        "amount": 75,
-        "map": null,
-        "target_buff": null,
-        "spawn_rule": null
-      },
-      "description": [
-        "有些人欠了我東西。",
-        "有些人則欠了命。"
-      ]
+      "unlocks": []
     },
     {
       "index": 3,
@@ -891,17 +827,32 @@
         {
           "type": "collect_item",
           "text": "回收 4 份監視紀錄。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "不觸發警報完成 1 次任務。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_item",
@@ -918,24 +869,7 @@
           "text": "情報包"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_4"
-        }
-      ],
-      "type": "collect_item",
-      "params": {
-        "item_id": "*",
-        "amount": 4,
-        "source_filter": null,
-        "rare_drop_rules": null
-      },
-      "description": [
-        "有人在觀察羅德島。",
-        "很小心。",
-        "但還不夠小心。"
-      ]
+      "unlocks": []
     },
     {
       "index": 4,
@@ -970,17 +904,32 @@
         {
           "type": "collect_item",
           "text": "回收遺失包裹。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 4 次任務。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "消滅包裹持有者。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_item",
@@ -997,23 +946,7 @@
           "text": "加密信件"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_5"
-        }
-      ],
-      "type": "collect_item",
-      "params": {
-        "item_id": "*",
-        "amount": 1,
-        "source_filter": null,
-        "rare_drop_rules": null
-      },
-      "description": [
-        "一名信使失聯了。",
-        "他攜帶的東西比他本人重要得多。"
-      ]
+      "unlocks": []
     },
     {
       "index": 5,
@@ -1048,17 +981,32 @@
         {
           "type": "collect_item",
           "text": "回收 5 份通訊紀錄。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_item",
@@ -1075,24 +1023,7 @@
           "text": "資料碎片 ×1"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_6"
-        }
-      ],
-      "type": "collect_item",
-      "params": {
-        "item_id": "*",
-        "amount": 5,
-        "source_filter": null,
-        "rare_drop_rules": null
-      },
-      "description": [
-        "最近出現了幾組奇怪的通訊。",
-        "它們來自不同地方。",
-        "卻在談論同一件事。"
-      ]
+      "unlocks": []
     },
     {
       "index": 6,
@@ -1126,17 +1057,32 @@
           "type": "kill_elite_enemy",
           "text": "擊敗精英敵人 10 名。",
           "target": 10,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return",
           "elite_only": true
         },
         {
           "type": "collect_item",
           "text": "回收 3 份舊紀錄。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "完成 3 次高風險任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "kill_elite_enemy",
@@ -1153,25 +1099,7 @@
           "text": "舊式識別牌"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_7"
-        }
-      ],
-      "type": "kill_elite_enemy",
-      "params": {
-        "mob_id": "*",
-        "amount": 10,
-        "map": null,
-        "target_buff": null,
-        "spawn_rule": null,
-        "elite_only": true
-      },
-      "description": [
-        "我認識一些本該消失的人。",
-        "最近，他們的名字又出現了。"
-      ]
+      "unlocks": []
     },
     {
       "index": 7,
@@ -1206,17 +1134,32 @@
         {
           "type": "collect_data",
           "text": "回收帳冊頁面 ×6。",
-          "target": 6
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "消滅帳冊持有者。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1233,38 +1176,7 @@
           "text": "資料碎片 ×1"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "伊內絲_8"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "伊內絲_7:collect_data"
-      },
-      "description": [
-        "我找到一本帳冊。",
-        "裡面記錄了很多名字。",
-        "包括一些不該出現的名字。"
-      ]
+      "unlocks": []
     },
     {
       "index": 8,
@@ -1303,17 +1215,32 @@
         {
           "type": "collect_data",
           "text": "回收最終情報。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "talk_to_npc",
           "text": "向伊內絲提交資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1348,33 +1275,7 @@
           "text": "可露希爾"
         }
       ],
-      "unlocks": [],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "伊內絲_8:collect_data"
-      },
-      "description": [
-        "我們找到答案了。",
-        "至少找到了一部分。",
-        "剩下的部分，有人仍然不想讓我們看見。"
-      ]
+      "unlocks": []
     },
     {
       "index": 1,
@@ -1410,17 +1311,32 @@
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "使用任意裝備擊敗 50 名敵人。",
-          "target": 50
+          "target": 50,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "成功撤離 2 次。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -1437,23 +1353,7 @@
           "text": "工程補給箱"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_2"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 3,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "博士！",
-        "終於找到你了！",
-        "我這裡有一大堆設備需要測試，而你剛好是最方便的人選。"
-      ]
+      "unlocks": []
     },
     {
       "index": 2,
@@ -1488,17 +1388,32 @@
         {
           "type": "collect_item",
           "text": "回收 3 個能源模組。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "item_gain",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 2 次任務。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳能源紀錄。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_item",
@@ -1515,23 +1430,7 @@
           "text": "能源核心"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_3"
-        }
-      ],
-      "type": "collect_item",
-      "params": {
-        "item_id": "*",
-        "amount": 3,
-        "source_filter": null,
-        "rare_drop_rules": null
-      },
-      "description": [
-        "最近基地的能源消耗高得離譜。",
-        "問題是我根本找不到原因。"
-      ]
+      "unlocks": []
     },
     {
       "index": 3,
@@ -1567,12 +1466,22 @@
         {
           "type": "collect_data",
           "text": "回收 4 份系統紀錄。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1589,38 +1498,7 @@
           "text": "系統存取卡"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_4"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "可露希爾_3:collect_data"
-      },
-      "description": [
-        "我在系統裡發現了一台不存在的終端。",
-        "它沒有編號。",
-        "也沒有安裝紀錄。"
-      ]
+      "unlocks": []
     },
     {
       "index": 4,
@@ -1654,17 +1532,32 @@
         {
           "type": "collect_data",
           "text": "回收 5 份程序碎片。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 4 次任務。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "擊敗 100 名敵人。",
-          "target": 100
+          "target": 100,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1681,37 +1574,7 @@
           "text": "程序核心"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_5"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "可露希爾_4:collect_data"
-      },
-      "description": [
-        "那台終端正在執行某種程序。",
-        "問題是沒人知道它的用途。"
-      ]
+      "unlocks": []
     },
     {
       "index": 5,
@@ -1745,17 +1608,32 @@
         {
           "type": "collect_data",
           "text": "回收 5 份權限紀錄。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1772,37 +1650,7 @@
           "text": "加密權杖"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_6"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "可露希爾_5:collect_data"
-      },
-      "description": [
-        "系統開始出現權限衝突。",
-        "某個未知使用者擁有比我更高的存取權限。"
-      ]
+      "unlocks": []
     },
     {
       "index": 6,
@@ -1837,12 +1685,22 @@
         {
           "type": "collect_data",
           "text": "回收 3 份封存紀錄。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "完成 3 次高風險任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1859,37 +1717,7 @@
           "text": "封存金鑰"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_7"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "可露希爾_6:collect_data"
-      },
-      "description": [
-        "我找到了一套被刪除的封存協議。",
-        "它們正在保護某些資料。"
-      ]
+      "unlocks": []
     },
     {
       "index": 7,
@@ -1924,17 +1752,32 @@
         {
           "type": "collect_data",
           "text": "回收管理員紀錄 ×6。",
-          "target": 6
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -1951,38 +1794,7 @@
           "text": "管理員權杖"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "可露希爾_8"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "可露希爾_7:collect_data"
-      },
-      "description": [
-        "我終於追蹤到那個未知帳號。",
-        "它的名稱只有一個詞。",
-        "Administrator。"
-      ]
+      "unlocks": []
     },
     {
       "index": 8,
@@ -2020,17 +1832,32 @@
         {
           "type": "collect_data",
           "text": "回收最終系統紀錄。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 2 次任務。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "talk_to_npc",
           "text": "向可露希爾 報告。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2059,33 +1886,7 @@
           "text": "Priestess"
         }
       ],
-      "unlocks": [],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "可露希爾_8:collect_data"
-      },
-      "description": [
-        "最後一道封鎖已經解除。",
-        "那個帳號留下的資料終於能夠讀取。",
-        "而裡面記錄的內容遠超我的預期。"
-      ]
+      "unlocks": []
     },
     {
       "index": 1,
@@ -2119,17 +1920,32 @@
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_data",
           "text": "回收 3 份異常訊號。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "成功撤離。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -2146,22 +1962,7 @@
           "text": "記憶碎片"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_2"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 3,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "…",
-        "你能聽見嗎？"
-      ]
+      "unlocks": []
     },
     {
       "index": 2,
@@ -2194,17 +1995,32 @@
         {
           "type": "collect_data",
           "text": "回收 4 份回聲紀錄。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 2 次任務。",
-          "target": 2
+          "target": 2,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2221,37 +2037,7 @@
           "text": "記憶碎片"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_3"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "priestess_2:collect_data"
-      },
-      "description": [
-        "有些聲音來自過去。",
-        "有些則來自更遙遠的地方。"
-      ]
+      "unlocks": []
     },
     {
       "index": 3,
@@ -2284,17 +2070,32 @@
         {
           "type": "complete_missions",
           "text": "完成 4 次任務。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "collect_data",
           "text": "回收 3 份人物紀錄。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "kill_enemy",
           "text": "擊敗 75 名敵人。",
-          "target": 75
+          "target": 75,
+          "progress": 0,
+          "done": false,
+          "source": "enemy_death",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "complete_missions",
@@ -2311,23 +2112,7 @@
           "text": "古老資料片段"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_4"
-        }
-      ],
-      "type": "complete_missions",
-      "params": {
-        "amount": 4,
-        "legacy_filter": null,
-        "high_risk": false
-      },
-      "description": [
-        "記錄消失了。",
-        "名字消失了。",
-        "但存在本身從未消失。"
-      ]
+      "unlocks": []
     },
     {
       "index": 4,
@@ -2361,17 +2146,32 @@
         {
           "type": "collect_data",
           "text": "回收 5 份資料碎片。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 4 次任務。",
-          "target": 4
+          "target": 4,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "成功撤離。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2388,37 +2188,7 @@
           "text": "記憶核心"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_5"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "priestess_4:collect_data"
-      },
-      "description": [
-        "你正在接近真相。",
-        "而真相也正在接近你。"
-      ]
+      "unlocks": []
     },
     {
       "index": 5,
@@ -2450,17 +2220,32 @@
         {
           "type": "collect_data",
           "text": "回收 5 份古代紀錄。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2477,37 +2262,7 @@
           "text": "古代資料庫存取權"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_6"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "priestess_5:collect_data"
-      },
-      "description": [
-        "在歷史開始之前。",
-        "還有另一段歷史。"
-      ]
+      "unlocks": []
     },
     {
       "index": 6,
@@ -2541,12 +2296,22 @@
         {
           "type": "collect_data",
           "text": "回收觀測紀錄 ×5。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "high_risk_mission",
           "text": "完成 3 次高風險任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2563,37 +2328,7 @@
           "text": "觀測資料"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_7"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "priestess_6:collect_data"
-      },
-      "description": [
-        "有人觀察著世界。",
-        "從很久以前開始。"
-      ]
+      "unlocks": []
     },
     {
       "index": 7,
@@ -2625,17 +2360,32 @@
         {
           "type": "collect_data",
           "text": "回收最終紀錄頁面 ×6。",
-          "target": 6
+          "target": 6,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 5 次任務。",
-          "target": 5
+          "target": 5,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "upload_data",
           "text": "上傳所有資料。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2652,37 +2402,7 @@
           "text": "完整紀錄檔"
         }
       ],
-      "unlocks": [
-        {
-          "type": "mission",
-          "id": "priestess_8"
-        }
-      ],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "priestess_7:collect_data"
-      },
-      "description": [
-        "最後的紀錄已經找到。",
-        "但它從未被公開。"
-      ]
+      "unlocks": []
     },
     {
       "index": 8,
@@ -2720,17 +2440,32 @@
         {
           "type": "collect_data",
           "text": "回收最終記憶。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "interaction",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "complete_missions",
           "text": "完成 3 次任務。",
-          "target": 3
+          "target": 3,
+          "progress": 0,
+          "done": false,
+          "source": "mission_complete",
+          "mode": "counter",
+          "status": "ready_to_return"
         },
         {
           "type": "talk_to_npc",
           "text": "與 Priestess 對話。",
-          "target": 1
+          "target": 1,
+          "progress": 0,
+          "done": false,
+          "source": "dialog",
+          "mode": "flag",
+          "status": "ready_to_return"
         }
       ],
       "mission_type": "collect_data",
@@ -2759,33 +2494,7 @@
           "text": "任務線完成"
         }
       ],
-      "unlocks": [],
-      "type": "collect_data",
-      "params": {
-        "map_pool": [
-          "map_1.json",
-          "map_2.json",
-          "map_3.json"
-        ],
-        "target_tiles": [
-          "map1_data_1",
-          "map1_data_2",
-          "map1_data_3",
-          "map2_data_1",
-          "map2_data_2",
-          "map2_data_3",
-          "map3_data_1",
-          "map3_data_2",
-          "map3_data_3"
-        ],
-        "outline_color": "yellow",
-        "interaction_id": "priestess_8:collect_data"
-      },
-      "description": [
-        "我們已經分開太久了。",
-        "久到連時間本身都失去了意義。",
-        "但你終究還是來到了這裡。"
-      ]
+      "unlocks": []
     }
   ]
 }

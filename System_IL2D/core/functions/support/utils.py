@@ -43,6 +43,14 @@ def _resolve_json_prefer(name_stem):
     return _first_existing(cands) or _first_or_empty(cands)
 
 
+def _resolve_json_prefer_many(*name_stems):
+    cands = []
+    for stem in name_stems:
+        cands.extend(resolve_candidates("json", f"{stem}.json"))
+        cands.extend(resolve_candidates("json", stem))
+    return _first_existing(cands) or _first_or_empty(cands)
+
+
 def _resolve_dir_by_key(dir_key):
     idx = get_index() or {}
     folder_map = idx.get("folders", {})
@@ -67,7 +75,9 @@ SPELLS_FILE = _resolve_json_prefer("spells")
 MAGICS_FILE = _resolve_json_prefer("magics")
 OBJECTIVES_FILE = _resolve_json_prefer("objectives")
 MISSIONS_FILE = _resolve_json_prefer("missions")
-MISSIONS_TYPE_FILE = _resolve_json_prefer("missions_type")
+MISSION_TYPES_FILE = _resolve_json_prefer_many("mission_types", "MTS")
+MISSION_RUNTIME_REGISTRY_FILE = _resolve_json_prefer_many("mission_runtime_registry", "MRER")
+MISSIONS_TYPE_FILE = MISSION_RUNTIME_REGISTRY_FILE
 LORE_ARCHIVE_FILE = _resolve_json_prefer("lore_archive")
 ROGUE_FILE = _resolve_json_prefer("rogue")
 CONFIG_FILE = _resolve_json_prefer("config")

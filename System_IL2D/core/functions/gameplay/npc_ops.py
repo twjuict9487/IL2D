@@ -5,6 +5,7 @@ import time
 from ..support.i18n import tr
 from ..support.utils import DIALOG_DIR, load_json, resolve_dialog_file
 from ..world.map import blocktypes, mobs_data, npc_data
+from . import missions as game_missions
 
 MISSION_GIVERS = {"kaltsit", "ines", "closure", "priestess"}
 GIFT_ITEM_NAME = "Asus Tuf Gaming A15"
@@ -451,6 +452,18 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit", source="script"):
         }, "node_1", source=source)
         return
     mission = game.get_mission_by_giver(npc_id) if hasattr(game, "get_mission_by_giver") else None
+    if mission and game_missions.is_ready_to_turn_in(mission):
+        mission_id = str(mission.get("id", "") or "").strip()
+        if mission_id and hasattr(game, "turn_in_mission"):
+            game.turn_in_mission(mission_id)
+        _set_dialog_state(game, npc_id, {
+            "start": "node_1",
+            "node_1": {
+                "text": tr(game.lang, "msg.mission_complete"),
+                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+            },
+        }, "node_1", source=source)
+        return
     if not mission or mission.get("done"):
         mission = _generate_kaltsit_mission(game, giver=npc_id)
         if hasattr(game, "add_active_mission"):
@@ -476,20 +489,33 @@ def open_legacy_mission_dialog(game, npc_id="kaltsit", source="script"):
 def _generate_kaltsit_mission(game, giver="kaltsit"):
     types = ["kill_specific", "kill_any", "reach_layer"]
     mtype = random.choice(types)
+    mission_id = f"legacy_{giver}"
     if mtype == "kill_specific":
         mob_ids = [k for k, v in mobs_data.items() if isinstance(v, dict) and v.get("ai_type") == "hostile"]
         mob_id = random.choice(mob_ids) if mob_ids else "slime"
         target = random.randint(1, 10)
-        return {"type": mtype, "mob": mob_id, "target": target, "progress": 0, "done": False, "giver": giver}
+        return {"id": mission_id, "type": mtype, "mob": mob_id, "target": target, "progress": 0, "done": False, "giver": giver, "giver_id": giver, "title": "Legacy Mission"}
     if mtype == "kill_any":
         target = random.randint(1, 10)
-        return {"type": mtype, "target": target, "progress": 0, "done": False, "giver": giver}
+        return {"id": mission_id, "type": mtype, "target": target, "progress": 0, "done": False, "giver": giver, "giver_id": giver, "title": "Legacy Mission"}
     target = random.randint(1, 10)
     target = min(target, 15)
-    return {"type": "reach_layer", "target": target, "progress": 0, "done": False, "giver": giver}
+    return {"id": mission_id, "type": "reach_layer", "target": target, "progress": 0, "done": False, "giver": giver, "giver_id": giver, "title": "Legacy Mission"}
 
 
 def _mission_text(game, mission):
+    objectives = mission.get("objectives", []) if isinstance(mission, dict) else []
+    if objectives:
+        lines = []
+        for obj in objectives:
+            if not isinstance(obj, dict):
+                continue
+            text = str(obj.get("text", "") or "").strip()
+            progress = int(obj.get("progress", 0) or 0)
+            target = int(obj.get("target", 1) or 1)
+            lines.append(f"{text} ({progress}/{target})" if text else f"({progress}/{target})")
+        if lines:
+            return "\n".join(lines)
     mtype = mission.get("type")
     if mtype == "kill_specific":
         return tr(

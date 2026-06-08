@@ -1,0 +1,61 @@
+{
+  "full_name": "Mission Runtime Event Registry",
+  "version": 1,
+  "source_file": "MRER",
+  "events": {
+    "enemy_death": {
+      "progress_mode": "counter",
+      "match_fields": [
+        "mob_id",
+        "map",
+        "target_buff",
+        "elite_only"
+      ],
+      "complete_when": "progress >= target",
+      "next_state": "ready_to_return"
+    },
+    "item_gain": {
+      "progress_mode": "counter",
+      "match_fields": [
+        "item_id",
+        "source_filter"
+      ],
+      "complete_when": "progress >= target",
+      "next_state": "ready_to_return"
+    },
+    "interaction": {
+      "progress_mode": "counter",
+      "match_fields": [
+        "target_id",
+        "target_kind"
+      ],
+      "complete_when": "progress >= target",
+      "next_state": "ready_to_return"
+    },
+    "dialog": {
+      "progress_mode": "flag",
+      "match_fields": [
+        "npc_id",
+        "mission_dialogue_node"
+      ],
+      "complete_when": "flag is true",
+      "next_state": "ready_to_return"
+    },
+    "mission_complete": {
+      "progress_mode": "counter",
+      "match_fields": [
+        "mission_type",
+        "high_risk"
+      ],
+      "complete_when": "progress >= target",
+      "next_state": "ready_to_return"
+    }
+  },
+  "aliases": {
+    "mission_complete": "mission_complete",
+    "mission_done": "mission_complete",
+    "npc_talk": "dialog",
+    "item_pickup": "item_gain",
+    "mob_death": "enemy_death"
+  }
+}

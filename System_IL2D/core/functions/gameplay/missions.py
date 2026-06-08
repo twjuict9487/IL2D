@@ -3,7 +3,12 @@ import os
 import re
 from copy import deepcopy
 
-from ..support.utils import MISSIONS_FILE, MISSIONS_TYPE_FILE, load_json
+from ..support.utils import (
+    MISSIONS_FILE,
+    MISSION_TYPES_FILE,
+    MISSION_RUNTIME_REGISTRY_FILE,
+    load_json,
+)
 
 
 _KILL_HINTS = ("?捏", "瘨?", "??", "畾脫?")
@@ -64,6 +69,13 @@ _OBJECTIVE_TYPE_ALIASES = {
     "dialog": "talk_to_npc",
     "turn_in": "talk_to_npc",
     "return": "talk_to_npc",
+}
+
+_LEGACY_RUNTIME_TYPES = {
+    "kill_specific",
+    "kill_any",
+    "reach_layer",
+    "legacy_reach_layer",
 }
 
 def _resolve_giver_key(book, giver_id):
@@ -215,14 +227,15 @@ def validate_missions(path=None, emit=True):
         if emit:
             print(f"[missions] {report['errors'][-1]}")
         return report
+    raw_entries = _mission_entries(data)
     try:
         book = load_mission_book(path)
-        entries = _mission_entries(book)
+        entries = raw_entries
     except Exception:
-        entries = _mission_entries(data)
-        book = _load_mission_type_book()
+        entries = raw_entries
+        book = {"mission_types": _load_mission_type_book(), "mission_runtime_registry": _load_mission_runtime_registry()}
     report["count"] = len(entries)
-    type_defs = _type_registry(book)
+    type_defs = _type_registry(book.get("mission_types", book) if isinstance(book, dict) else book)
     missing_types = sorted(t for t in _CANONICAL_OBJECTIVE_TYPES if t not in type_defs)
     if missing_types:
         report["warnings"].append(f"missing mission types: {', '.join(missing_types)}")
@@ -288,6 +301,38 @@ def validate_missions(path=None, emit=True):
                     break
             if not has_field:
                 report["warnings"].append(f"{mid}: missing field {required_key}")
+        mission_type_id = _clean_text(entry.get("type") or entry.get("mission_type"))
+        mission_type_id = _resolve_objective_type(mission_type_id, book)
+        if not mission_type_id:
+            report["warnings"].append(f"{mid}: missing runnable type")
+        elif mission_type_id in _DISABLED_OBJECTIVE_TYPES:
+            report["errors"].append(f"{mid}: banned runnable type {mission_type_id}")
+        elif mission_type_id not in _CANONICAL_OBJECTIVE_TYPES:
+            report["warnings"].append(f"{mid}: unsupported runnable type {mission_type_id}")
+        params = entry.get("params", {})
+        if params in (None, "", [], {}):
+            if mission_type_id in _CANONICAL_OBJECTIVE_TYPES:
+                report["warnings"].append(f"{mid}: missing params for type {mission_type_id}")
+        elif params not in (None, "", [], {}):
+            if not isinstance(params, dict):
+                report["warnings"].append(f"{mid}: unsupported params shape {type(params).__name__}")
+            else:
+                schema = {}
+                if mission_type_id:
+                    type_book = book.get("mission_types", book) if isinstance(book, dict) else book
+                    schema = _type_registry(type_book).get(mission_type_id, {}) if isinstance(type_book, dict) else {}
+                schema_params = schema.get("params", {}) if isinstance(schema, dict) else {}
+                if schema_params and isinstance(schema_params, dict):
+                    for pname, pspec in schema_params.items():
+                        if isinstance(pspec, dict) and pspec.get("required") and pname not in params:
+                            report["warnings"].append(f"{mid}: params missing required field {pname}")
+                    for pname, pval in params.items():
+                        pspec = schema_params.get(pname)
+                        if pspec is None:
+                            report["warnings"].append(f"{mid}: params unknown field {pname}")
+                            continue
+                        if not _schema_allows_value(pval, pspec):
+                            report["warnings"].append(f"{mid}: params field {pname} has unsupported type")
         objectives = entry.get("objectives", entry.get("objective_lines"))
         if isinstance(objectives, list):
             if not objectives:
@@ -323,6 +368,9 @@ def validate_missions(path=None, emit=True):
                     report["warnings"].append(f"{mid}: disabled objective type {obj_type}")
                 elif obj_type not in allowed_objective_types:
                     report["warnings"].append(f"{mid}: unsupported objective type {obj_type}")
+                for runtime_key in ("progress", "done", "source", "mode", "status"):
+                    if runtime_key in obj:
+                        report["warnings"].append(f"{mid}: objective contains runtime field {runtime_key}")
                 if obj_type == "key_interact":
                     if not _clean_text(obj.get("required_key")):
                         report["warnings"].append(f"{mid}: key_interact objective missing required_key")
@@ -587,11 +635,11 @@ def _resolve_giver_key(book, giver_id):
 
 
 def _load_mission_type_book(path=None):
-    path = path or MISSIONS_TYPE_FILE
+    path = path or MISSION_TYPES_FILE
     if not path or not os.path.isfile(path):
         return {
             "version": 1,
-            "source_file": "",
+            "source_file": "MTS",
             "states": ["briefing", "active", "ready_to_return", "completed"],
             "objective_modes": {"counter": "counter", "flag": "flag"},
             "aliases": {},
@@ -603,7 +651,7 @@ def _load_mission_type_book(path=None):
         raw = {}
     if not isinstance(raw, dict):
         raw = {}
-    meta_keys = {"version", "source_file", "states", "objective_modes", "aliases", "types", "disabled_types"}
+    meta_keys = {"version", "source_file", "states", "objective_modes", "aliases", "types", "disabled_types", "mission_types"}
     normalized_types = {}
 
     def _store_type(key, value):
@@ -629,13 +677,63 @@ def _load_mission_type_book(path=None):
     aliases = raw.get("aliases", {})
     if not isinstance(aliases, dict):
         aliases = {}
+    disabled_types = raw.get("disabled_types", {})
+    if isinstance(disabled_types, dict):
+        disabled_types = {
+            _clean_text(k): _clean_text(v) or "disabled"
+            for k, v in disabled_types.items()
+            if _clean_text(k)
+        }
+    elif isinstance(disabled_types, list):
+        disabled_types = [_clean_text(v) for v in disabled_types if _clean_text(v)]
+    else:
+        disabled_types = {}
     return {
         "version": int(raw.get("version", 1) or 1),
-        "source_file": _clean_text(raw.get("source_file", "missions_type")) or "missions_type",
+        "source_file": _clean_text(raw.get("source_file", "MTS")) or "MTS",
         "states": list(raw.get("states", ["briefing", "active", "ready_to_return", "completed"]) or ["briefing", "active", "ready_to_return", "completed"]),
         "objective_modes": dict(raw.get("objective_modes", {"counter": "counter", "flag": "flag"}) or {"counter": "counter", "flag": "flag"}),
         "aliases": { _clean_text(k): _clean_text(v) for k, v in aliases.items() if _clean_text(k) and _clean_text(v) },
         "types": normalized_types,
+        "disabled_types": disabled_types,
+    }
+
+
+def _load_mission_runtime_registry(path=None):
+    path = path or MISSION_RUNTIME_REGISTRY_FILE
+    if not path or not os.path.isfile(path):
+        return {
+            "version": 1,
+            "full_name": "Mission Runtime Event Registry",
+            "source_file": "MRER",
+            "events": {},
+            "aliases": {},
+        }
+    try:
+        raw = load_json(path)
+    except Exception:
+        raw = {}
+    if not isinstance(raw, dict):
+        raw = {}
+    events = {}
+    for key, value in (raw.get("events", {}) or {}).items():
+        if isinstance(value, dict):
+            events[_clean_text(key)] = dict(value)
+    for key, value in raw.items():
+        if key in {"version", "full_name", "source_file", "events", "aliases", "disabled_events"}:
+            continue
+        if isinstance(value, dict):
+            events[_clean_text(key)] = dict(value)
+    aliases = raw.get("aliases", {})
+    if not isinstance(aliases, dict):
+        aliases = {}
+    return {
+        "version": int(raw.get("version", 1) or 1),
+        "full_name": _clean_text(raw.get("full_name", "Mission Runtime Event Registry")) or "Mission Runtime Event Registry",
+        "source_file": _clean_text(raw.get("source_file", "MRER")) or "MRER",
+        "events": events,
+        "aliases": { _clean_text(k): _clean_text(v) for k, v in aliases.items() if _clean_text(k) and _clean_text(v) },
+        "disabled_events": [str(v) for v in raw.get("disabled_events", []) if str(v).strip()] if isinstance(raw.get("disabled_events", []), list) else [],
     }
 
 
@@ -675,12 +773,213 @@ def _normalize_type_objective(obj):
     return out
 
 
+def _schema_allows_value(value, spec):
+    if not isinstance(spec, dict):
+        return True
+    raw_types = spec.get("type")
+    if raw_types is None:
+        return True
+    if not isinstance(raw_types, (list, tuple, set)):
+        raw_types = [raw_types]
+    allowed = {_clean_text(t).lower() for t in raw_types if _clean_text(t)}
+    if not allowed:
+        return True
+    if value is None:
+        return "null" in allowed
+    if isinstance(value, bool):
+        return "bool" in allowed or "boolean" in allowed
+    if isinstance(value, int) and not isinstance(value, bool):
+        return "int" in allowed or "integer" in allowed or "number" in allowed
+    if isinstance(value, float):
+        return "float" in allowed or "number" in allowed
+    if isinstance(value, str):
+        return "string" in allowed
+    if isinstance(value, list):
+        return "list" in allowed or "array" in allowed
+    if isinstance(value, dict):
+        return "object" in allowed or "dict" in allowed
+    return True
+
+
+def _coerce_param_default(spec):
+    if not isinstance(spec, dict):
+        return None
+    if "default" in spec:
+        return deepcopy(spec.get("default"))
+    return None
+
+
+def _normalize_params(raw_params, type_name="", mission_type_book=None):
+    params = dict(raw_params) if isinstance(raw_params, dict) else {}
+    resolved_type, rule = _mission_type_rule(type_name, mission_type_book)
+    schema = rule.get("params", {}) if isinstance(rule, dict) else {}
+    if not isinstance(schema, dict):
+        return params
+    normalized = {}
+    for key, spec in schema.items():
+        if key in params:
+            normalized[key] = params[key]
+            continue
+        if isinstance(spec, dict) and "default" in spec:
+            normalized[key] = _coerce_param_default(spec)
+    for key, value in params.items():
+        normalized[key] = value
+    if resolved_type and "amount" in schema and "amount" not in normalized:
+        normalized["amount"] = 1
+    return normalized
+
+
+def _derive_params_from_objective(obj, mission_type_book=None):
+    if not isinstance(obj, dict):
+        return {}
+    typ = _resolve_objective_type(obj.get("type"), mission_type_book)
+    if not typ:
+        return {}
+    params = {}
+    if "target" in obj:
+        try:
+            params["amount"] = max(1, int(obj.get("target", 1) or 1))
+        except Exception:
+            pass
+    if typ in ("kill_enemy", "kill_elite_enemy", "high_risk_mission"):
+        mob_id = _clean_text(obj.get("mob_id") or obj.get("mob") or obj.get("mob_hint"))
+        if mob_id:
+            params["mob_id"] = mob_id
+        map_name = _clean_text(obj.get("map"))
+        if map_name:
+            params["map"] = map_name
+        target_buff = _clean_text(obj.get("target_buff"))
+        if target_buff:
+            params["target_buff"] = target_buff
+        spawn_rule = obj.get("spawn_rule")
+        if isinstance(spawn_rule, dict):
+            params["spawn_rule"] = deepcopy(spawn_rule)
+        if typ == "kill_elite_enemy":
+            params["elite_only"] = bool(obj.get("elite_only", True))
+        if typ == "high_risk_mission":
+            params["base_type"] = _clean_text(obj.get("base_type") or obj.get("mission_type") or "kill_enemy") or "kill_enemy"
+    elif typ == "collect_item":
+        item_id = _clean_text(obj.get("item_id") or obj.get("item_name") or obj.get("mob_hint") or obj.get("key_label"))
+        if item_id:
+            params["item_id"] = item_id
+        source_filter = obj.get("source_filter", obj.get("source"))
+        if source_filter not in (None, ""):
+            params["source_filter"] = deepcopy(source_filter)
+        rare_drop_rules = obj.get("rare_drop_rules")
+        if isinstance(rare_drop_rules, dict):
+            params["rare_drop_rules"] = deepcopy(rare_drop_rules)
+    elif typ == "collect_data":
+        map_pool = obj.get("map_pool", obj.get("map"))
+        if map_pool not in (None, ""):
+            params["map_pool"] = deepcopy(map_pool)
+        target_tiles = obj.get("target_tiles")
+        if isinstance(target_tiles, list):
+            params["target_tiles"] = deepcopy(target_tiles)
+        interaction_id = _clean_text(obj.get("interaction_id") or obj.get("target_id"))
+        if interaction_id:
+            params["interaction_id"] = interaction_id
+        outline_color = _clean_text(obj.get("outline_color"))
+        if outline_color:
+            params["outline_color"] = outline_color
+    elif typ == "upload_data":
+        terminal_id = _clean_text(obj.get("terminal_id") or obj.get("target_id"))
+        if terminal_id:
+            params["terminal_id"] = terminal_id
+        required_flag = _clean_text(obj.get("required_flag") or obj.get("set_flag"))
+        if required_flag:
+            params["required_flag"] = required_flag
+        duration_range = obj.get("duration_range")
+        if isinstance(duration_range, list):
+            params["duration_range"] = deepcopy(duration_range)
+    elif typ == "talk_to_npc":
+        npc_id = _clean_text(obj.get("npc_id") or obj.get("target_id") or obj.get("required_key"))
+        if npc_id:
+            params["npc_id"] = npc_id
+        mission_dialogue_node = _clean_text(obj.get("mission_dialogue_node") or obj.get("dialogue_ref") or obj.get("dialogue_node"))
+        if mission_dialogue_node:
+            params["mission_dialogue_node"] = mission_dialogue_node
+        required_flag = _clean_text(obj.get("required_flag") or obj.get("set_flag"))
+        if required_flag:
+            params["required_flag"] = required_flag
+    elif typ == "complete_missions":
+        legacy_filter = obj.get("legacy_filter")
+        if legacy_filter not in (None, ""):
+            params["legacy_filter"] = deepcopy(legacy_filter)
+        if "high_risk" in obj:
+            params["high_risk"] = bool(obj.get("high_risk"))
+    return _normalize_params(params, typ, mission_type_book)
+
+
+def _legacy_runtime_objectives(runtime):
+    if not isinstance(runtime, dict):
+        return []
+    legacy_type = _clean_text(runtime.get("type"))
+    target = max(1, int(runtime.get("target", 1) or 1))
+    progress = max(0, int(runtime.get("progress", 0) or 0))
+    done = bool(runtime.get("done", False))
+    text = _clean_text(runtime.get("text"))
+    mob_id = _clean_text(runtime.get("mob") or runtime.get("mob_id"))
+    if legacy_type == "kill_specific":
+        return [{
+            "type": "kill_enemy",
+            "text": text or f"Defeat {target} {mob_id or 'hostile targets'}",
+            "target": target,
+            "progress": progress,
+            "done": done,
+            "mob_id": mob_id or "*",
+            "source": "enemy_death",
+            "mode": "counter",
+        }]
+    if legacy_type == "kill_any":
+        return [{
+            "type": "kill_enemy",
+            "text": text or f"Defeat {target} hostile targets",
+            "target": target,
+            "progress": progress,
+            "done": done,
+            "mob_id": "*",
+            "source": "enemy_death",
+            "mode": "counter",
+        }]
+    if legacy_type == "reach_layer":
+        return [{
+            "type": "legacy_reach_layer",
+            "text": text or f"Reach rogue layer {target}",
+            "target": target,
+            "progress": progress,
+            "done": done,
+            "source": "legacy_layer",
+            "mode": "counter",
+        }]
+    return []
+
+
+def _runtime_event_registry(mission_book=None):
+    if not isinstance(mission_book, dict):
+        return {}
+    reg = mission_book.get("mission_runtime_registry", {})
+    return reg if isinstance(reg, dict) else {}
+
+
+def _resolve_runtime_event_name(event_name, mission_book=None):
+    event_name = _clean_text(event_name)
+    if not event_name:
+        return ""
+    reg = _runtime_event_registry(mission_book)
+    aliases = reg.get("aliases", {}) if isinstance(reg, dict) else {}
+    if isinstance(aliases, dict):
+        alias = aliases.get(event_name)
+        if alias:
+            return _clean_text(alias) or event_name
+    return event_name
+
+
 def _type_registry(mission_type_book):
     if not isinstance(mission_type_book, dict):
         return {}
     types = {}
     for key, value in mission_type_book.items():
-        if key in {"version", "source_file", "states", "objective_modes", "aliases", "types", "missions_type"}:
+        if key in {"version", "source_file", "states", "objective_modes", "aliases", "types", "mission_types"}:
             continue
         if isinstance(value, dict):
             types[_clean_text(key)] = value
@@ -689,7 +988,7 @@ def _type_registry(mission_type_book):
         for key, value in nested.items():
             if isinstance(value, dict):
                 types[_clean_text(key)] = value
-    nested_book = mission_type_book.get("missions_type", {})
+    nested_book = mission_type_book.get("mission_types", {})
     if isinstance(nested_book, dict):
         nested_types = nested_book.get("types", {})
         if isinstance(nested_types, dict):
@@ -704,7 +1003,7 @@ def _type_aliases(mission_type_book):
         return {}
     aliases = mission_type_book.get("aliases", {})
     if not isinstance(aliases, dict) or not aliases:
-        nested = mission_type_book.get("missions_type", {})
+        nested = mission_type_book.get("mission_types", {})
         if isinstance(nested, dict):
             aliases = nested.get("aliases", {})
     return aliases if isinstance(aliases, dict) else {}
@@ -723,6 +1022,23 @@ def _resolve_objective_type(type_name, mission_type_book=None):
 def _objective_is_disabled(type_name, mission_type_book=None):
     typ = _resolve_objective_type(type_name, mission_type_book)
     return bool(typ and typ in _DISABLED_OBJECTIVE_TYPES)
+
+
+def _mission_type_rule(type_name, mission_type_book=None):
+    typ = _resolve_objective_type(type_name, mission_type_book)
+    if not typ:
+        return "", {}
+    return typ, _type_registry(mission_type_book).get(typ, {})
+
+
+def _runtime_event_rule(event_name, mission_book=None):
+    resolved = _resolve_runtime_event_name(event_name, mission_book)
+    reg = _runtime_event_registry(mission_book)
+    events = reg.get("events", {}) if isinstance(reg, dict) else {}
+    if not isinstance(events, dict):
+        return resolved, {}
+    event_rule = events.get(resolved, {})
+    return resolved, event_rule if isinstance(event_rule, dict) else {}
 
 
 def _disabled_objective_note(text):
@@ -751,6 +1067,72 @@ def _apply_type_rule(obj, mission_type_book=None):
     return out
 
 
+def _objective_match_field_value(obj, field):
+    field = _clean_text(field)
+    aliases = {
+        "mob_id": ("mob_id", "mob", "mob_hint"),
+        "item_id": ("item_id", "item_name", "key_label", "mob_hint"),
+        "map": ("map",),
+        "target_buff": ("target_buff",),
+        "elite_only": ("elite_only", "elite", "is_elite", "boss"),
+        "source_filter": ("source_filter", "source"),
+        "target_id": ("target_id", "interaction_id", "terminal_id"),
+        "target_kind": ("target_kind",),
+        "npc_id": ("npc_id", "target_id", "required_key"),
+        "mission_dialogue_node": ("mission_dialogue_node", "dialogue_ref", "dialogue_node"),
+        "mission_type": ("type", "mission_type"),
+        "high_risk": ("high_risk",),
+        "required_flag": ("required_flag", "set_flag"),
+    }
+    for key in aliases.get(field, (field,)):
+        if key in obj and obj.get(key) not in (None, ""):
+            return obj.get(key)
+    return None
+
+
+def _ctx_match_field_value(ctx, field):
+    field = _clean_text(field)
+    aliases = {
+        "mob_id": ("mob_id", "enemy_id"),
+        "item_id": ("item_id", "item_name"),
+        "map": ("map", "map_name"),
+        "npc_id": ("npc_id",),
+        "mission_type": ("mission_type",),
+        "target_id": ("target_id",),
+        "target_kind": ("target_kind",),
+        "required_flag": ("required_flag", "flag"),
+        "high_risk": ("high_risk",),
+        "source_filter": ("source_filter", "source"),
+    }
+    for key in aliases.get(field, (field,)):
+        if key in ctx and ctx.get(key) not in (None, ""):
+            return ctx.get(key)
+    return None
+
+
+def _values_match(expected, actual):
+    if expected in (None, "", [], {}):
+        return True
+    if isinstance(expected, str) and _clean_text(expected).lower() in {"*", "any", "any_hostile", "any_item"}:
+        return True
+    if actual in (None, "", [], {}):
+        return False
+    if isinstance(expected, bool) or isinstance(actual, bool):
+        return bool(expected) == bool(actual)
+    if isinstance(expected, (list, tuple, set)):
+        expected_values = {_clean_text(v) for v in expected if _clean_text(v)}
+        if not expected_values:
+            return True
+        if isinstance(actual, (list, tuple, set)):
+            actual_values = {_clean_text(v) for v in actual if _clean_text(v)}
+            return bool(expected_values & actual_values)
+        return _clean_text(actual) in expected_values
+    if isinstance(actual, (list, tuple, set)):
+        actual_values = {_clean_text(v) for v in actual if _clean_text(v)}
+        return _clean_text(expected) in actual_values
+    return _clean_text(expected) == _clean_text(actual)
+
+
 def _objective_matches_event(obj, event_name, mission_type_book=None, **ctx):
     if not isinstance(obj, dict):
         return False
@@ -760,8 +1142,9 @@ def _objective_matches_event(obj, event_name, mission_type_book=None, **ctx):
     if typ in _DISABLED_OBJECTIVE_TYPES:
         return False
     rule = _type_registry(mission_type_book).get(typ, {})
+    resolved_event_name, event_rule = _runtime_event_rule(event_name, mission_type_book)
     source = _clean_text(obj.get("source") or (rule.get("source") if isinstance(rule, dict) else ""))
-    if source and source != _clean_text(event_name):
+    if source and source != resolved_event_name:
         return False
     if typ == "kill_elite_enemy":
         if not (
@@ -786,7 +1169,15 @@ def _objective_matches_event(obj, event_name, mission_type_book=None, **ctx):
         target = _clean_text(obj.get("target_id") or obj.get("required_key") or obj.get("mob_hint"))
         if target and map_name and target not in map_name:
             return False
+    if isinstance(event_rule, dict):
+        for field in event_rule.get("match_fields", []) or []:
+            expected = _objective_match_field_value(obj, field)
+            actual = _ctx_match_field_value(ctx, field)
+            if not _values_match(expected, actual):
+                return False
     if typ in ("complete_missions", "high_risk_mission"):
+        if typ == "high_risk_mission" and "high_risk" in ctx and not bool(ctx.get("high_risk")):
+            return False
         return True
     return True
 
@@ -795,6 +1186,7 @@ def _update_objectives_for_event(game, event_name, amount=1, **ctx):
     state, _ = _get_state(game)
     changed = False
     mission_type_book = getattr(game, "mission_book", None)
+    event_name = _resolve_runtime_event_name(event_name, mission_type_book)
     for runtime in state["active"].values():
         runtime_changed = _bump_objectives(
             runtime,
@@ -836,6 +1228,7 @@ def _objective_label(obj, mission_type_book=None):
         "upload_data": "Upload data",
         "talk_to_npc": "Talk to NPC",
         "high_risk_mission": "High risk mission",
+        "legacy_reach_layer": "Reach rogue layer",
         "return": "Return to giver",
         "turn_in": "Return to giver",
     }
@@ -922,6 +1315,7 @@ def _sync_runtime_status(runtime):
 def load_mission_book(path):
     raw = load_json(path)
     type_book = _load_mission_type_book()
+    runtime_book = _load_mission_runtime_registry()
     book = {
         "version": raw.get("version", 1),
         "source_file": raw.get("source_file", "temp_mission"),
@@ -932,8 +1326,11 @@ def load_mission_book(path):
         "missions_by_giver": {},
         "first_by_giver": {},
         "title_to_id": {},
-        "missions_type": deepcopy(type_book),
-        "missions_type_source": MISSIONS_TYPE_FILE if type_book else "",
+        "mission_types": deepcopy(type_book),
+        "mission_types": deepcopy(type_book),
+        "missions_type_source": MISSION_TYPES_FILE if type_book else "",
+        "mission_runtime_registry": deepcopy(runtime_book),
+        "mission_runtime_registry_source": MISSION_RUNTIME_REGISTRY_FILE if runtime_book else "",
     }
     for entry in raw.get("missions", []):
         if not isinstance(entry, dict):
@@ -964,6 +1361,8 @@ def load_mission_book(path):
                 legacy_unlocks.append(spec.get("name", ""))
             else:
                 legacy_rewards.append(spec)
+        mission_type_id = _clean_text(entry.get("type") or entry.get("mission_type"))
+        mission_type_id = _resolve_objective_type(mission_type_id, type_book)
         parsed = {
             "id": mission_id,
             "index": int(entry.get("index", len(book["missions"]) + 1)),
@@ -983,6 +1382,8 @@ def load_mission_book(path):
             "return_lines": list(entry.get("return_lines", []) or []),
             "return_dialogue": list(entry.get("return_lines", []) or []),
             "reward_lines": list(entry.get("reward_lines", []) or []),
+            "type": mission_type_id,
+            "params": _normalize_params(entry.get("params", {}), mission_type_id, type_book),
             "objectives": legacy_objectives,
             "rewards": legacy_rewards,
             "unlocks": [u for u in legacy_unlocks if u],
@@ -1003,6 +1404,10 @@ def load_mission_book(path):
                 for obj in parsed["objectives"]
                 if isinstance(obj, dict)
             ]
+        if not parsed["type"] and parsed["objectives"]:
+            parsed["type"] = _resolve_objective_type(parsed["objectives"][0].get("type"), type_book)
+        if not parsed["params"] and parsed["objectives"]:
+            parsed["params"] = _derive_params_from_objective(parsed["objectives"][0], type_book)
         structured_rewards = []
         structured_unlocks = []
         for item in entry.get("rewards", []) or []:
@@ -1040,10 +1445,10 @@ def load_mission_book(path):
             typ = _clean_text(obj.get("type"))
             if typ and typ not in type_ids:
                 type_ids.append(typ)
-        mission_type_id = _clean_text(entry.get("mission_type") or entry.get("type"))
-        mission_type_id = _resolve_objective_type(mission_type_id, type_book)
         if not mission_type_id and type_ids:
             mission_type_id = type_ids[0]
+        if not parsed["type"]:
+            parsed["type"] = mission_type_id
         parsed["mission_type"] = {
             "id": mission_type_id,
             "primary": mission_type_id,
@@ -1071,8 +1476,11 @@ def empty_mission_book():
         "missions_by_giver": {},
         "first_by_giver": {},
         "title_to_id": {},
-        "missions_type": {},
+        "mission_types": {},
+        "mission_types": {},
         "missions_type_source": "",
+        "mission_runtime_registry": {},
+        "mission_runtime_registry_source": "",
     }
 
 
@@ -1115,6 +1523,10 @@ def normalize_state(state, mission_book=None):
         if not isinstance(runtime, dict):
             continue
         clean_active[str(mid)] = normalize_runtime(runtime, mission_book)
+    if tracked and tracked not in clean_active:
+        tracked = None
+    if not tracked and clean_active:
+        tracked = next(iter(clean_active.keys()))
     return {
         "active": clean_active,
         "accepted": [str(v) for v in accepted if isinstance(v, str)],
@@ -1153,6 +1565,8 @@ def normalize_runtime(runtime, mission_book=None):
         "return_dialogue": list(src.get("return_dialogue", base.get("return_dialogue", base.get("return_lines", []))) or []),
         "return_lines": list(src.get("return_lines", base.get("return_lines", [])) or []),
         "reward_lines": list(src.get("reward_lines", base.get("reward_lines", [])) or []),
+        "type": _resolve_objective_type(src.get("type", base.get("type", "")), mission_book),
+        "params": _normalize_params(src.get("params", base.get("params", {})), src.get("type", base.get("type", "")), mission_book),
         "objectives": [],
         "rewards": list(src.get("rewards", base.get("rewards", [])) or []),
         "unlocks": list(src.get("unlocks", base.get("unlocks", [])) or []),
@@ -1200,6 +1614,10 @@ def normalize_runtime(runtime, mission_book=None):
                 disabled_objective_lines.append(_disabled_objective_note(obj.get("text") or obj.get("name") or obj.get("type")))
                 continue
             out["objectives"].append(obj)
+    if not out["objectives"] and _clean_text(src.get("type")) in _LEGACY_RUNTIME_TYPES:
+        out["objectives"] = _legacy_runtime_objectives(src)
+        if not out.get("objective_lines"):
+            out["objective_lines"] = [obj.get("text", "") for obj in out["objectives"] if _clean_text(obj.get("text"))]
     if disabled_objective_lines:
         merged = list(out.get("objective_lines", []))
         for line in disabled_objective_lines:
@@ -1217,6 +1635,8 @@ def build_runtime(mission_def):
     runtime["order"] = int(mission_def.get("order", mission_def.get("index", 0)) or 0)
     runtime["provider"] = str(mission_def.get("provider", mission_def.get("giver_id", "")))
     runtime["name"] = str(mission_def.get("name", mission_def.get("title", mission_def.get("id", ""))))
+    runtime["type"] = _resolve_objective_type(mission_def.get("type", mission_def.get("mission_type", "")), mission_def)
+    runtime["params"] = _normalize_params(mission_def.get("params", {}), runtime.get("type", ""), mission_def)
     runtime["objectives"] = [dict(obj) for obj in mission_def.get("objectives", [])]
     for obj in runtime["objectives"]:
         obj.setdefault("progress", 0)
@@ -1300,6 +1720,17 @@ def get_runtime(game, mission_id):
     if mid in state["completed_data"]:
         return state["completed_data"][mid]
     return None
+
+
+def _pick_tracked_mission_id(state, preferred=None):
+    preferred = _clean_text(preferred)
+    active_ids = [str(mid) for mid in (state.get("active", {}) or {}).keys()]
+    if preferred and preferred in active_ids:
+        return preferred
+    tracked = _clean_text(state.get("tracked"))
+    if tracked and tracked in active_ids:
+        return tracked
+    return active_ids[0] if active_ids else None
 
 
 def is_unlocked(game, mission_id):
@@ -1408,7 +1839,7 @@ def _bump_objectives(runtime, predicate, amount=1, mission_type_book=None):
 
 def update_on_enemy_death(game, enemy_id):
     enemy_id = str(enemy_id or "")
-    return _update_objectives_for_event(game, "enemy_death", enemy_id=enemy_id)
+    return _update_objectives_for_event(game, "enemy_death", enemy_id=enemy_id, mob_id=enemy_id)
 
 
 def update_on_talk_to_npc(game, npc_id=None):
@@ -1419,7 +1850,7 @@ def update_on_talk_to_npc(game, npc_id=None):
 def update_on_item_gain(game, item_name=None, amount=1, source=None):
     item_name = _clean_text(item_name)
     amount = max(1, int(amount or 1))
-    return _update_objectives_for_event(game, "item_gain", amount=amount, item_name=item_name, source=source)
+    return _update_objectives_for_event(game, "item_gain", amount=amount, item_name=item_name, item_id=item_name, source=source, source_filter=source)
 
 
 def update_on_module_play(game, module_id=None):
@@ -1536,6 +1967,14 @@ def update_on_mission_complete(game):
     return changed
 
 
+def update_on_legacy_layer(game, layer=None):
+    try:
+        layer = max(1, int(layer or 1))
+    except Exception:
+        layer = 1
+    return _update_objectives_for_event(game, "legacy_layer", amount=layer)
+
+
 def mark_return_objective(game, mission_id):
     state, _ = _get_state(game)
     runtime = state["active"].get(str(mission_id))
@@ -1562,8 +2001,9 @@ def accept_mission(game, mission_id):
     state["active"][mid] = runtime
     if mid not in state["accepted"]:
         state["accepted"].append(mid)
-    if not state.get("tracked"):
-        state["tracked"] = mid
+    state["tracked"] = _pick_tracked_mission_id(state, preferred=mid)
+    if hasattr(game, "tracked_mission"):
+        game.tracked_mission = state["tracked"]
     ensure_key_items_for_mission(game, runtime)
     return True
 
@@ -1674,10 +2114,9 @@ def complete_mission(game, mission_id):
     state["active"].pop(mid, None)
     if mid in state["accepted"]:
         state["accepted"].remove(mid)
-    if state.get("tracked") == mid:
-        state["tracked"] = None
-    if hasattr(game, "tracked_mission") and game.tracked_mission == mid:
-        game.tracked_mission = None
+    state["tracked"] = _pick_tracked_mission_id(state)
+    if hasattr(game, "tracked_mission"):
+        game.tracked_mission = state["tracked"]
     _apply_unlocks(game, runtime, state=state, book=book)
     giver_id = _resolve_giver_key(book, runtime.get("giver_id", ""))
     giver_rows = book.get("missions_by_giver", {}).get(giver_id, [])

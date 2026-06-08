@@ -1453,53 +1453,53 @@ def draw_menu_detail(screen, panel, game):
             _draw_text_outline(screen, font, line, (230, 230, 230), (255, 255, 255), (panel.x + 20, y))
             y += font.get_height() + 6
         y += 8
-        missions_title = tr(game.lang, "mission.board.briefing") or "briefing"
+        missions = [m for m in (game.get_trackable_missions() if hasattr(game, "get_trackable_missions") else []) if isinstance(m, dict)]
+        missions_title = tr(game.lang, "mission.board.list") or "missions"
         _draw_text_outline(screen, font, missions_title, (210, 230, 255), (255, 255, 255), (panel.x + 20, y))
         y += font.get_height() + 6
-        tracked_lines = []
-        tracked_id = getattr(game, "tracked_mission", None)
-        tracked_runtime = None
-        if hasattr(game, "_mission_runtime") and tracked_id:
-            tracked_runtime = game._mission_runtime(tracked_id)
-        if not tracked_runtime and hasattr(game, "get_active_missions"):
-            active = [m for m in game.get_active_missions() if isinstance(m, dict)]
-            if active:
-                tracked_runtime = active[0]
-                tracked_id = tracked_runtime.get("id", tracked_id)
-        if tracked_runtime:
-            tracked_name = str(tracked_runtime.get("name") or tracked_runtime.get("title") or tracked_runtime.get("giver_name") or tracked_id or "Mission").strip()
-            if tracked_name in {"", "Mission", str(tracked_id or "")} and hasattr(game, "_giver_display_name"):
-                tracked_name = game._giver_display_name(tracked_runtime.get("giver_id") or tracked_runtime.get("giver") or tracked_id, fallback=tracked_name)
-            _draw_text_outline(screen, font, tracked_name, (255, 247, 170), (255, 255, 255), (panel.x + 20, y), thickness=2)
-            y += font.get_height() + 6
-            tracked_lines = []
-            if hasattr(game_missions, "get_objective_summary"):
-                tracked_lines = game_missions.get_objective_summary(tracked_runtime)
-            if not tracked_lines:
-                tracked_lines = [line for line in (
-                    tracked_runtime.get("description_lines", []) or
-                    tracked_runtime.get("objective_lines", []) or
-                    tracked_runtime.get("accept_lines", [])
-                ) if isinstance(line, str) and line.strip()]
-            if not tracked_lines:
-                tracked_lines = game.get_tracking_summary_lines() if hasattr(game, "get_tracking_summary_lines") else []
-            if not tracked_lines:
-                tracked_lines = [tracked_name or str(tracked_id or "Mission")]
-            max_bottom = panel.bottom - font.get_height() - 26
+        if not missions:
+            empty_text = tr(game.lang, "mission.board.no_missions") or "no missions"
+            _draw_text_outline(screen, font, empty_text, (220, 220, 220), (255, 255, 255), (panel.x + 20, y))
+        else:
+            selected = max(0, min(len(missions) - 1, int(getattr(game, "objective_selected", 0) or 0)))
+            max_bottom = panel.bottom - font.get_height() - 24
             truncated = False
-            for line in tracked_lines:
+            for i, row in enumerate(missions):
                 if y + font.get_height() + 8 > max_bottom:
                     truncated = True
                     break
+                status = str(row.get("status", "active"))
+                status_label = tr(game.lang, f"mission.board.{status}") or status
+                label = str(row.get("name") or row.get("giver") or "Mission").strip() or "Mission"
+                text = str(row.get("text") or "").strip()
+                line = f"{label}: {text}" if text else label
+                if status_label and status_label not in line:
+                    line = f"{line} [{status_label}]"
                 rect = pygame.Rect(panel.x + 16, y - 2, panel.width - 32, font.get_height() + 6)
-                _draw_readability_row(screen, rect, selected=False)
-                _draw_text_outline(screen, font, _fit_text(font, str(line), panel.width - 44), (230, 230, 230), (0, 0, 0), (panel.x + 24, y), thickness=2)
+                _draw_readability_row(screen, rect, selected=(i == selected))
+                _draw_text_outline(screen, font, _fit_text(font, line, panel.width - 44), (230, 230, 230), (0, 0, 0), (panel.x + 24, y), thickness=2)
                 y += font.get_height() + 8
             if truncated:
                 _draw_text_outline(screen, font, "↓ More", (180, 205, 225), (255, 255, 255), (panel.x + 24, panel.bottom - font.get_height() - 18), thickness=2)
-        else:
-            empty_text = tracked_id or tr(game.lang, "mission.board.no_missions") or "no missions"
-            _draw_text_outline(screen, font, empty_text, (220, 220, 220), (255, 255, 255), (panel.x + 20, y))
+            selected_row = missions[selected]
+            detail_name = str(selected_row.get("name") or selected_row.get("giver") or "Mission").strip() or "Mission"
+            detail_text = str(selected_row.get("text") or "").strip()
+            detail_status = str(selected_row.get("status", "active"))
+            status_line = tr(game.lang, f"mission.board.{detail_status}") or detail_status
+            if y + font.get_height() * 2 + 18 < panel.bottom - 12:
+                y += 8
+                _draw_text_outline(screen, font, detail_name, (255, 247, 170), (255, 255, 255), (panel.x + 20, y), thickness=2)
+                y += font.get_height() + 4
+                if status_line:
+                    _draw_text_outline(screen, font, status_line, (200, 220, 240), (255, 255, 255), (panel.x + 20, y), thickness=2)
+                    y += font.get_height() + 4
+                if detail_text:
+                    for chunk in _wrap_text(font, detail_text, panel.width - 40):
+                        if y + font.get_height() + 8 > panel.bottom - 18:
+                            _draw_text_outline(screen, font, "↓ More", (180, 205, 225), (255, 255, 255), (panel.x + 20, panel.bottom - font.get_height() - 18), thickness=2)
+                            break
+                        _draw_text_outline(screen, font, chunk, (230, 230, 230), (255, 255, 255), (panel.x + 20, y), thickness=2)
+                        y += font.get_height() + 4
     elif game.ui_mode == "skill_tree":
         nodes = game.get_skill_tree_nodes()
         if not nodes:

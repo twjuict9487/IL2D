@@ -1,0 +1,276 @@
+{
+  "full_name": "Mission Type Schema",
+  "version": 1,
+  "source_file": "MTS",
+  "states": [
+    "briefing",
+    "active",
+    "ready_to_return",
+    "completed"
+  ],
+  "objective_modes": {
+    "counter": "counter",
+    "flag": "flag"
+  },
+  "aliases": {
+    "mission_complete": "complete_missions",
+    "mission_complete_high_risk": "high_risk_mission",
+    "kill": "kill_enemy",
+    "kill_elite": "kill_elite_enemy",
+    "talk": "talk_to_npc",
+    "dialog": "talk_to_npc",
+    "turn_in": "talk_to_npc",
+    "return": "talk_to_npc"
+  },
+  "disabled_types": {
+    "extract_success": "deprecated / disabled",
+    "protect_target": "deprecated / disabled",
+    "play_module": "deprecated / disabled",
+    "stealth_completion": "deprecated / disabled",
+    "mark_enemy": "deprecated / disabled"
+  },
+  "types": {
+    "complete_missions": {
+      "label": "Complete missions",
+      "params": {
+        "amount": {
+          "type": "int",
+          "required": true,
+          "min": 1
+        },
+        "legacy_filter": {
+          "type": [
+            "null",
+            "string",
+            "list"
+          ],
+          "required": false,
+          "default": null
+        },
+        "high_risk": {
+          "type": "bool",
+          "required": false,
+          "default": false
+        }
+      }
+    },
+    "high_risk_mission": {
+      "label": "High risk mission",
+      "params": {
+        "base_type": {
+          "type": "string",
+          "required": true
+        },
+        "mob_id": {
+          "type": "string",
+          "required": true
+        },
+        "amount": {
+          "type": "int",
+          "required": true,
+          "min": 1
+        },
+        "target_buff": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        },
+        "spawn_rule": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "required": false,
+          "default": null
+        }
+      }
+    },
+    "kill_enemy": {
+      "label": "Kill enemy",
+      "params": {
+        "mob_id": {
+          "type": "string",
+          "required": true
+        },
+        "amount": {
+          "type": "int",
+          "required": true,
+          "min": 1
+        },
+        "map": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        },
+        "target_buff": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        },
+        "spawn_rule": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "required": false,
+          "default": null
+        }
+      }
+    },
+    "kill_elite_enemy": {
+      "label": "Kill elite enemy",
+      "params": {
+        "mob_id": {
+          "type": "string",
+          "required": true
+        },
+        "amount": {
+          "type": "int",
+          "required": true,
+          "min": 1
+        },
+        "map": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        },
+        "target_buff": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        },
+        "spawn_rule": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "required": false,
+          "default": null
+        },
+        "elite_only": {
+          "type": "bool",
+          "required": false,
+          "default": true
+        }
+      }
+    },
+    "collect_item": {
+      "label": "Collect item",
+      "params": {
+        "item_id": {
+          "type": "string",
+          "required": true
+        },
+        "amount": {
+          "type": "int",
+          "required": true,
+          "min": 1
+        },
+        "source_filter": {
+          "type": [
+            "null",
+            "string",
+            "list",
+            "object"
+          ],
+          "required": false,
+          "default": null
+        },
+        "rare_drop_rules": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "required": false,
+          "default": null
+        }
+      }
+    },
+    "collect_data": {
+      "label": "Collect data",
+      "params": {
+        "map_pool": {
+          "type": [
+            "string",
+            "list"
+          ],
+          "required": true
+        },
+        "target_tiles": {
+          "type": "list",
+          "required": true
+        },
+        "outline_color": {
+          "type": "string",
+          "required": false,
+          "default": "yellow"
+        },
+        "interaction_id": {
+          "type": "string",
+          "required": true
+        }
+      }
+    },
+    "upload_data": {
+      "label": "Upload data",
+      "params": {
+        "terminal_id": {
+          "type": "string",
+          "required": true
+        },
+        "required_flag": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        },
+        "duration_range": {
+          "type": "list",
+          "required": false,
+          "default": [
+            1,
+            20
+          ]
+        }
+      }
+    },
+    "talk_to_npc": {
+      "label": "Talk to NPC",
+      "params": {
+        "npc_id": {
+          "type": "string",
+          "required": true
+        },
+        "mission_dialogue_node": {
+          "type": "string",
+          "required": true
+        },
+        "required_flag": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "required": false,
+          "default": null
+        }
+      }
+    }
+  }
+}
