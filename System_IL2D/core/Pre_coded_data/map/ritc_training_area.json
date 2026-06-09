@@ -22,7 +22,6 @@
     ],
   "spawn": [7, 2],
   "mob_limit": 0,
-  "npc_layout": {},
   "world_hidden": true,
   "portals": [
       {

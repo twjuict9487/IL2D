@@ -1,0 +1,62 @@
+{
+  "full_name": "mission schema",
+  "version": 1,
+  "source_file": "mission_types",
+
+  "states": [
+    "NotAccepted",
+    "Briefing",
+    "Active",
+    "ReadyToReturn",
+    "Finished"
+  ],
+
+  "default_state": "NotAccepted",
+
+  "terminal_states": [
+    "Finished"
+  ],
+
+  "state_flow": {
+    "NotAccepted": ["Briefing"],
+    "Briefing": ["Active", "NotAccepted"],
+    "Active": ["ReadyToReturn"],
+    "ReadyToReturn": ["Finished"],
+    "Finished": []
+  },
+
+  "event_channels": [
+    "EnemyDeath","ItemGain","PlayerEnterArea","InteractTarget","TalkToNpc","UploadComplete","MissionFinished","MapExplored"
+  ],
+
+  "objective_fields": {
+    "required": ["type","target","amount"],
+    "optional": ["map","radius","marker","consume","flag","spawn_rule","reward_rule"]
+  },
+
+  "text_stages": [
+    "not_accepted",
+    "briefing",
+    "active",
+    "ready_to_return",
+    "finished"
+  ],
+
+  "mission_runtime_fields": [
+    "id",
+    "state",
+    "objectives",
+    "progress",
+    "flags",
+    "giver_npc",
+    "return_npc"
+  ],
+
+  "rules": {
+    "allow_multiple_active": true,
+    "auto_track_on_accept": true,
+    "auto_ready_to_return": true,
+    "require_return_to_npc": true,
+    "persist_runtime": true
+  }
+}

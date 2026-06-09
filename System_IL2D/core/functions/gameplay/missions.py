@@ -33,6 +33,19 @@ def _clean_text(text):
     return str(text or "").strip().strip('"').strip("'").strip()
 
 
+def _default_objective_source(typ):
+    typ = _OBJECTIVE_TYPE_ALIASES.get(_clean_text(typ), _clean_text(typ))
+    if typ in ("complete_missions", "high_risk_mission"):
+        return "mission_complete"
+    if typ in ("kill_enemy", "kill_elite_enemy"):
+        return "enemy_death"
+    if typ in ("talk_to_npc",):
+        return "dialog"
+    if typ in ("play_module",):
+        return "module"
+    return "interaction"
+
+
 _MISSION_GIVER_ALIASES = {
     "kaltsit": "凱爾希",
     "ines": "伊內絲",
@@ -42,8 +55,15 @@ _MISSION_GIVER_ALIASES = {
 
 
 _CANONICAL_OBJECTIVE_TYPES = {
+    "CM",
+    "KE",
+    "KEE",
+    "CI",
+    "CD",
+    "UD",
+    "CA",
+    "SA",
     "complete_missions",
-    "high_risk_mission",
     "kill_enemy",
     "kill_elite_enemy",
     "collect_item",
@@ -61,10 +81,23 @@ _DISABLED_OBJECTIVE_TYPES = {
 }
 
 _OBJECTIVE_TYPE_ALIASES = {
-    "mission_complete": "complete_missions",
-    "mission_complete_high_risk": "high_risk_mission",
-    "kill": "kill_enemy",
-    "kill_elite": "kill_elite_enemy",
+    "complete_missions": "CM",
+    "mission_complete": "CM",
+
+    "kill_enemy": "KE",
+    "kill": "KE",
+
+    "kill_elite_enemy": "KEE",
+    "kill_elite": "KEE",
+
+    "collect_item": "CI",
+    "collect_data": "CD",
+    "upload_data": "UD",
+
+    "clear_area": "CA",
+    "survey_area": "SA",
+
+    "talk_to_npc": "talk_to_npc",
     "talk": "talk_to_npc",
     "dialog": "talk_to_npc",
     "turn_in": "talk_to_npc",
@@ -210,8 +243,20 @@ def _mission_unlock_refs(entry):
 
 def validate_missions(path=None, emit=True):
     import json
+    import os  # Added missing import
 
     path = path or MISSIONS_FILE
+    if not path:
+        for p in (
+            MISSIONS_FILE,
+            "core/Pre_coded_data/game_data/Loremissions.json",
+            "core/Pre_coded_data/game_data/lore_archive.json",
+            "core/Pre_coded_data/game_data/mission schema.json",
+            "core/Pre_coded_data/game_data/Mission Type.json",
+        ):
+            if p and os.path.isfile(p):
+                path = p
+                break
     report = {
         "file": path,
         "errors": [],
@@ -227,22 +272,66 @@ def validate_missions(path=None, emit=True):
         if emit:
             print(f"[missions] {report['errors'][-1]}")
         return report
+        
     raw_entries = _mission_entries(data)
+
+    if not raw_entries and isinstance(data, dict):
+        for key in (
+            "Loremissions",
+            "lore_missions",
+            "mission_list",
+            "mission_entries",
+            "missions_data",
+            "data",
+            "items",
+            "entries",
+        ):
+            value = data.get(key)
+
+            if isinstance(value, list):
+                raw_entries = value
+                break
+
+            if isinstance(value, dict):
+                raw_entries = _mission_entries(value)
+                if raw_entries:
+                    break
+
+    def _flatten_mission_entries(entries):
+        flat = []
+        for entry in entries or []:
+            if isinstance(entry, list):
+                flat.extend(_flatten_mission_entries(entry))
+            else:
+                flat.append(entry)
+        return flat
+
+    # Merged the duplicate except blocks cleanly here
     try:
         book = load_mission_book(path)
-        entries = raw_entries
+        entries = _flatten_mission_entries(raw_entries)
     except Exception:
         entries = raw_entries
-        book = {"mission_types": _load_mission_type_book(), "mission_runtime_registry": _load_mission_runtime_registry()}
+        book = {
+            "mission_types": _load_mission_type_book(),
+            "mission_runtime_registry": _load_mission_runtime_registry()
+        }
+
     report["count"] = len(entries)
     type_defs = _type_registry(book.get("mission_types", book) if isinstance(book, dict) else book)
+    
+    print("[debug] mission type file =", MISSION_TYPES_FILE)
+    print("[debug] loaded types =", list(type_defs.keys())[:20])
+    
     missing_types = sorted(t for t in _CANONICAL_OBJECTIVE_TYPES if t not in type_defs)
     if missing_types:
         report["warnings"].append(f"missing mission types: {', '.join(missing_types)}")
+        
     seen = {}
     ids = []
     known_titles = set()
     all_ids = set()
+    
     for entry in entries:
         if not isinstance(entry, dict):
             continue
@@ -252,6 +341,7 @@ def validate_missions(path=None, emit=True):
         mid = _mission_id(entry)
         if mid:
             all_ids.add(mid)
+            
     for idx, entry in enumerate(entries):
         if not isinstance(entry, dict):
             report["errors"].append(f"entry #{idx + 1} is not an object")
@@ -265,12 +355,15 @@ def validate_missions(path=None, emit=True):
             report["errors"].append(f"duplicate mission id: {mid}")
         seen[mid] = entry
         ids.append(mid)
+        
         provider = _mission_provider(entry)
         if not provider:
             report["warnings"].append(f"{mid}: missing provider")
+            
         chain = _clean_text(entry.get("chain") or entry.get("giver_id") or entry.get("giver_name"))
         if not chain:
             report["warnings"].append(f"{mid}: missing chain")
+            
         order = entry.get("order", entry.get("index"))
         try:
             order_val = int(order)
@@ -278,6 +371,7 @@ def validate_missions(path=None, emit=True):
                 report["warnings"].append(f"{mid}: invalid order {order}")
         except Exception:
             report["warnings"].append(f"{mid}: invalid order {order}")
+            
         required_aliases = {
             "name": ("name", "title"),
             "description": ("description", "description_lines"),
@@ -301,7 +395,14 @@ def validate_missions(path=None, emit=True):
                     break
             if not has_field:
                 report["warnings"].append(f"{mid}: missing field {required_key}")
-        mission_type_id = _clean_text(entry.get("type") or entry.get("mission_type"))
+                
+        mission_type_id = _clean_text(
+            entry.get("type")
+            or entry.get("mission_type")
+            or entry.get("missionType")
+            or entry.get("objective_type")
+            or entry.get("objectiveType")
+        )
         mission_type_id = _resolve_objective_type(mission_type_id, book)
         if not mission_type_id:
             report["warnings"].append(f"{mid}: missing runnable type")
@@ -309,10 +410,14 @@ def validate_missions(path=None, emit=True):
             report["errors"].append(f"{mid}: banned runnable type {mission_type_id}")
         elif mission_type_id not in _CANONICAL_OBJECTIVE_TYPES:
             report["warnings"].append(f"{mid}: unsupported runnable type {mission_type_id}")
+            
         params = entry.get("params", {})
         if params in (None, "", [], {}):
-            if mission_type_id in _CANONICAL_OBJECTIVE_TYPES:
-                report["warnings"].append(f"{mid}: missing params for type {mission_type_id}")
+            if not entry.get("objectives"):
+                if mission_type_id in _CANONICAL_OBJECTIVE_TYPES:
+                    report["warnings"].append(
+                        f"{mid}: missing params for type {mission_type_id}"
+                    )
         elif params not in (None, "", [], {}):
             if not isinstance(params, dict):
                 report["warnings"].append(f"{mid}: unsupported params shape {type(params).__name__}")
@@ -333,6 +438,7 @@ def validate_missions(path=None, emit=True):
                             continue
                         if not _schema_allows_value(pval, pspec):
                             report["warnings"].append(f"{mid}: params field {pname} has unsupported type")
+                            
         objectives = entry.get("objectives", entry.get("objective_lines"))
         if isinstance(objectives, list):
             if not objectives:
@@ -344,19 +450,13 @@ def validate_missions(path=None, emit=True):
             report["warnings"].append(f"{mid}: no objectives/objective_lines")
         else:
             report["warnings"].append(f"{mid}: unsupported objectives shape {type(objectives).__name__}")
+            
         allowed_objective_types = {
-            "complete_missions",
-            "high_risk_mission",
-            "kill_enemy",
-            "kill_elite_enemy",
-            "collect_item",
-            "collect_data",
-            "upload_data",
-            "talk_to_npc",
-            "key_interact",
-            "mission_complete",
-            "return",
-            "turn_in",
+            "CM", "KE", "KEE", "CI", "CD", "UD", "CA", "SA",
+            "complete_missions", "kill_enemy", "kill_elite_enemy",
+            "collect_item", "collect_data", "upload_data",
+            "talk_to_npc", "key_interact", "mission_complete",
+            "return", "turn_in",
         }
         if isinstance(objectives, list):
             for obj in objectives:
@@ -376,6 +476,7 @@ def validate_missions(path=None, emit=True):
                         report["warnings"].append(f"{mid}: key_interact objective missing required_key")
                     if not _clean_text(obj.get("target_id")):
                         report["warnings"].append(f"{mid}: key_interact objective missing target_id")
+                        
         rewards = entry.get("rewards", entry.get("reward_lines"))
         if rewards in (None, "", [], {}):
             report["warnings"].append(f"{mid}: no rewards/reward_lines")
@@ -388,15 +489,18 @@ def validate_missions(path=None, emit=True):
                 rtype = _clean_text(reward.get("type"))
                 if rtype and rtype not in allowed_reward_types:
                     report["warnings"].append(f"{mid}: unsupported reward type {rtype}")
+                    
         unlock_refs = _mission_unlock_refs(entry)
         for ref in unlock_refs:
             if ref not in all_ids and ref not in known_titles:
                 report["warnings"].append(f"{mid}: unlock reference {ref} not found yet")
+                
         objective_lines = entry.get("objective_lines") or []
         if isinstance(objective_lines, list):
             for line in objective_lines:
                 if isinstance(line, str) and "unsupported" in line.lower():
                     report["warnings"].append(f"{mid}: suspicious objective line {line}")
+                    
     if emit:
         prefix = "[missions]"
         for item in report["errors"]:
@@ -405,8 +509,8 @@ def validate_missions(path=None, emit=True):
             print(f"{prefix} WARN: {item}")
         if not report["errors"] and not report["warnings"]:
             print(f"{prefix} mission data ok ({report['count']} entries)")
+            
     return report
-
 
 def can_accept_mission(game, mission_id, giver_id=None):
     mission_id = _clean_text(mission_id)
@@ -427,6 +531,14 @@ def can_accept_mission(game, mission_id, giver_id=None):
     if entry is None:
         return False, "mission.not_found", None
     provider = _mission_provider(entry)
+    if not provider:
+        provider = _clean_text(
+            entry.get("npc")
+            or entry.get("npc_id")
+            or entry.get("giver")
+            or entry.get("giverId")
+            or entry.get("providerId")
+            )
     if giver_id:
         resolved = _resolve_giver_key(book, giver_id)
         if provider and provider != resolved and _clean_text(entry.get("giver_name")) != _clean_text(giver_id):
@@ -521,12 +633,13 @@ def _parse_objective_line(text):
         obj["mode"] = "high_risk" if any(tok in cleaned for tok in ("高風險", "high risk", "高難度")) else "normal"
         return obj
 
-    if any(hint in cleaned for hint in _KILL_HINTS) or any(tok in cleaned for tok in ("擊殺", "消滅", "殲滅", "清除", "擊倒", "擊敗", "kill")):
+    if any(hint in cleaned for hint in _KILL_HINTS) or any(tok in cleaned for tok in ("擊殺", "消滅", "殲滅", "清除", "擊倒", "擊敗")) or any(tok in lowered for tok in ("kill", "defeat", "eliminate")):
         obj["type"] = "kill"
         obj["target"] = target
         obj["mob"] = None
-        generic_tokens = ("任意", "敵人", "敵對", "怪物", "hostile", "mob", "any")
-        if any(tok in cleaned for tok in generic_tokens):
+        generic_tokens = ("任意", "敵人", "敵對", "怪物")
+        generic_tokens_lower = ("hostile", "mob", "any", "enemy", "enemies")
+        if any(tok in cleaned for tok in generic_tokens) or any(tok in lowered for tok in generic_tokens_lower):
             obj["mode"] = "any"
         else:
             obj["mode"] = "specific"
@@ -535,7 +648,7 @@ def _parse_objective_line(text):
                 obj["mob_hint"] = maybe_name
         return obj
 
-    if any(hint in cleaned for hint in _KEY_INTERACT_HINTS) or any(tok in cleaned for tok in ("互動", "掃描", "上傳", "提交", "收集", "帶回", "回收", "交付", "保護")):
+    if any(hint in cleaned for hint in _KEY_INTERACT_HINTS) or any(tok in cleaned for tok in ("互動", "掃描", "上傳", "提交", "收集", "帶回", "回收", "交付", "保護")) or any(tok in lowered for tok in ("collect", "gather", "retrieve", "upload", "scan", "deliver", "protect")):
         obj["type"] = "key_interact"
         obj["target"] = target
         obj["target_id"] = None
@@ -662,7 +775,7 @@ def _load_mission_type_book(path=None):
             return
         normalized = dict(value)
         normalized["mode"] = _clean_text(normalized.get("mode") or ("counter" if normalized.get("target", 1) not in (0, 1, "1") else "flag"))
-        normalized["source"] = _clean_text(normalized.get("source") or normalized.get("event") or "interaction")
+        normalized["source"] = _clean_text(normalized.get("source") or normalized.get("event") or _default_objective_source(typ))
         normalized["status"] = _clean_text(normalized.get("status") or "ready_to_return")
         normalized_types[typ] = normalized
 
@@ -758,16 +871,7 @@ def _normalize_type_objective(obj):
     out["done"] = bool(out.get("done", False))
     source = _clean_text(out.get("source"))
     if not source:
-        if typ in ("complete_missions", "high_risk_mission"):
-            source = "mission_complete"
-        elif typ in ("kill_enemy", "kill_elite_enemy"):
-            source = "enemy_death"
-        elif typ in ("talk_to_npc",):
-            source = "dialog"
-        elif typ in ("play_module",):
-            source = "module"
-        else:
-            source = "interaction"
+        source = _default_objective_source(typ)
     out["source"] = source
     out["mode"] = _clean_text(out.get("mode") or ("counter" if out["target"] > 1 else "flag"))
     return out
@@ -977,26 +1081,28 @@ def _resolve_runtime_event_name(event_name, mission_book=None):
 def _type_registry(mission_type_book):
     if not isinstance(mission_type_book, dict):
         return {}
+
     types = {}
+
     for key, value in mission_type_book.items():
         if key in {"version", "source_file", "states", "objective_modes", "aliases", "types", "mission_types"}:
             continue
         if isinstance(value, dict):
             types[_clean_text(key)] = value
+
     nested = mission_type_book.get("types", {})
     if isinstance(nested, dict):
         for key, value in nested.items():
             if isinstance(value, dict):
                 types[_clean_text(key)] = value
-    nested_book = mission_type_book.get("mission_types", {})
-    if isinstance(nested_book, dict):
-        nested_types = nested_book.get("types", {})
-        if isinstance(nested_types, dict):
-            for key, value in nested_types.items():
-                if isinstance(value, dict):
-                    types[_clean_text(key)] = value
-    return types
 
+    presets = mission_type_book.get("presets", {})
+    if isinstance(presets, dict):
+        for key, value in presets.items():
+            if isinstance(value, dict):
+                types[_clean_text(key)] = value
+
+    return types
 
 def _type_aliases(mission_type_book):
     if not isinstance(mission_type_book, dict):
@@ -1332,7 +1438,19 @@ def load_mission_book(path):
         "mission_runtime_registry": deepcopy(runtime_book),
         "mission_runtime_registry_source": MISSION_RUNTIME_REGISTRY_FILE if runtime_book else "",
     }
-    for entry in raw.get("missions", []):
+    def _flatten_missions(items):
+        out = []
+        for item in items or []:
+            if isinstance(item, list):
+                out.extend(_flatten_missions(item))
+            else:
+                out.append(item)
+        return out
+
+    missions = _flatten_missions(raw.get("missions", []))
+    print("[debug] flattened missions =", len(missions))
+
+    for entry in missions:
         if not isinstance(entry, dict):
             continue
         giver_id = str(entry.get("giver_id", "") or entry.get("giver_name", "")).strip()
@@ -1585,7 +1703,7 @@ def normalize_runtime(runtime, mission_book=None):
                     "progress": int(item.get("progress", 0) or 0),
                     "done": bool(item.get("done", False)),
                 }
-                for key in ("mob", "mob_hint", "mode"):
+                for key in ("mob", "mob_id", "mob_hint", "mode", "source"):
                     if key in item:
                         obj[key] = item.get(key)
                 for key in ("target_id", "required_key", "set_flag", "consume_key", "key_label"):

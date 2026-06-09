@@ -1,96 +1,56 @@
-import importlib.util
-import os
-import traceback
+import importlib.util as iu, os, traceback
 
+def _iter_mod_files(d):
+    if not os.path.isdir(d): return []
+    out = []
+    for r, ds, fs in os.walk(d):
+        ds[:] = sorted(x for x in ds if x != "__pycache__" and not x.startswith("."))
+        for f in sorted(fs):
+            p = os.path.join(r, f)
+            rel = os.path.relpath(p, d)
+            if (f.endswith(".py") and not f.startswith("_") and f != "__init__.py"
+                and not f.endswith("_entry.py") and os.path.isfile(p)
+                and (not os.path.dirname(rel) or f.endswith("_main.py"))):
+                out.append(p)
+    return out
 
-def _iter_mod_files(mods_dir):
-    if not os.path.isdir(mods_dir):
-        return []
-    files = []
-    for root, dirs, names in os.walk(mods_dir):
-        dirs[:] = sorted(d for d in dirs if d != "__pycache__" and not d.startswith("."))
-        for name in sorted(names):
-            if not name.endswith(".py"):
-                continue
-            if name.startswith("_") or name == "__init__.py":
-                continue
-            if name.endswith("_entry.py"):
-                continue
-            path = os.path.join(root, name)
-            if not os.path.isfile(path):
-                continue
-            rel = os.path.relpath(path, mods_dir)
-            if os.path.dirname(rel):
-                if not name.endswith("_main.py"):
-                    continue
-            files.append(path)
-    return files
-
-
-def _load_module_from_path(path, mods_dir):
-    rel = os.path.relpath(path, mods_dir)
-    rel_stem = os.path.splitext(rel)[0]
-    rel_mod = rel_stem.replace(os.sep, ".").replace("/", ".").replace("\\", ".")
-    mod_name = f"mods.{rel_mod}"
-    spec = importlib.util.spec_from_file_location(mod_name, path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("failed to build import spec")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
+def _load_module_from_path(p, d):
+    rel = os.path.splitext(os.path.relpath(p, d))[0].replace(os.sep, ".").replace("\\", ".").replace("/", ".")
+    spec = iu.spec_from_file_location(f"mods.{rel}", p)
+    if not spec or not spec.loader: raise RuntimeError("failed to build import spec")
+    m = iu.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
 
 def load_mods(ctx, mods_dir):
-    if "mod_hooks" not in ctx or not isinstance(ctx.get("mod_hooks"), dict):
-        ctx["mod_hooks"] = {}
-    loaded = []
-    errors = []
-
-    for path in _iter_mod_files(mods_dir):
-        name = os.path.relpath(path, mods_dir)
+    if not isinstance(ctx.get("mod_hooks"), dict): ctx["mod_hooks"] = {}
+    loaded, errors = [], []
+    for p in _iter_mod_files(mods_dir):
+        name = os.path.relpath(p, mods_dir)
         try:
-            module = _load_module_from_path(path, mods_dir)
-            register = getattr(module, "register_mod", None)
-            if register is None:
-                register = getattr(module, "register", None)
-            if callable(register):
-                register(ctx)
+            m = _load_module_from_path(p, mods_dir)
+            reg = getattr(m, "register_mod", None) or getattr(m, "register", None)
+            if callable(reg): reg(ctx)
             loaded.append(name)
-        except Exception as exc:
-            errors.append(
-                {
-                    "mod": name,
-                    "error": str(exc),
-                    "traceback": traceback.format_exc(),
-                }
-            )
-
-    ctx["loaded_mods"] = loaded
-    ctx["mod_errors"] = errors
+        except Exception as e:
+            errors.append({"mod": name, "error": str(e), "traceback": traceback.format_exc()})
+    ctx["loaded_mods"], ctx["mod_errors"] = loaded, errors
     return loaded, errors
 
-
 def register_hook(ctx, hook_name, fn):
-    hooks = ctx.setdefault("mod_hooks", {})
-    hooks.setdefault(hook_name, []).append(fn)
-
+    ctx.setdefault("mod_hooks", {}).setdefault(hook_name, []).append(fn)
 
 def invoke_hooks(ctx, hook_name, *args, stop_on_true=False, **kwargs):
-    hooks = ctx.get("mod_hooks", {})
-    fns = hooks.get(hook_name, [])
-    result = False
-    for fn in fns:
+    res = False
+    for fn in ctx.get("mod_hooks", {}).get(hook_name, []):
         try:
             ret = fn(ctx, *args, **kwargs)
-            if stop_on_true and ret:
-                return True
-            result = result or bool(ret)
-        except Exception as exc:
-            ctx.setdefault("mod_errors", []).append(
-                {
-                    "mod": getattr(fn, "__module__", "unknown"),
-                    "error": str(exc),
-                    "traceback": traceback.format_exc(),
-                }
-            )
-    return result
+            if stop_on_true and ret: return True
+            res |= bool(ret)
+        except Exception as e:
+            ctx.setdefault("mod_errors", []).append({
+                "mod": getattr(fn, "__module__", "unknown"),
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            })
+    return res

@@ -53,12 +53,14 @@ def _save_png(canvas, out_path, backend, compress_level=1):
 
 
 def _collect_folders(clips_dir, include):
+    clips_dir = Path(clips_dir)
     if include:
         return [clips_dir / name for name in include]
     return [p for p in clips_dir.iterdir() if p.is_dir() and p.name.startswith("nobg_")]
 
 
 def _sorted_frames(folder):
+    folder = Path(folder)
     frames = sorted(folder.glob("*.png"))
     # Keep predictable order for frame_0001 style names.
     return frames
@@ -119,6 +121,8 @@ def _pack_chunk(folder_name, frames, loaded, fw, fh, out_dir, fps, backend, chun
 
 
 def pack_folder(folder, out_dir, fps, max_frames_per_atlas=0, compress_level=1):
+    folder = Path(folder)
+    out_dir = Path(out_dir)
     frames = _sorted_frames(folder)
     if not frames:
         return None

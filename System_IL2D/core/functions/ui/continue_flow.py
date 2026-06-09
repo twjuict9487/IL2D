@@ -2,8 +2,10 @@ import os
 import pygame
 
 from ..support.utils import SAVE_DIR
-
-
+from ..audio.audio_manager import AudioManager
+base_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..")
+)
 def get_save_slots():
     slots = []
     for i in range(1, 4):
@@ -25,9 +27,21 @@ def handle_continue_menu_key(ctx, event):
     elif event.key == pygame.K_RETURN:
         slot = slots[ctx["continue_selected"]]["slot"]
         if ctx["game"].load_save(slot):
+            if not hasattr(ctx["game"], "audio"):
+                ctx["game"].audio = AudioManager()
+
+            ctx["game"].audio.play_bgm(
+                os.path.join(
+                    base_dir,
+                    "clips",
+                    "audio",
+                    "短兵相接.mp3.mp3"
+                )
+            )
+
             ctx["state"] = "game"
-    elif event.key == pygame.K_ESCAPE:
-        ctx["state"] = "main_menu"
+        elif event.key == pygame.K_ESCAPE:
+            ctx["state"] = "main_menu"
 
 
 def handle_mouse_continue_menu(ctx, pos, get_font_fn):

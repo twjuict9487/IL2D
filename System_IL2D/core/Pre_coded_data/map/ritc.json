@@ -26,7 +26,6 @@
     ],
   "spawn": [15, 18],
   "mob_limit": 0,
-  "npc_layout": {},
   "portals": [
       {
             "x": 4,

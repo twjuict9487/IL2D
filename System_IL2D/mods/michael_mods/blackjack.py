@@ -1,5 +1,6 @@
 ﻿import random
 from enum import Enum
+import sys
 
 COLD_REACTIONS = [
     "嗯...還可以啦。",
@@ -372,6 +373,11 @@ class BlackjackCore:
 
 def play_blackjack():
     """主遊戲循環"""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdin.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     print("\n" + "*" * 50)
     print("歡迎來到 21 點遊戲！")
     print("*" * 50)

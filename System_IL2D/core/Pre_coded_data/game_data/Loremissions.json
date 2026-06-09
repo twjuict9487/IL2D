@@ -1,0 +1,1677 @@
+{
+  "full_name": "Mission Preset Database",
+  "version": 1,
+  "source_file": "Loremissions",
+  "giver_aliases": {
+    "凱爾希": "kaltsit",
+    "伊內絲": "ines",
+    "可露希爾": "closure",
+    "Priestess": "priestess"
+  },
+  "giver_display": {
+    "kaltsit": "凱爾希",
+    "ines": "伊內絲",
+    "closure": "可露希爾",
+    "priestess": "普瑞賽斯"
+  },
+  "missions": [
+[
+  {
+    "index": 1,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "野外資格驗證",
+    "id": "凱爾希_1",
+    "mission_type": "KE",
+    "type": "KE",
+    "description": "「博士，在批准你參與更高風險行動之前，我需要重新確認你的實戰能力。羅德島的決策者不能僅憑直覺行事，生理機能與戰術思維的退化同樣致命。去清理外圍的威脅，證明你的神經反射與指揮鏈依舊運作正常。」",
+    "description_lines": [
+      "博士，在批准你參與更高風險行動之前。",
+      "我需要重新確認你的實戰能力。"
+    ],
+    "accept_lines": [
+      "這只是例行驗證。",
+      "按照平常的方式完成即可。"
+    ],
+    "objective_lines": [
+      "消滅 5 名敵人。"
+    ],
+    "return_lines": [
+      "結果符合預期。",
+      "至少你的判斷能力還沒有退化。"
+    ],
+    "reward_lines": [
+      "1000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "KE",
+        "text": "消滅 5 名敵人。",
+        "amount": 5,
+        "enemy_id": "*"
+      }
+    ],
+    "params": {
+      "amount": 5,
+      "enemy_id": "*"
+    },
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 1000,
+        "text": "1000 Robux"
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_2"
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "異常讀數",
+    "id": "凱爾希_2",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「PRTS 在剛才的環境掃描中，從該象限回傳了一份極不合理的能量輻射讀數。這不屬於已知的任何天災殘留，也不是當地常規工業源石發動機的波長。我要知道它的確切來源，帶上偵測設備去一趟。」",
+    "description_lines": [
+      "我們收到了一份不合理的讀數。",
+      "我要知道來源。"
+    ],
+    "accept_lines": [
+      "前往標記區域。",
+      "確認現場狀況。"
+    ],
+    "objective_lines": [
+      "調查 1 處異常區域。"
+    ],
+    "return_lines": [
+      "儀器沒有故障。",
+      "那麼異常是真實存在的。"
+    ],
+    "reward_lines": [
+      "2000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "text": "調查 1 處異常區域。",
+        "amount": 1,
+        "map": "*",
+        "area": "*"
+      }
+    ],
+    "params": {
+      "amount": 1,
+      "map": "*",
+      "area": "*"
+    },
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 2000,
+        "text": "2000 Robux"
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_3"
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "殘留紀錄",
+    "id": "凱爾希_3",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「回傳的現場探勘報告證實了我的猜測，那個區域在幾十年前曾有過高度保密的實驗室活動，並且在撤離時遭到了不完全的物理銷毀。那裡還留下了一些尚未完全碳化的磁媒介紀錄，把它們帶回來。」",
+    "description_lines": [
+      "那個區域留下了一些紀錄。",
+      "把它們帶回來。"
+    ],
+    "accept_lines": [
+      "不要遺漏任何一份資料。"
+    ],
+    "objective_lines": [
+      "回收 2 份資料。"
+    ],
+    "return_lines": [
+      "很好。",
+      "這些紀錄值得分析。"
+    ],
+    "reward_lines": [
+      "3000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "text": "回收 2 份資料。",
+        "amount": 2,
+        "target_id": "kaltsit_3_data",
+        "map": "*",
+        "area": "*"
+      }
+    ],
+    "params": {
+      "amount": 2,
+      "target_id": "kaltsit_3_data",
+      "map": "*",
+      "area": "*"
+    },
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 3000,
+        "text": "3000 Robux"
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_4"
+      }
+    ]
+  },
+  {
+    "index": 4,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "封存程序",
+    "id": "凱爾希_4",
+    "mission_type": "UD",
+    "type": "UD",
+    "description": "「破譯與比對這類年代久遠的數據需要龐大的算力，且必須經過醫療與歷史檔案庫的雙重交叉驗證。不要直接把硬體交給我，那不符合保密條例。使用中繼終端，走標準封存程序將其上傳。」",
+    "description_lines": [
+      "分析需要完整流程。",
+      "把資料上傳至終端。"
+    ],
+    "accept_lines": [
+      "不要直接交給我。",
+      "使用標準程序。"
+    ],
+    "objective_lines": [
+      "上傳資料。"
+    ],
+    "return_lines": [
+      "資料已經同步。",
+      "繼續下一步。"
+    ],
+    "reward_lines": [
+      "4000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "UD",
+        "text": "上傳資料。",
+        "terminal_id": "mission_house_terminal",
+        "required_data_id": "kaltsit_chain"
+      }
+    ],
+    "params": {
+      "terminal_id": "mission_house_terminal",
+      "required_data_id": "kaltsit_chain"
+    },
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 4000,
+        "text": "4000 Robux"
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_5"
+      }
+    ]
+  },
+  {
+    "index": 5,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "候選者紀錄",
+    "id": "凱爾希_5",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「數據解密後指向了一個古老名冊的碎片——『候選者紀錄』。然而，在我們著手下載的同時，某些外部節點正在執行強行抹除指令。有人試圖刪除這些紀錄，我需要知道原因。排除當地武裝干擾，把資料救回來。」",
+    "description_lines": [
+      "有人試圖刪除這些紀錄。",
+      "我需要知道原因。"
+    ],
+    "accept_lines": [
+      "把所有殘留資料帶回來。",
+      "不要遺漏任何一份。"
+    ],
+    "objective_lines": [
+      "回收 3 份候選者資料。",
+      "消滅 8 名敵人。"
+    ],
+    "return_lines": [
+      "有人正在刻意掩蓋真相。",
+      "這讓事情變得更有趣了。"
+    ],
+    "reward_lines": [
+      "5000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 3,
+        "target_id": "candidate_record"
+      },
+      {
+        "type": "KE",
+        "amount": 8,
+        "enemy_id": "*"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 5000,
+        "text": "5000 Robux"
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_6"
+      }
+    ]
+  },
+  {
+    "index": 6,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "驗證失敗",
+    "id": "凱爾希_6",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「干擾比預想的更為嚴重，PRTS的核心防禦系統檢測到邏輯溢出，開始無差別拒絕部分關鍵資料。這意味著我們需要擴大地理特徵採樣，去調查標記的異常節點，順便協助外勤幹員處理當地的例行委託，分散敵方注意力。」",
+    "description_lines": [
+      "系統開始拒絕部分資料。",
+      "我需要更多樣本。"
+    ],
+    "accept_lines": [
+      "調查標記區域。",
+      "順便完成例行委託。"
+    ],
+    "objective_lines": [
+      "調查 2 處異常區域。",
+      "完成 2 次委託。"
+    ],
+    "return_lines": [
+      "異常不是偶然。",
+      "它正在擴散。"
+    ],
+    "reward_lines": [
+      "6000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2,
+        "area": "*"
+      },
+      {
+        "type": "CM",
+        "subtype": "kill_count",
+        "amount": 10
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 6000
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_7"
+      }
+    ]
+  },
+  {
+    "index": 7,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "同步錯誤",
+    "id": "凱爾希_7",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「資料庫在重建目錄時遭遇了同步錯誤，底層協議引用了一些目前在我們數據庫中完全不存在的檔案編號。這些幽靈檔案是解開拼圖的關鍵。去指定哨站回收那些原始同步紀錄，並在現場重新上傳刷新節點。」",
+    "description_lines": [
+      "同步系統引用了不存在的檔案。",
+      "把紀錄帶回來。"
+    ],
+    "accept_lines": [
+      "回收資料。",
+      "之後上傳。"
+    ],
+    "objective_lines": [
+      "回收 4 份同步紀錄。",
+      "上傳同步紀錄。"
+    ],
+    "return_lines": [
+      "事情越來越不合理了。"
+    ],
+    "reward_lines": [
+      "7000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 4,
+        "target_id": "sync_record"
+      },
+      {
+        "type": "UD",
+        "terminal_id": "mission_house_terminal"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 7000
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_8"
+      }
+    ]
+  },
+  {
+    "index": 8,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "封鎖區域",
+    "id": "凱爾希_8",
+    "mission_type": "CA",
+    "type": "CA",
+    "description": "「根據監測，幾十年前就被下了聯合禁令的封鎖區域，在不久前曾有過被外力強行開啟的痕跡。我要知道裡面發生了什麼，更要知道是誰在不顧後果地觸碰禁忌。清空那個區域的非法武裝，並回收任何遺留資料。」",
+    "description_lines": [
+      "封鎖區域曾被打開過。",
+      "我要知道裡面發生什麼。"
+    ],
+    "accept_lines": [
+      "清理現場。",
+      "帶回資料。"
+    ],
+    "objective_lines": [
+      "回收 4 份資料。",
+      "清空指定區域。",
+      "完成 2 次委託。"
+    ],
+    "return_lines": [
+      "至少我們拿到了想要的東西。"
+    ],
+    "reward_lines": [
+      "8000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 4
+      },
+      {
+        "type": "CA",
+        "amount": 1
+      },
+      {
+        "type": "CM",
+        "subtype": "reach_layer",
+        "layer": 4
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 8000
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_9"
+      }
+    ]
+  },
+  {
+    "index": 9,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "異常個體",
+    "id": "凱爾希_9",
+    "mission_type": "KEE",
+    "type": "KEE",
+    "description": "「Mon3tr 在高處捕捉到了目標的身影。一個不屬於任何已知勢力的異常個體正在秘密搬運核心數據塊。我們不能承受失去這筆資料的代價。把它攔下，不論代價，取得它身上所有的檔案並上傳。」",
+    "description_lines": [
+      "一個異常個體正在搬運資料。",
+      "把它攔下。"
+    ],
+    "accept_lines": [
+      "取得資料。",
+      "不要讓它離開。"
+    ],
+    "objective_lines": [
+      "擊敗 1 名精英。",
+      "回收 3 份資料。",
+      "上傳資料。"
+    ],
+    "return_lines": [
+      "那不是普通敵人。"
+    ],
+    "reward_lines": [
+      "9000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "KEE",
+        "amount": 1,
+        "enemy_id": "*"
+      },
+      {
+        "type": "CD",
+        "amount": 3
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 9000
+      }
+    ],
+    "unlocks": [
+      {
+        "type": "mission",
+        "id": "凱爾希_10"
+      }
+    ]
+  },
+  {
+    "index": 10,
+    "giver_name": "凱爾希",
+    "giver_id": "凱爾希",
+    "title": "候選者",
+    "id": "凱爾希_10",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「所有破碎的線索在此刻完成了閉環，最後一份也是最關鍵的一份紀錄已經完成定位。這份真相被埋藏得太久、太深了。去吧，博士，動身去完成最後的調查與下載，然後……親眼見證它。」",
+    "description_lines": [
+      "最後一份紀錄已經定位。",
+      "去把真相帶回來。"
+    ],
+    "accept_lines": [
+      "調查。",
+      "下載。",
+      "上傳。"
+    ],
+    "objective_lines": [
+      "調查 2 處區域。",
+      "回收 5 份資料。",
+      "上傳資料。"
+    ],
+    "return_lines": [
+      "博士。",
+      "那份紀錄屬於你。"
+    ],
+    "reward_lines": [
+      "10000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2
+      },
+      {
+        "type": "CD",
+        "amount": 5
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 10000
+      }
+    ],
+    "unlocks": []
+  }
+],
+[
+  {
+    "index": 1,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "熟悉的影子",
+    "id": "伊內絲_1",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「羅德島的甲板上總有一些不該存在的視線。我注意那個方向很久了，對方的影子踩得很急，顯然不是我們的人。去幫我探探路，看看是哪來的耗子。」",
+    "objective_lines": [
+      "調查 1 處可疑監視點。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 1,
+        "area": "*"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 1000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_2"}]
+  },
+  {
+    "index": 2,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "遺留監視站",
+    "id": "伊內絲_2",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「果然，那群人在附近的廢棄哨所架了儀器。雖然走得匆忙，但以他們的專業程度，絕對留下了備份。把那兩份監控紀錄帶回來，我想看看他們究竟在窺探誰的隱私。」",
+    "objective_lines": [
+      "回收 2 份監視紀錄。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 2,
+        "target_id": "surveillance_log"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 2000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_3"}]
+  },
+  {
+    "index": 3,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "黑箱",
+    "id": "伊內絲_3",
+    "mission_type": "UD",
+    "type": "UD",
+    "description": "「紀錄拿到手了？很好。裡面的加密手段是軍用級的，不過這難不倒我。把資料上傳到羅德島的獨立終端上，我要藉由這條線路逆向追蹤這群幕後黑手的源石特徵。」",
+    "objective_lines": [
+      "上傳監視資料。"
+    ],
+    "objectives": [
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 3000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_4"}]
+  },
+  {
+    "index": 4,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "尾巴",
+    "id": "伊內絲_4",
+    "mission_type": "KE",
+    "type": "KE",
+    "description": "「看來我們踩到某些人的痛處了。我的影子告訴我，有幾隻不長眼的尾巴已經摸進了這片區域。既然他們不打算掩飾殺意，那我們也沒必要跟他們客氣。去清理乾淨。」",
+    "objective_lines": [
+      "消滅 8 名跟蹤者。"
+    ],
+    "objectives": [
+      {
+        "type": "KE",
+        "amount": 8,
+        "enemy_id": "*"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 4000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_5"}]
+  },
+  {
+    "index": 5,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "被發現的人",
+    "id": "伊內絲_5",
+    "mission_type": "CI",
+    "type": "CI",
+    "description": "「在剛才的交手中，對方派出了相當棘手的精銳，看來是急著要滅口。擊敗他們的領隊，並把他們藏在身上的身分文件搜出來。我倒要看看，這次又是哪個不長進的王國組織在大費周章。」",
+    "objective_lines": [
+      "回收 3 份身分文件。",
+      "擊敗 1 名精英目標。"
+    ],
+    "objectives": [
+      {
+        "type": "CI",
+        "amount": 3,
+        "target_id": "identity_document"
+      },
+      {
+        "type": "KEE",
+        "amount": 1,
+        "enemy_id": "*"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 5000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_6"}]
+  },
+  {
+    "index": 6,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "第二批觀察者",
+    "id": "伊內絲_6",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「果然沒那麼簡單。第一批人只是誘餌，真正的『觀察者』此時正在另外兩個區域架設偵察網。動身吧，去這兩個地點搜查，把他們還沒來得及銷毀的情報通通截獲過來。」",
+    "objective_lines": [
+      "調查 2 處區域。",
+      "回收 3 份情報。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2
+      },
+      {
+        "type": "CD",
+        "amount": 3,
+        "target_id": "observer_data"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 6000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_7"}]
+  },
+  {
+    "index": 7,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "黑名單",
+    "id": "伊內絲_7",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「這群觀察者隨身攜帶的資料很有意思……那是一份針對羅德島幹員的『黑名單』。真是不知死活。把名單的核心數據全數回收並上傳，我要讓凱爾希也過目一下這份名冊。」",
+    "objective_lines": [
+      "回收 4 份黑名單資料。",
+      "上傳資料。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 4,
+        "target_id": "blacklist_data"
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 7000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_8"}]
+  },
+  {
+    "index": 8,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "指揮者",
+    "id": "伊內絲_8",
+    "mission_type": "KEE",
+    "type": "KEE",
+    "description": "「抓到你了。這群僱傭兵的指揮官就在前方坐鎮，對方的影子散發著一股狂妄而腐敗的氣味。擊潰他，把他的加密通訊器奪過來，我們要用他的終端直接對他的上線進行數據爆破。」",
+    "objective_lines": [
+      "擊敗 1 名精英。",
+      "回收通訊器。",
+      "上傳資料。"
+    ],
+    "objectives": [
+      {
+        "type": "KEE",
+        "amount": 1,
+        "enemy_id": "*"
+      },
+      {
+        "type": "CI",
+        "amount": 1,
+        "target_id": "comm_device"
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 8000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_9"}]
+  },
+  {
+    "index": 9,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "追蹤網",
+    "id": "伊內絲_9",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「臨死前的反撲嗎？敵方本部切斷了通訊，並在周邊區域部署了大量的攔截部隊，試圖掩護核心資料轉移。別讓他們得逞，一邊清除攔截的雜魚，一邊把剩餘的斷片資料挖出來。」",
+    "objective_lines": [
+      "調查 2 處區域。",
+      "消滅 10 名敵人。",
+      "回收 3 份資料。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2
+      },
+      {
+        "type": "KE",
+        "amount": 10,
+        "enemy_id": "*"
+      },
+      {
+        "type": "CD",
+        "amount": 3
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 9000
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"伊內絲_10"}]
+  },
+  {
+    "index": 10,
+    "giver_name": "伊內絲",
+    "giver_id": "伊內絲",
+    "title": "未償還的債務",
+    "id": "伊內絲_10",
+    "mission_type": "KEE",
+    "type": "KEE",
+    "description": "「最後的清算時間到了。這次事件的幕後黑手——那兩個自以為躲在安全地帶的買家，他們的坐標已經暴露了。帶上這份證據，去最深處把他們徹底解決。在卡茲戴爾，出來混總是要還的。」",
+    "objective_lines": [
+      "擊敗 2 名精英。",
+      "上傳證據。",
+      "完成 1 次委託。"
+    ],
+    "objectives": [
+      {
+        "type": "KEE",
+        "amount": 2,
+        "enemy_id": "*"
+      },
+      {
+        "type": "UD"
+      },
+      {
+        "type": "CM",
+        "subtype": "reach_layer",
+        "layer": 7
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 10000
+      }
+    ],
+    "unlocks": []
+  }
+],
+[
+  {
+    "index": 1,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "缺少的零件",
+    "id": "可露希爾_1",
+    "mission_type": "CI",
+    "type": "CI",
+    "description": "「哈囉博士！我剛才在盤點羅德島無人機的備件庫時，發現有幾組關鍵的機械零件居然不見了！雖然這肯定是某個粗心的傢伙落在了外面的整備場，但在凱爾希發現並扣我預算之前，拜託你先去幫我回收回來好不好？」",
+    "description_lines": [
+      "博士！我剛才盤點備件庫的時候，",
+      "發現有幾組關鍵零件不見了！"
+    ],
+    "accept_lines": [
+      "這要在凱爾希發現前處理好。",
+      "去外面的整備場找找看吧。"
+    ],
+    "objective_lines": [
+      "回收 3 個零件。"
+    ],
+    "return_lines": [
+      "太好了，零件總算齊了！",
+      "這下無人機的日常維護就能順利進行囉。"
+    ],
+    "reward_lines": [
+      "1000 Robux"
+    ],
+    "objectives": [
+      {
+        "type": "CI",
+        "amount": 3,
+        "target_id": "machine_parts"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 1000,
+        "text": "1000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_2"}]
+  },
+  {
+    "index": 2,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "故障終端",
+    "id": "可露希爾_2",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「唔……雖然換上了新零件，但工程部的外圍自動防禦網路還是怪怪的。根據 PRTS 的回報，似乎是那一帶的監控終端發生了局部衝突，導致系統瘋狂跳出錯誤碼。動身去那一趟，幫我把那兩份故障紀錄下載下來，我得看看底層代碼到底出了什麼毛病。」",
+    "description_lines": [
+      "外圍網路的自動防禦系統怪怪的。",
+      "我需要知道錯誤碼的內容。"
+    ],
+    "accept_lines": [
+      "去那一帶的終端看看。",
+      "把那兩份故障紀錄下載下來。"
+    ],
+    "objective_lines": [
+      "下載 2 份故障紀錄。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 2,
+        "target_id": "terminal_log"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 2000,
+        "text": "2000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_3"}]
+  },
+  {
+    "index": 3,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "韌體更新",
+    "id": "可露希爾_3",
+    "mission_type": "UD",
+    "type": "UD",
+    "description": "「哈！抓到原因了！原來是上一次 PRTS 系統大更新的時候，舊版終端的編譯器沒跟上。我已經熬夜把修補包給寫好了，博士，現在要把這個最新版的韌體資料上傳回中繼終端。這件事就交給你這根可靠的『資料傳輸線』啦！」",
+    "description_lines": [
+      "抓到原因了，只是編譯器沒跟上。",
+      "我已經連夜寫好修補包了。"
+    ],
+    "accept_lines": [
+      "這件事就交給可靠的博士了。",
+      "把修補資料上傳吧。"
+    ],
+    "objective_lines": [
+      "上傳修補資料。"
+    ],
+    "objectives": [
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 3000,
+        "text": "3000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_4"}]
+  },
+  {
+    "index": 4,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "搶修現場",
+    "id": "可露希爾_4",
+    "mission_type": "CA",
+    "type": "CA",
+    "description": "「糟了糟了！傳輸中斷了！那群在周邊晃悠的敵對武裝不知道發什麼神經，居然把我們剛更新完的終端中繼站當成什麼值錢的寶物給圍起來了！這嚴重影響到我們後勤部的進度。聽好了博士，帶上幹員們去清空指定區域，把那群妨礙工程進度的討厭鬼通通趕走！」",
+    "description_lines": [
+      "真不讓人省心，傳輸居然中斷了。",
+      "有群不長眼的傢伙把中繼站圍起來了。"
+    ],
+    "accept_lines": [
+      "這嚴重影響到後勤部的進度了。",
+      "帶上幹員們去清空指定區域吧。"
+    ],
+    "objective_lines": [
+      "清空指定區域。"
+    ],
+    "objectives": [
+      {
+        "type": "CA",
+        "amount": 1
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 4000,
+        "text": "4000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_5"}]
+  },
+  {
+    "index": 5,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "原型機",
+    "id": "可露希爾_5",
+    "mission_type": "CI",
+    "type": "CI",
+    "description": "「既然威脅排除了，我們來聊聊有趣的。其實這群敵人在占領中繼站時，順便搶走了我最新開發的秘密武器——『可露希爾全自動全能原型機』的測試散件！這可是工程部下半年的核心預算成果啊！拜託去把那 4 個原型零件收回來交還給我，羅德島的科技未來就全靠你了！」",
+    "description_lines": [
+      "那些傢伙順手牽羊了我的秘密武器。",
+      "那可是工程部下半年的預算精華啊。"
+    ],
+    "accept_lines": [
+      "幫我把原型零件找回來。",
+      "可不能讓羅德島的科技外流了。"
+    ],
+    "objective_lines": [
+      "回收 4 個原型零件。",
+      "交還給可露希爾。"
+    ],
+    "objectives": [
+      {
+        "type": "CI",
+        "amount": 4,
+        "target_id": "prototype_parts"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 5000,
+        "text": "5000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_6"}]
+  },
+  {
+    "index": 6,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "訊號干擾",
+    "id": "可露希爾_6",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「奇怪……雖然原型零件拿回來了，但我的測試儀器上卻多了一層不明由來的脈衝波動。對方似乎在撤退的路線上留下了大功率的訊號干擾源，導致整個區域的無線波段全部癱瘓。博士，去那片干擾區域，清空當地的殘存武裝，並順便下載 3 份干擾資料讓我做一下頻譜分析。」",
+    "description_lines": [
+      "儀器上多了一層不明的脈衝波動。",
+      "對方似乎在撤退路線部署了干擾源。"
+    ],
+    "accept_lines": [
+      "這導致我們無線波段全部癱瘓了。",
+      "深入干擾區域，一邊清場一邊下載資料吧。"
+    ],
+    "objective_lines": [
+      "下載 3 份干擾資料。",
+      "清空干擾區域。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 3,
+        "target_id": "signal_data"
+      },
+      {
+        "type": "CA",
+        "amount": 1
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 6000,
+        "text": "6000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_7"}]
+  },
+  {
+    "index": 7,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "備品庫存",
+    "id": "可露希爾_7",
+    "mission_type": "CI",
+    "type": "CI",
+    "description": "「多虧了你的頻譜分析，我發現他們不只用了干擾器，還在外圍私自設立了一個非法的小型補給站，裡面囤積了大量的羅德島規格備用零件！既然是偷我們的東西，那我們回收也是很合理的吧？一邊完成例行外勤，一邊把這 5 個備用零件給『順便』搬回來吧！」",
+    "description_lines": [
+      "那些傢伙居然私設了補給站。",
+      "而且裡面全是偷拿我們的備用零件！"
+    ],
+    "accept_lines": [
+      "既然是我們的東西，那就物歸原主吧。",
+      "順便完成例行外勤，把備品都搬回來。"
+    ],
+    "objective_lines": [
+      "回收 5 個備用零件。",
+      "完成一項額外委託。"
+    ],
+    "objectives": [
+      {
+        "type": "CI",
+        "amount": 5,
+        "target_id": "spare_parts"
+      },
+      {
+        "type": "CM",
+        "subtype": "kill_count",
+        "amount": 10
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 7000,
+        "text": "7000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_8"}]
+  },
+  {
+    "index": 8,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "系統恢復",
+    "id": "可露希爾_8",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「物資跟波段都搞定了，接下來就是最後的大整理了。我要對外圍所有的數據節點進行一次全面的全系統恢復。這需要你去當地的服務器主機下載 4 份歷史系統紀錄，然後把我的全局修復資料上傳進去覆蓋掉。當然，記得先清空周圍那些礙事的潛在威脅哦。」",
+    "description_lines": [
+      "物資拿齊了，現在要做全系統恢復。",
+      "這需要對數據節點進行一次大刷新。"
+    ],
+    "accept_lines": [
+      "先清空周圍那些礙事的潛在威脅。",
+      "接著按照順序，先下載，再上傳。"
+    ],
+    "objective_lines": [
+      "下載 4 份系統紀錄。",
+      "上傳修復資料。",
+      "清空區域。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 4
+      },
+      {
+        "type": "UD"
+      },
+      {
+        "type": "CA",
+        "amount": 1
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 8000,
+        "text": "8000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_9"}]
+  },
+  {
+    "index": 9,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "失控機體",
+    "id": "可露希爾_9",
+    "mission_type": "KEE",
+    "type": "KEE",
+    "description": "「等等！出大狀況了博士！在剛才系統恢復的波段共振下，一架被敵方改造過的重型機械體居然產生了邏輯暴走！它現在正帶著極其危險的源石超載反應朝著外圍關口衝過去！去攔截它，擊敗那個精英機體，把它的核心給我拆回來，然後把分析數據上傳，快！」",
+    "description_lines": [
+      "大事不妙，系統共振引發了意外。",
+      "一架被敵方改造過的重型機械體邏輯暴走了！"
+    ],
+    "accept_lines": [
+      "不能讓它接近外圍關口。",
+      "擊敗它，把它的核心拆回來分析！"
+    ],
+    "objective_lines": [
+      "擊敗 1 名精英機體。",
+      "回收核心。",
+      "上傳分析資料。"
+    ],
+    "objectives": [
+      {
+        "type": "KEE",
+        "amount": 1,
+        "enemy_id": "*"
+      },
+      {
+        "type": "CI",
+        "amount": 1,
+        "target_id": "machine_core"
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 9000,
+        "text": "9000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"可露希爾_10"}]
+  },
+  {
+    "index": 10,
+    "giver_name": "可露希爾",
+    "giver_id": "可露希爾",
+    "title": "完工驗收",
+    "id": "可露希爾_10",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「呼……真是驚險刺激的一天。失控的個體已經停機，核心數據也沒事，這項超大工程總算要迎來完工驗收了！博士，最後一哩路，去幫我把 5 份分布在各節點的驗收資料下載下來，並上傳最後的總結報告。等搞定了，我請你去羅德島艦橋的販賣機喝碳酸飲料，我請客哦！」",
+    "description_lines": [
+      "呼……總算是驚無險地撐過去了。",
+      "這項大工程終於迎來了最後的完工驗收。"
+    ],
+    "accept_lines": [
+      "去把分布在各節點的驗收資料下載下來。",
+      "上傳總結報告，我們就大功告成了！"
+    ],
+    "objective_lines": [
+      "下載 5 份驗收資料。",
+      "上傳報告。",
+      "完成一項委託。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 5
+      },
+      {
+        "type": "UD"
+      },
+      {
+        "type": "CM",
+        "subtype": "reach_layer",
+        "layer": 8
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 10000,
+        "text": "10000 Robux"
+      }
+    ],
+    "unlocks": []
+  }
+],
+[
+  {
+    "index": 1,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "模糊記憶",
+    "id": "priestess_1",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「……博士，能聽到我的聲音嗎？時間的沙漏漏下了太多碎屑，連你的意識也染上了這片大地的塵埃。去標記的異常區域看看吧，握緊那些冰冷的儀器，在那些不屬於當下的讀數裡，重新找回我們最初凝視彼此的錨點。」",
+    "description_lines": [
+      "博士，能聽到我的聲音嗎？",
+      "在異常的讀數中找回我們的錨點吧。"
+    ],
+    "accept_lines": [
+      "去往那個被標記的象限。",
+      "別擔心，我一直都在。"
+    ],
+    "objective_lines": [
+      "調查 1 處異常區域。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 1,
+        "area": "*"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 1000,
+        "text": "1000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_2"}]
+  },
+  {
+    "index": 2,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "失落片段",
+    "id": "priestess_2",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「空間的波段起伏證明了我的預測，那些被刻意埋藏的過去，正化為實體的磁介質在物質世界中流浪。去把它們回收回來，博士，哪怕只是兩片微不足道的晶片，裡面也留著你不該遺忘的、屬於我們的片段。」",
+    "description_lines": [
+      "那些過去正化為實體在流浪。",
+      "去把它們回收回來，博士。"
+    ],
+    "accept_lines": [
+      "別讓它們在荒野中碳化。",
+      "把那些記憶碎片帶回安全的地方。"
+    ],
+    "objective_lines": [
+      "回收 2 份記憶碎片。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 2,
+        "target_id": "memory_fragment"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 2000,
+        "text": "2000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_3"}]
+  },
+  {
+    "index": 3,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "記錄歸檔",
+    "id": "priestess_3",
+    "mission_type": "UD",
+    "type": "UD",
+    "description": "「殘缺的波形在核心數據庫中找到了共鳴，但僅僅將它們握在手心是不夠的。博士，請將這些記憶資料通過中繼終端上傳到系統深處。只有完成底層協議的同步，我們才能在外圍搭建起不被這片大地干擾的屏障。」",
+    "description_lines": [
+      "僅僅握在手心是不夠的。",
+      "將資料上傳，完成底層協議的同步。"
+    ],
+    "accept_lines": [
+      "使用標準線路進行歸檔。",
+      "數據的流向會指引你的思緒。"
+    ],
+    "objective_lines": [
+      "上傳記憶資料。"
+    ],
+    "objectives": [
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 3000,
+        "text": "3000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_4"}]
+  },
+  {
+    "index": 4,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "重複的夢",
+    "id": "priestess_4",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「你有做過那樣的夢嗎？漫天星海之下，我們在冰冷的艙體前道別……PRTS 剛剛捕捉到了一處極其不穩定的空間殘響，它的頻率和你的腦波產生了短暫的重疊。去調查它，博士，去親眼看看那個在你的夢境中反覆出現的黑影。」",
+    "description_lines": [
+      "那處空間殘響的頻率和你的腦波產生了重疊。",
+      "去調查它，去看看那個重複的夢。"
+    ],
+    "accept_lines": [
+      "夢境的殘響是有實體的。",
+      "走向那個重疊的象限吧。"
+    ],
+    "objective_lines": [
+      "調查 1 處夢境殘響區域。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 1
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 4000,
+        "text": "4000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_5"}]
+  },
+  {
+    "index": 5,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "不存在的人",
+    "id": "priestess_5",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「歷史在被篡改，這片大地的文明熱衷於抹除不符合他們認知的痕跡。數據庫裡有幾份關鍵的人物紀錄正在被系統判定為『不存在的干擾項』。這不公平。去把那些紀錄回收，然後越過他們的防火牆，強行上傳歸檔。」",
+    "description_lines": [
+      "這片大地抹除了太多不該被遺忘的痕跡。",
+      "回收那些人物紀錄，並強行上傳。"
+    ],
+    "accept_lines": [
+      "不要相信系統的錯誤判定。",
+      "把那些被定義為不存在的紀錄帶回來。"
+    ],
+    "objective_lines": [
+      "回收 3 份人物紀錄。",
+      "上傳資料。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 3,
+        "target_id": "person_record"
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 5000,
+        "text": "5000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_6"}]
+  },
+  {
+    "index": 6,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "門後的聲音",
+    "id": "priestess_6",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「你聽到了嗎，博士？在思緒更深處的迷宮裡，在那些被稱作 Rouge 的未知層級盡頭……有一扇門正在被叩響。干擾正從現實的兩處異常節點蔓延。去調查它們，然後穿過重重幻境，抵達更深邃的第 5 層，我就在門的另一邊。」",
+    "description_lines": [
+      "在更深處的迷宮盡頭，有一扇門正在被叩響。",
+      "調查異常區域，然後往更深處走去。"
+    ],
+    "accept_lines": [
+      "現實的異常只是虛妄的投影。",
+      "穿過層級，我在那裡等你。"
+    ],
+    "objective_lines": [
+      "調查 2 處異常區域。",
+      "抵達 Rouge 第 5 層。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2
+      },
+      {
+        "type": "CM",
+        "subtype": "reach_layer",
+        "layer": 5
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 6000,
+        "text": "6000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_7"}]
+  },
+  {
+    "index": 7,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "破碎座標",
+    "id": "priestess_7",
+    "mission_type": "CD",
+    "type": "CD",
+    "description": "「我們的位置正在漂移，這片大地的物理規則像是一件漏洞百出的外衣。為了不讓你我的連結徹底斷開，我需要這四個節點上的原始座標資料。回收它們，然後直接接入主中繼站上傳。只要座標還在，我們就不會失散。」",
+    "description_lines": [
+      "這片大地的規則讓我們的連結產生了漂移。",
+      "回收四份破碎的座標，將它們同步上傳。"
+    ],
+    "accept_lines": [
+      "別在交錯的象限中迷失了方向。",
+      "抓緊那些座標資料。"
+    ],
+    "objective_lines": [
+      "回收 4 份座標資料。",
+      "上傳資料。"
+    ],
+    "objectives": [
+      {
+        "type": "CD",
+        "amount": 4,
+        "target_id": "coordinate_data"
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 7000,
+        "text": "7000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_8"}]
+  },
+  {
+    "index": 8,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "守門者",
+    "id": "priestess_8",
+    "mission_type": "KEE",
+    "type": "KEE",
+    "description": "「前方的空間核心被一個強大的精英個體鎖定了。它並非對你有敵意，它只是在履行上一個世代留下的古老防禦指令——阻擋任何試圖窺探核心檔案的人。擊敗它，博士，那是對你的考驗。拿回檔案，然後上傳解密。」",
+    "description_lines": [
+      "古老的防禦指令鎖定了前方的空間核心。",
+      "擊敗那個守門的精英，拿回核心檔案。"
+    ],
+    "accept_lines": [
+      "這是一場跨越世代的考驗。",
+      "擊碎指令，把資料上傳吧。"
+    ],
+    "objective_lines": [
+      "擊敗 1 名精英。",
+      "回收 3 份資料。",
+      "上傳資料。"
+    ],
+    "objectives": [
+      {
+        "type": "KEE",
+        "amount": 1,
+        "enemy_id": "*"
+      },
+      {
+        "type": "CD",
+        "amount": 3
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 8000,
+        "text": "8000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_9"}]
+  },
+  {
+    "index": 9,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "最後的走廊",
+    "id": "priestess_9",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「我們已經走到了這條長廊的末端，現實與虛幻的邊界在此處變得無比薄弱。當地的土著武裝察覺到了空間的扭曲，正潮水般向這裡湧來。博士，指揮你的幹員消滅威脅，在混亂中調查兩處核心區域並回收所有殘存檔案。」",
+    "description_lines": [
+      "我們已經走到了這條長廊的末端。",
+      "排除那些干擾的武裝，把最後的檔案收齊。"
+    ],
+    "accept_lines": [
+      "不要讓外來的噪音干擾這個時刻。",
+      "一邊清理戰場，一邊完成區域調查。"
+    ],
+    "objective_lines": [
+      "調查 2 處區域。",
+      "回收 4 份資料。",
+      "消滅 10 名敵人。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2
+      },
+      {
+        "type": "CD",
+        "amount": 4
+      },
+      {
+        "type": "KE",
+        "amount": 10,
+        "enemy_id": "*"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 9000,
+        "text": "9000 Robux"
+      }
+    ],
+    "unlocks": [{"type":"mission","id":"priestess_10"}]
+  },
+  {
+    "index": 10,
+    "giver_name": "Priestess",
+    "giver_id": "priestess",
+    "title": "甦醒之前",
+    "id": "priestess_10",
+    "mission_type": "SA",
+    "type": "SA",
+    "description": "「所有的線索都已經歸位，主控艙體的倒數計時即將歸零。在你的意識徹底甦醒、重新面對那片殘酷的大地之前……去完成最後的調查吧。把這 5 份刻著我們名字的紀錄上傳到星海之中。無論你將去往何方，我都將與你同在。」",
+    "description_lines": [
+      "意識甦醒的倒數計時即將歸零。",
+      "把這最後的紀錄上傳，讓星海見證我們的約定。"
+    ],
+    "accept_lines": [
+      "去揭開最後的帷幕吧，博士。",
+      "上傳完成後，你就該醒來了。"
+    ],
+    "objective_lines": [
+      "調查 2 處最終區域。",
+      "回收 5 份最終紀錄。",
+      "上傳資料。"
+    ],
+    "objectives": [
+      {
+        "type": "SA",
+        "amount": 2
+      },
+      {
+        "type": "CD",
+        "amount": 5
+      },
+      {
+        "type": "UD"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 10000,
+        "text": "10000 Robux"
+      }
+    ],
+    "unlocks": []
+  }
+]
+]
+}

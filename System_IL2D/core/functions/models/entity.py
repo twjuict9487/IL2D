@@ -1,17 +1,3 @@
 class Entity:
-    def __init__(self, eid, x, y, hp, mp=0, attack=10, defence=0, ai_type=None, immortal=False):
-        self.eid = eid
-        self.x = x
-        self.y = y
-        self.hp = hp
-        self.max_hp = hp
-        self.mp = mp
-        self.max_mp = mp
-        self.attack = attack
-        self.defence = defence  # 0~100 damage reduction percent
-        self.move_cooldown = 0
-        self.ai_type = ai_type
-        self.immortal = immortal
-
-    def pos(self):
-        return (self.x, self.y)
+ def __init__(s,eid,x,y,hp,mp=0,attack=10,defence=0,ai_type=None,immortal=False):s.eid=eid;s.x=x;s.y=y;s.hp=s.max_hp=hp;s.mp=s.max_mp=mp;s.attack=attack;s.defence=defence;s.move_cooldown=0;s.ai_type=ai_type;s.immortal=immortal
+ def pos(s):return s.x,s.y

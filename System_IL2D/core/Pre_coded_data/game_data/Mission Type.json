@@ -1,0 +1,104 @@
+{
+  "full_name": "Mission Types",
+  "version": 1,
+  "source_file": "mission_types",
+
+  "base_types": {
+    "Combat": {
+      "description": "Player must defeat enemies.",
+      "events": ["EnemyDeath"],
+      "presets": ["KE", "KEE", "CA"]
+    },
+
+    "Acquire": {
+      "description": "Player must obtain an item, data, or mission object.",
+      "events": ["ItemGain", "TargetCollected"],
+      "presets": ["CI", "CD"]
+    },
+
+    "Explore": {
+      "description": "Player must reach or survey a marked area.",
+      "events": ["PlayerEnterArea", "SurveyComplete"],
+      "presets": ["SA"]
+    },
+
+    "Deliver": {
+      "description": "Player must return data or mission object to a terminal or NPC.",
+      "events": ["UploadComplete", "TurnInTarget"],
+      "presets": ["UD"]
+    },
+
+    "Meta": {
+      "description": "Mission progress depends on other missions being completed.",
+      "events": ["MissionFinished"],
+      "presets": ["CM"]
+    }
+  },
+
+  "presets": {
+    "KE": {
+      "full_name": "Kill Enemy",
+      "base_type": "Combat",
+      "required_params": ["enemy_id", "amount"],
+      "optional_params": ["map", "area", "spawn_rule", "marker"],
+      "completion": "kill_count >= amount"
+    },
+
+    "KEE": {
+      "full_name": "Kill Elite Enemy",
+      "base_type": "Combat",
+      "required_params": ["enemy_id", "amount", "elite_rule"],
+      "optional_params": ["map", "area", "spawn_rule", "buff_rule", "marker"],
+      "completion": "elite_kill_count >= amount"
+    },
+
+    "CI": {
+      "full_name": "Collect Item",
+      "base_type": "Acquire",
+      "required_params": ["item_id", "amount"],
+      "optional_params": ["source", "map", "enemy_drop", "farm_rule"],
+      "completion": "item_count >= amount"
+    },
+
+    "CD": {
+      "full_name": "Collect Data",
+      "base_type": "Acquire",
+      "required_params": ["target_id", "map", "area"],
+      "optional_params": ["marker", "interaction_time", "flag"],
+      "completion": "target_collected == true"
+    },
+
+    "UD": {
+      "full_name": "Upload Data",
+      "base_type": "Deliver",
+      "required_params": ["terminal_id", "required_data_id"],
+      "optional_params": ["map", "duration_range", "marker", "consume_data"],
+      "default_duration_range": [1, 20],
+      "completion": "upload_complete == true"
+    },
+
+    "CA": {
+      "full_name": "Clear Area",
+      "base_type": "Combat",
+      "required_params": ["map", "area"],
+      "optional_params": ["enemy_tags", "required_count", "spawn_rule", "marker"],
+      "completion": "area_hostile_count == 0"
+    },
+
+    "SA": {
+      "full_name": "Survey Area",
+      "base_type": "Explore",
+      "required_params": ["map", "area"],
+      "optional_params": ["duration", "marker", "radius"],
+      "completion": "survey_complete == true"
+    },
+
+    "CM": {
+      "full_name": "Complete Missions",
+      "base_type": "Meta",
+      "required_params": ["amount"],
+      "optional_params": ["mission_ids", "giver_id", "category"],
+      "completion": "completed_mission_count >= amount"
+    }
+  }
+}

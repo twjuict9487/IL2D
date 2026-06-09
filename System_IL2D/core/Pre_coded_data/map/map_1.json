@@ -58,8 +58,7 @@
           }
     ],
   "npc_layout": {
-      "dev": [2, 8],
-      "closure": [7, 8]
+      "dev": [2, 8]
     },
   "mission_targets": [
       {"x": 1, "y": 1, "kind": "data", "target_id": "map1_data_1"},

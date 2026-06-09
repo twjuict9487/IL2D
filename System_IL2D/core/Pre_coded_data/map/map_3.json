@@ -22,7 +22,6 @@
     ],
   "spawn": [1, 8],
   "mob_limit": 2,
-  "npc_layout": {},
   "mission_targets": [
       {"x": 1, "y": 1, "kind": "data", "target_id": "map3_data_1"},
       {"x": 3, "y": 1, "kind": "data", "target_id": "map3_data_2"},

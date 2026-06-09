@@ -235,6 +235,7 @@ class Game:
         self.lore_archive = {}
         self.lore_request = None
         self.last_portal_fallback = None
+        self.startup_closure_pending = True
 
         if not os.path.isdir(SAVE_DIR):
             os.makedirs(SAVE_DIR, exist_ok=True)
@@ -242,7 +243,6 @@ class Game:
         self._build_world_map_graph()
         self.mark_map_explored(self.map.name)
         self.relations = {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)}
-        self.maybe_startup_closure_greet()
 
     def start_new_player_tutorial(self):
         self.tutorial_core = GameplayTutorialCore(lang=self.lang)
@@ -1166,6 +1166,10 @@ class Game:
                 return False
             player_damage = self.compute_outgoing_damage(self.player, target)
             enemy_damage, reflect = self.compute_player_damage(target, self.player)
+
+            if hasattr(self, "audio"):
+                self.audio.play_sfx("vine_boom")
+
             target.hp -= player_damage
             if target.hp <= 0:
                 target.hp = -1
@@ -1629,6 +1633,11 @@ class Game:
         if self.player.hp <= 0:
             if self.ui_mode == "death_menu":
                 return
+
+            if hasattr(self, "audio"):
+                for _ in range(10):
+                    self.audio.play_sfx("player_death")
+                    time.sleep(0.1)
             if self.map.name == "rogue":
                 rate = self.rogue_cfg.get("death_penalty_rate", 0.2)
                 self.money = int(self.money * (1 - rate))

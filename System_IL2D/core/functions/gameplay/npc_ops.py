@@ -974,6 +974,8 @@ def buy_selected_item(game):
             return
     game.money -= price
     game.inventory[name] = game.inventory.get(name, 0) + 1
+    if hasattr(game, "audio"):
+        game.audio.play_sfx("purchase_ok")
     game.tutorial_notify("item_purchased", item_name=name, item_type=game.item_defs.get(name, {}).get("type"))
     item_label = game.display_item_name(name)
     key = f"item.{name}"
