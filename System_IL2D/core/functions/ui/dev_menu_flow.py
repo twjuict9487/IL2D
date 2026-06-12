@@ -3,7 +3,15 @@ import pygame
 
 def handle_dev_menu_key(ctx, event):
     game = ctx["game"]
-    opts = ["pre_dev_set", "max_hp", "max_mp", "add_money", "add_skipper", "get_dev_set", "exit"]
+    opts = [
+        "pre_dev_set",
+        "max_hp",
+        "max_mp",
+        "add_money",
+        "add_skipper",
+        "get_dev_set",
+        "exit",
+    ]
     if ctx["dev_menu_target"] is None:
         if event.key in (pygame.K_UP, pygame.K_w):
             ctx["dev_menu_selected"] = (ctx["dev_menu_selected"] - 1) % len(opts)
@@ -42,7 +50,9 @@ def handle_dev_menu_key(ctx, event):
                 elif ctx["dev_menu_target"] == "add_money":
                     game.money += max(0, val)
                 elif ctx["dev_menu_target"] == "add_skipper":
-                    game.inventory["rogue level skipper"] = game.inventory.get("rogue level skipper", 0) + max(0, val)
+                    game.inventory["rogue level skipper"] = game.inventory.get(
+                        "rogue level skipper", 0
+                    ) + max(0, val)
             ctx["dev_menu_target"] = None
             ctx["dev_menu_input"] = ""
             return

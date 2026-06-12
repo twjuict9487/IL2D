@@ -1,4 +1,3 @@
-
 import os
 from ..support.utils import load_json, BLOCKTYPE_FILE, MOBS_FILE, PLAYER_FILE, NPC_FILE
 
@@ -37,17 +36,25 @@ def _normalize_npc_layout(raw_layout):
             continue
     return layout
 
+
 class GameMap:
     def __init__(self, mapfile):
         data = load_json(mapfile)
         self.name = os.path.basename(mapfile)
-        self.grid = _normalize_grid(data['grid'])
-        self.spawn = tuple(data['spawn'])
-        self.portals = data.get('portals', [])
-        self.mission_targets = data.get('mission_targets', [])
-        self.npc_layout = _normalize_npc_layout(data.get('npc_layout', {}))
-        self.mob_limit = data.get('mob_limit', 4)
-        self.spawn_interval = data.get('spawn_interval')
+        self.grid = _normalize_grid(data["grid"])
+        self.region = str(data.get("region", "") or "").strip()
+        self.music_override = (
+            data.get("music_override") or data.get("music") or data.get("bgm")
+        )
+        self.spawn = tuple(data["spawn"])
+        self.portals = data.get("portals", [])
+        self.mission_targets = data.get("mission_targets", [])
+        self.mob_spawn_pool = data.get("mob_spawn_pool", None)
+        self.mob_spawn_classes = data.get("mob_spawn_classes", None)
+        self.mob_spawn_rank = data.get("mob_spawn_rank", None)
+        self.npc_layout = _normalize_npc_layout(data.get("npc_layout", {}))
+        self.mob_limit = data.get("mob_limit", 4)
+        self.spawn_interval = data.get("spawn_interval")
         self.h = len(self.grid)
         self.w = len(self.grid[0])
 
@@ -55,13 +62,20 @@ class GameMap:
     def from_data(cls, name, data):
         obj = cls.__new__(cls)
         obj.name = name
-        obj.grid = _normalize_grid(data['grid'])
-        obj.spawn = tuple(data['spawn'])
-        obj.portals = data.get('portals', [])
-        obj.mission_targets = data.get('mission_targets', [])
-        obj.npc_layout = _normalize_npc_layout(data.get('npc_layout', {}))
-        obj.mob_limit = data.get('mob_limit', 4)
-        obj.spawn_interval = data.get('spawn_interval')
+        obj.grid = _normalize_grid(data["grid"])
+        obj.region = str(data.get("region", "") or "").strip()
+        obj.music_override = (
+            data.get("music_override") or data.get("music") or data.get("bgm")
+        )
+        obj.spawn = tuple(data["spawn"])
+        obj.portals = data.get("portals", [])
+        obj.mission_targets = data.get("mission_targets", [])
+        obj.mob_spawn_pool = data.get("mob_spawn_pool", None)
+        obj.mob_spawn_classes = data.get("mob_spawn_classes", None)
+        obj.mob_spawn_rank = data.get("mob_spawn_rank", None)
+        obj.npc_layout = _normalize_npc_layout(data.get("npc_layout", {}))
+        obj.mob_limit = data.get("mob_limit", 4)
+        obj.spawn_interval = data.get("spawn_interval")
         obj.h = len(obj.grid)
         obj.w = len(obj.grid[0])
         return obj
@@ -69,7 +83,7 @@ class GameMap:
     def is_walkable(self, x, y):
         if 0 <= y < self.h and 0 <= x < self.w:
             bt = self.grid[y][x]
-            return blocktypes[bt]['walkable']
+            return blocktypes[bt]["walkable"]
         return False
 
     def get_block(self, x, y):

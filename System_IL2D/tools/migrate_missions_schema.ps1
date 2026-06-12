@@ -1,7 +1,12 @@
 param(
-    [string]$Path = "System_IL2D/core/Pre_coded_data/game_data/missions.json",
+    [string]$Path = "",
     [string]$OutputPath = ""
 )
+
+if ([string]::IsNullOrWhiteSpace($Path)) {
+    $toolRoot = Split-Path -Parent $PSScriptRoot
+    $Path = Join-Path $toolRoot "core\Pre_coded_data\game_data\missions.json"
+}
 
 function Clean-Text($value) {
     if ($null -eq $value) { return "" }

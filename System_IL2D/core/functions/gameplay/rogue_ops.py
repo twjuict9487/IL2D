@@ -9,6 +9,39 @@ from ..world.map import GameMap, mobs_data
 from ..support.utils import MAP_DIR, clamp, resolve_map_file
 
 
+def get_mob_enemy_class(mob_id):
+    mob = mobs_data.get(str(mob_id), {})
+    if not isinstance(mob, dict):
+        return "normal"
+    return str(mob.get("enemy_class", "normal") or "normal").strip().lower()
+
+
+def apply_rogue_special_boss_modifiers(entity, layer):
+    layer = max(1, int(layer or 1))
+    hp_multiplier = 1.5 + layer * 0.03
+    attack_multiplier = 1.2 + layer * 0.02
+    defence_multiplier = 1.1 + layer * 0.015
+    reward_multiplier = 1.0 + layer * 0.02
+    exp_multiplier = 1.0 + layer * 0.025
+    entity.max_hp = max(1, int(entity.max_hp * hp_multiplier))
+    entity.hp = entity.max_hp
+    entity.attack = max(1, int(entity.attack * attack_multiplier))
+    entity.defence = max(0, int(entity.defence * defence_multiplier))
+    if hasattr(entity, "magic_attack"):
+        entity.magic_attack = max(1, int(getattr(entity, "magic_attack", entity.attack) * attack_multiplier))
+    if hasattr(entity, "magic_defense"):
+        entity.magic_defense = float(getattr(entity, "magic_defense", 0) * defence_multiplier)
+    entity.rogue_special_boss = True
+    entity.rogue_reward_multiplier = reward_multiplier
+    entity.reward_multiplier = reward_multiplier
+    entity.rogue_exp_multiplier = exp_multiplier
+    entity.exp_multiplier = exp_multiplier
+    entity.width = 2
+    entity.height = 2
+    entity.size = 2
+    return entity
+
+
 def enter_rogue_layer(game, new_entry=False):
     if new_entry:
         game.rogue_layer = 0
@@ -32,8 +65,12 @@ def enter_rogue_layer(game, new_entry=False):
         game.map_max_h_mob = game.map.mob_limit
         game.player.x, game.player.y = game.map.spawn
         game.entities = [
-            e for e in game.entities
-            if e.eid == "player" or e.ai_type == "team" or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral") or e.immortal
+            e
+            for e in game.entities
+            if e.eid == "player"
+            or e.ai_type == "team"
+            or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral")
+            or e.immortal
         ]
         game.place_npcs_for_map()
         game.teleport_team_to_player()
@@ -44,8 +81,12 @@ def enter_rogue_layer(game, new_entry=False):
         return
 
     boss_every = cfg.get("boss_every", 5)
-    game.rogue_is_boss = (game.rogue_layer % boss_every == 0)
-    size = cfg.get("boss_size", [10, 15]) if game.rogue_is_boss else cfg.get("normal_size", [20, 20])
+    game.rogue_is_boss = game.rogue_layer % boss_every == 0
+    size = (
+        cfg.get("boss_size", [10, 15])
+        if game.rogue_is_boss
+        else cfg.get("normal_size", [20, 20])
+    )
     w, h = size[0], size[1]
     data = generate_rogue_map(game, w, h)
     game.map = GameMap.from_data("rogue", data)
@@ -75,7 +116,11 @@ def enter_rogue_layer(game, new_entry=False):
         game.inventory[retreat_name] = game.inventory.get(retreat_name, 0) + 1
     else:
         core = getattr(game, "tutorial_core", None)
-        if core and getattr(core, "active", False) and getattr(core, "current_id", lambda: None)() == "rogue_intro":
+        if (
+            core
+            and getattr(core, "active", False)
+            and getattr(core, "current_id", lambda: None)() == "rogue_intro"
+        ):
             retreat_name = cfg.get("retreat_item", "retreat item")
             if game.inventory.get(retreat_name, 0) <= 0:
                 game.inventory[retreat_name] = game.inventory.get(retreat_name, 0) + 1
@@ -209,7 +254,9 @@ def generate_rogue_map(game, w, h):
         old = grid[y][x]
         grid[y][x] = random.choice(["05", "06"])
         reachable = reachable_from_start()
-        walkable_tiles = {(ix, iy) for (ix, iy) in interior if not is_block(grid[iy][ix])}
+        walkable_tiles = {
+            (ix, iy) for (ix, iy) in interior if not is_block(grid[iy][ix])
+        }
         if exit_pos not in reachable or not walkable_tiles.issubset(reachable):
             grid[y][x] = old
             continue
@@ -217,7 +264,9 @@ def generate_rogue_map(game, w, h):
 
     # Add walkable decoration (flowers) without affecting connectivity.
     flower_target = max(0, int(interior_count * 0.08))
-    flower_cells = [p for p in interior if p not in reserved and grid[p[1]][p[0]] == "01"]
+    flower_cells = [
+        p for p in interior if p not in reserved and grid[p[1]][p[0]] == "01"
+    ]
     random.shuffle(flower_cells)
     for x, y in flower_cells[:flower_target]:
         grid[y][x] = "09"
@@ -225,6 +274,7 @@ def generate_rogue_map(game, w, h):
     exit_x, exit_y = exit_pos
     grid[exit_y][exit_x] = "04"
     return {
+        "region": "ROGUE",
         "grid": grid,
         "spawn": [start[0], start[1]],
         "mob_limit": getattr(game, "rogue_cfg", {}).get("mob_limit_normal", 10),
@@ -234,8 +284,12 @@ def generate_rogue_map(game, w, h):
 
 def spawn_rogue_mobs(game):
     game.entities = [
-        e for e in game.entities
-        if e.eid == "player" or e.ai_type == "team" or e.immortal or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral")
+        e
+        for e in game.entities
+        if e.eid == "player"
+        or e.ai_type == "team"
+        or e.immortal
+        or mobs_data.get(e.eid, {}).get("ai_type") in ("friendly", "neutral")
     ]
     if game.rogue_is_boss:
         spawn_rogue_boss(game)
@@ -251,28 +305,48 @@ def spawn_rogue_mobs(game):
 
 
 def spawn_rogue_boss(game):
-    base_id = None
-    for k, v in mobs_data.items():
-        if isinstance(v, dict) and v.get("ai_type") == "hostile":
-            base_id = k
-            base = v
-            break
-    if base_id is None:
+    boss_ids = [
+        mob_id
+        for mob_id, mob in mobs_data.items()
+        if isinstance(mob, dict)
+        and mob.get("ai_type") == "hostile"
+        and get_mob_enemy_class(mob_id) == "boss"
+    ]
+    if not boss_ids:
         return
-    w, h = game.map.w, game.map.h
-    bx, by = w // 2 - 1, h // 2 - 1
-    cfg = getattr(game, "rogue_cfg", {})
-    hp_mult = cfg.get("boss_hp_mult", 5)
-    atk_mult = cfg.get("boss_attack_mult", 3)
+    random.shuffle(boss_ids)
     env_mult = 1.0 + max(0.0, float(getattr(game, "environment_difficulty", 0.0)))
-    hp = int(base.get("hp", 30) * hp_mult * env_mult)
-    atk = int(base.get("attack", 10) * atk_mult * env_mult)
-    defence = int(base.get("defence", 0) * env_mult)
-    magic_attack = int(base.get("magic_attack", base.get("attack", 10)) * env_mult)
-    magic_defense = int(base.get("magic_defense", 0) * env_mult)
-    boss = Entity(base_id, bx, by, hp, base.get("mp", 0), atk, defence, base.get("ai_type"))
-    boss.size = 3
-    boss.is_boss = True
-    boss.magic_attack = magic_attack
-    boss.magic_defense = magic_defense
-    game.entities.append(boss)
+    for base_id in boss_ids:
+        max_x = max(0, game.map.w - 2)
+        max_y = max(0, game.map.h - 2)
+        bx, by = max_x // 2, max_y // 2
+        if not game.can_spawn_entity_at_size(bx, by, 2, 2):
+            placed = False
+            for _ in range(100):
+                tx = random.randint(0, max_x)
+                ty = random.randint(0, max_y)
+                if game.can_spawn_entity_at_size(tx, ty, 2, 2):
+                    bx, by = tx, ty
+                    placed = True
+                    break
+            if not placed:
+                continue
+        boss = game.create_hostile_entity(
+            base_id,
+            bx,
+            by,
+            width=2,
+            height=2,
+            hp_multiplier=env_mult,
+            attack_multiplier=env_mult,
+            defence_multiplier=env_mult,
+            extra_flags={
+                "rogue_boss_class": True,
+                "enemy_class": "boss",
+            },
+        )
+        if boss is None:
+            continue
+        apply_rogue_special_boss_modifiers(boss, getattr(game, "rogue_layer", 1))
+        game.entities.append(boss)
+        return

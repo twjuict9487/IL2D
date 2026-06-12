@@ -10,11 +10,12 @@ from .asset_resolver import (
     get_index,
 )
 
-
-_BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-CORE_DIR = os.path.join(_BASE_DIR, 'core')
-MODS_DIR = os.path.join(_BASE_DIR, 'mods')
-SAVE_DIR = os.path.join(_BASE_DIR, 'saves')
+_BASE_DIR = os.path.abspath(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
+CORE_DIR = os.path.join(_BASE_DIR, "core")
+MODS_DIR = os.path.join(_BASE_DIR, "mods")
+SAVE_DIR = os.path.join(_BASE_DIR, "saves")
 
 ensure_primed_from_file(__file__)
 
@@ -39,7 +40,9 @@ def _folder_for_file(path):
 
 
 def _resolve_json_prefer(name_stem):
-    cands = resolve_candidates("json", f"{name_stem}.json") + resolve_candidates("json", name_stem)
+    cands = resolve_candidates("json", f"{name_stem}.json") + resolve_candidates(
+        "json", name_stem
+    )
     return _first_existing(cands) or _first_or_empty(cands)
 
 
@@ -75,8 +78,12 @@ SPELLS_FILE = _resolve_json_prefer("spells")
 MAGICS_FILE = _resolve_json_prefer("magics")
 OBJECTIVES_FILE = _resolve_json_prefer("objectives")
 MISSIONS_FILE = _resolve_json_prefer_many("Loremissions", "loremissions", "missions")
-MISSION_TYPES_FILE = _resolve_json_prefer_many("Mission Type", "mission type", "mission_types", "MTS")
-MISSION_RUNTIME_REGISTRY_FILE = _resolve_json_prefer_many("mission schema", "Mission Schema", "mission_runtime_registry", "MRER")
+MISSION_TYPES_FILE = _resolve_json_prefer_many(
+    "Mission Type", "mission type", "mission_types", "MTS"
+)
+MISSION_RUNTIME_REGISTRY_FILE = _resolve_json_prefer_many(
+    "mission schema", "Mission Schema", "mission_runtime_registry", "MRER"
+)
 MISSIONS_TYPE_FILE = MISSION_RUNTIME_REGISTRY_FILE
 LORE_ARCHIVE_FILE = _resolve_json_prefer("lore_archive")
 ROGUE_FILE = _resolve_json_prefer("rogue")
@@ -86,7 +93,7 @@ MOBS_FILE = _resolve_json_prefer("mobs")
 
 
 def load_json(path):
-    with open(path, 'r', encoding='utf-8-sig') as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 

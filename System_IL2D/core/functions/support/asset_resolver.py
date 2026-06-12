@@ -4,7 +4,6 @@ import tempfile
 import time
 from collections import defaultdict
 
-
 _STATE = {
     "system_root": None,
     "index_path": None,
@@ -13,6 +12,7 @@ _STATE = {
 }
 
 _IMAGE_EXTS = {".png", ".webp", ".jpg", ".jpeg", ".bmp"}
+_AUDIO_EXTS = {".mp3", ".ogg", ".wav", ".flac"}
 _JSON_EXTS = {".json"}
 _SKIP_DIRS = {".git", ".venv", "__pycache__"}
 
@@ -56,7 +56,14 @@ def _entry(abs_path, rel_path):
 
 def _sort_entries(entries):
     # mod first, then stable path ordering
-    return sorted(entries, key=lambda e: (0 if e.get("is_mod") else 1, e.get("mod_name", ""), e.get("rel", "")))
+    return sorted(
+        entries,
+        key=lambda e: (
+            0 if e.get("is_mod") else 1,
+            e.get("mod_name", ""),
+            e.get("rel", ""),
+        ),
+    )
 
 
 def _put(by_kind, kind, key, ent):
@@ -82,6 +89,12 @@ def _classify_file(by_kind, abs_path, rel_path):
         if "/atlas/" in rel_lower:
             _put(by_kind, "atlas", lower_name, ent)
             _put(by_kind, "atlas", stem, ent)
+        return
+
+    # audio
+    if ext in _AUDIO_EXTS:
+        _put(by_kind, "audio", lower_name, ent)
+        _put(by_kind, "audio", stem, ent)
         return
 
     # json
@@ -184,19 +197,25 @@ def prime_asset_index(system_root):
 def ensure_primed_from_file(module_file):
     if _STATE["primed"]:
         return
-    system_root = os.path.abspath(os.path.join(os.path.dirname(module_file), "..", "..", ".."))
+    system_root = os.path.abspath(
+        os.path.join(os.path.dirname(module_file), "..", "..", "..")
+    )
     try:
         prime_asset_index(system_root)
     except Exception:
         # fail-open: keep runtime alive with minimal empty index
-        _set_state(system_root, _index_file_path(system_root), {
-            "version": 1,
-            "generated_at": int(time.time()),
-            "scan_root": system_root,
-            "by_kind": {},
-            "folders": {},
-            "diagnostics": {"scan_errors": ["prime_failed"]},
-        })
+        _set_state(
+            system_root,
+            _index_file_path(system_root),
+            {
+                "version": 1,
+                "generated_at": int(time.time()),
+                "scan_root": system_root,
+                "by_kind": {},
+                "folders": {},
+                "diagnostics": {"scan_errors": ["prime_failed"]},
+            },
+        )
 
 
 def get_index_path():
@@ -335,7 +354,11 @@ def resolve_atlas_candidates(name):
     _push(resolve_candidates("atlas", lower))
     if ext:
         # keep extension-specific matching first; avoid returning json for png lookup
-        exact = [p for p in resolve_candidates("atlas", lower) if os.path.splitext(p.lower())[1] == ext]
+        exact = [
+            p
+            for p in resolve_candidates("atlas", lower)
+            if os.path.splitext(p.lower())[1] == ext
+        ]
         if exact:
             out = []
             seen = set()
@@ -346,10 +369,49 @@ def resolve_atlas_candidates(name):
                 seen.add(n)
                 out.append(p)
             return out
-        _push([p for p in resolve_candidates("atlas", stem) if os.path.splitext(p.lower())[1] == ext])
+        _push(
+            [
+                p
+                for p in resolve_candidates("atlas", stem)
+                if os.path.splitext(p.lower())[1] == ext
+            ]
+        )
     else:
         _push(resolve_candidates("atlas", lower + ".json"))
         _push(resolve_candidates("atlas", lower + ".png"))
+    return out
+
+
+def resolve_audio_candidates(name):
+    if not name:
+        return []
+    lower = str(name).lower().replace("\\", "/")
+    stem, ext = os.path.splitext(lower)
+    out = []
+    seen = set()
+
+    def _push(paths):
+        for p in paths:
+            n = _norm(p)
+            if n in seen:
+                continue
+            seen.add(n)
+            out.append(p)
+
+    basename = os.path.basename(lower)
+    base_stem = os.path.splitext(basename)[0]
+    _push(resolve_candidates("audio", lower))
+    if basename != lower:
+        _push(resolve_candidates("audio", basename))
+    if stem:
+        _push(resolve_candidates("audio", stem))
+    if base_stem and base_stem != stem:
+        _push(resolve_candidates("audio", base_stem))
+    if not ext:
+        for audio_ext in sorted(_AUDIO_EXTS):
+            _push(resolve_candidates("audio", lower + audio_ext))
+            if basename != lower:
+                _push(resolve_candidates("audio", basename + audio_ext))
     return out
 
 

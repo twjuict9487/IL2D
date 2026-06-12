@@ -1,6 +1,10 @@
 import json
 import os
 import pygame
+from ..support.asset_resolver import ensure_primed_from_file, resolve_audio_candidates
+from ..support.utils import GAME_DATA_DIR
+
+DEFAULT_BGM_ID = "短兵相接"
 
 
 class AudioManager:
@@ -20,18 +24,13 @@ class AudioManager:
         self.sfx_paths = {}
         self.sfx_cache = {}
         self.bgm_playing = False
+        self.current_bgm_ref = None
+        self.current_bgm_resolved = None
+        ensure_primed_from_file(__file__)
 
         if not self.sfx_index_path:
-            base_dir = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..")
-            )
-
-            self.sfx_index_path = os.path.join(
-                base_dir,
-                "core",
-                "Pre_coded_data",
-                "game_data",
-                "audio_sfx.json"
+            self.sfx_index_path = (
+                os.path.join(GAME_DATA_DIR, "audio_sfx.json") if GAME_DATA_DIR else ""
             )
 
         self.load_sfx_index(self.sfx_index_path)
@@ -58,32 +57,83 @@ class AudioManager:
             print(f"[audio] sfx index load failed: {exc}")
             self.sfx_paths = {}
 
-    def play_bgm(self, bgm_path=None):
+    def _resolve_audio_path(self, audio_ref):
+        if not audio_ref:
+            return None
+        raw = str(audio_ref).strip()
+        if not raw:
+            return None
+        if os.path.isfile(raw):
+            return raw
+        for path in resolve_audio_candidates(raw):
+            if path and os.path.isfile(path):
+                return path
+        return None
+
+    def play_bgm(self, bgm_path=None, fade_ms=0, restart=False):
         if bgm_path:
             self.bgm_path = bgm_path
 
         if not self.bgm_path:
-            print("[audio] no bgm path")
-            return
-
-        if not os.path.exists(self.bgm_path):
+            self.bgm_path = DEFAULT_BGM_ID
+        resolved = self._resolve_audio_path(self.bgm_path)
+        if not resolved:
             print(f"[audio] bgm file not found: {self.bgm_path}")
-            return
+            return False
+        if (
+            not restart
+            and self.bgm_playing
+            and self.current_bgm_resolved
+            and self.current_bgm_resolved == resolved
+        ):
+            return True
 
         try:
-            pygame.mixer.music.load(self.bgm_path)
+            pygame.mixer.music.load(resolved)
             pygame.mixer.music.set_volume(self.bgm_volume)
-            pygame.mixer.music.play(-1)
+            pygame.mixer.music.play(-1, fade_ms=max(0, int(fade_ms or 0)))
             self.bgm_playing = True
+            self.current_bgm_ref = self.bgm_path
+            self.current_bgm_resolved = resolved
+            return True
         except Exception as exc:
             print(f"[audio] bgm play failed: {exc}")
+            return False
 
-    def stop_bgm(self):
+    def switch_bgm(self, bgm_path=None, fadeout_ms=350, fadein_ms=350):
+        target_ref = bgm_path if bgm_path else self.bgm_path
+        if not target_ref:
+            return False
+        resolved = self._resolve_audio_path(target_ref)
+        if not resolved:
+            print(f"[audio] bgm file not found: {target_ref}")
+            return False
+        if self.bgm_playing and self.current_bgm_resolved == resolved:
+            self.bgm_path = target_ref
+            self.current_bgm_ref = target_ref
+            return True
         try:
-            pygame.mixer.music.stop()
+            if self.bgm_playing and int(fadeout_ms or 0) > 0:
+                pygame.mixer.music.fadeout(max(0, int(fadeout_ms or 0)))
+            self.bgm_path = target_ref
+            return self.play_bgm(target_ref, fade_ms=fadein_ms, restart=True)
+        except Exception as exc:
+            print(f"[audio] bgm switch failed: {exc}")
+            return False
+
+    def stop_bgm(self, fadeout_ms=0):
+        try:
+            if int(fadeout_ms or 0) > 0:
+                pygame.mixer.music.fadeout(max(0, int(fadeout_ms or 0)))
+            else:
+                pygame.mixer.music.stop()
             self.bgm_playing = False
+            self.current_bgm_ref = None
+            self.current_bgm_resolved = None
+            return True
         except Exception as exc:
             print(f"[audio] bgm stop failed: {exc}")
+            return False
 
     def pause_bgm(self):
         try:
@@ -107,7 +157,9 @@ class AudioManager:
             print(f"[audio] unknown sfx id: {sfx_id}")
             return
 
-        if not os.path.exists(path):
+        resolved = self._resolve_audio_path(path)
+
+        if not resolved:
             print(f"[audio] sfx file not found: {path}")
             return
 
@@ -115,7 +167,7 @@ class AudioManager:
             sound = self.sfx_cache.get(sfx_id)
 
             if sound is None:
-                sound = pygame.mixer.Sound(path)
+                sound = pygame.mixer.Sound(resolved)
                 sound.set_volume(self.sfx_volume)
                 self.sfx_cache[sfx_id] = sound
 
@@ -142,6 +194,7 @@ class AudioManager:
 
     def clear_sfx_cache(self):
         self.sfx_cache.clear()
+
     def play_sfx_safe(game, sfx_id):
         audio = getattr(game, "audio", None)
         if not audio:

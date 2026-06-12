@@ -36,7 +36,9 @@ class GameplayTutorialCore:
             "inventory": dict(getattr(game, "inventory", {})),
             "equipment": dict(getattr(game, "equipment", {})),
             "item_hotbar_slots": list(getattr(game, "item_hotbar_slots", [None] * 10)),
-            "magic_hotbar_slots": list(getattr(game, "magic_hotbar_slots", [None] * 10)),
+            "magic_hotbar_slots": list(
+                getattr(game, "magic_hotbar_slots", [None] * 10)
+            ),
         }
         self._finish_countdown_start = None
         self._enter_step(game)
@@ -55,7 +57,9 @@ class GameplayTutorialCore:
         if self._finish_countdown_start is None:
             self._finish_countdown_start = time.time()
             return
-        left = self._finish_countdown_secs - (time.time() - self._finish_countdown_start)
+        left = self._finish_countdown_secs - (
+            time.time() - self._finish_countdown_start
+        )
         if left > 0:
             return
         self._apply_finish_reset(game)
@@ -72,7 +76,14 @@ class GameplayTutorialCore:
         progress = self._progress_text(sid)
         left = None
         if sid == "finish_reset" and self._finish_countdown_start is not None:
-            left = max(0, int(self._finish_countdown_secs - (time.time() - self._finish_countdown_start)) + 1)
+            left = max(
+                0,
+                int(
+                    self._finish_countdown_secs
+                    - (time.time() - self._finish_countdown_start)
+                )
+                + 1,
+            )
         return {
             "speaker": tr(self.lang, "tutorial.dev.speaker"),
             "title": tr(self.lang, step.get("title_key", "tutorial.dev.step.1.title")),
@@ -87,11 +98,23 @@ class GameplayTutorialCore:
         if sid == "kill_wave_1":
             return f"{min(5, self.data.get('kill_1', 0))}/5"
         if sid == "npc_intro":
-            return tr(self.lang, "tutorial.dev.done") if self.data.get("talked_npc", False) else tr(self.lang, "tutorial.dev.todo")
+            return (
+                tr(self.lang, "tutorial.dev.done")
+                if self.data.get("talked_npc", False)
+                else tr(self.lang, "tutorial.dev.todo")
+            )
         if sid == "esc_open":
-            return tr(self.lang, "tutorial.dev.done") if self.data.get("esc_opened", False) else tr(self.lang, "tutorial.dev.todo")
+            return (
+                tr(self.lang, "tutorial.dev.done")
+                if self.data.get("esc_opened", False)
+                else tr(self.lang, "tutorial.dev.todo")
+            )
         if sid == "esc_close":
-            return tr(self.lang, "tutorial.dev.done") if self.data.get("esc_closed", False) else tr(self.lang, "tutorial.dev.todo")
+            return (
+                tr(self.lang, "tutorial.dev.done")
+                if self.data.get("esc_closed", False)
+                else tr(self.lang, "tutorial.dev.todo")
+            )
         return ""
 
     def notify(self, game, event_name, **kwargs):
@@ -156,7 +179,11 @@ class GameplayTutorialCore:
         self._enter_step(game)
 
     def _spawn_training_wave(self, game, count=5):
-        hostile_ids = [k for k, v in mobs_data.items() if isinstance(v, dict) and v.get("ai_type") == "hostile"]
+        hostile_ids = [
+            k
+            for k, v in mobs_data.items()
+            if isinstance(v, dict) and v.get("ai_type") == "hostile"
+        ]
         if not hostile_ids:
             return
         mob_id = "slime" if "slime" in hostile_ids else hostile_ids[0]

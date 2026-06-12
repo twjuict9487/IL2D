@@ -152,7 +152,9 @@ def remove_farm_hostiles(game):
         if getattr(ent, "eid", "") == "player":
             kept.append(ent)
             continue
-        ent_def = game.get_entity_def(ent.eid) if hasattr(game, "get_entity_def") else {}
+        ent_def = (
+            game.get_entity_def(ent.eid) if hasattr(game, "get_entity_def") else {}
+        )
         if ent_def.get("ai_type") in ("hostile", "enemy"):
             continue
         kept.append(ent)

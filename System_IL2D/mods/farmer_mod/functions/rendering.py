@@ -61,7 +61,12 @@ def draw_farm_land_overlay(screen, game, state):
     for idx, pt in enumerate(plots):
         tx, ty = int(pt[0]), int(pt[1])
         sx, sy = world_to_screen(game, tx, ty)
-        if sx < -TILE_SIZE or sy < -TILE_SIZE or sx > screen.get_width() or sy > screen.get_height():
+        if (
+            sx < -TILE_SIZE
+            or sy < -TILE_SIZE
+            or sx > screen.get_width()
+            or sy > screen.get_height()
+        ):
             continue
         rect = pygame.Rect(sx, sy, TILE_SIZE, TILE_SIZE)
 
@@ -70,7 +75,11 @@ def draw_farm_land_overlay(screen, game, state):
         icon = None
         if entry:
             planted_at = float(entry.get("planted_at", now))
-            fill = (170, 150, 65, 165) if now - planted_at >= grow_seconds else (60, 130, 70, 155)
+            fill = (
+                (170, 150, 65, 165)
+                if now - planted_at >= grow_seconds
+                else (60, 130, 70, 155)
+            )
             crop = str(entry.get("crop", "rice"))
             icon_name = "Amber_Rice_nobg.png" if crop == "rice" else "wheat_nobg.png"
             icon = _load_img(icon_name, (int(TILE_SIZE * 0.62), int(TILE_SIZE * 0.62)))
@@ -90,22 +99,36 @@ def draw_farm_land_overlay(screen, game, state):
 # 畫農場商店 UI。
 def draw_shop(screen, game, state):
     font = pygame.font.SysFont("consolas", 22)
-    panel = pygame.Rect(screen.get_width() // 6, screen.get_height() // 6, screen.get_width() * 2 // 3, screen.get_height() * 2 // 3)
+    panel = pygame.Rect(
+        screen.get_width() // 6,
+        screen.get_height() // 6,
+        screen.get_width() * 2 // 3,
+        screen.get_height() * 2 // 3,
+    )
     pygame.draw.rect(screen, (7, 24, 34), panel)
     pygame.draw.rect(screen, (140, 210, 220), panel, 2)
-    screen.blit(font.render("Shu Farm Service", True, (230, 240, 250)), (panel.x + 16, panel.y + 12))
+    screen.blit(
+        font.render("Shu Farm Service", True, (230, 240, 250)),
+        (panel.x + 16, panel.y + 12),
+    )
 
     rows = shop_rows({"farmer_mod": state})
     y = panel.y + 56
     for idx, (_key, label) in enumerate(rows):
-        c = (255, 230, 140) if idx == (game.shop_selected % len(rows)) else (210, 220, 235)
+        c = (
+            (255, 230, 140)
+            if idx == (game.shop_selected % len(rows))
+            else (210, 220, 235)
+        )
         screen.blit(font.render(label, True, c), (panel.x + 16, y))
         y += font.get_height() + 10
 
     tiny = pygame.font.SysFont("consolas", 18)
     info = state["data"]
     footer = f"Land:{info.get('owned_land',0)}  Seeds[R:{info['seeds'].get('rice',0)} W:{info['seeds'].get('wheat',0)}]  Crops[R:{info['crops'].get('rice',0)} W:{info['crops'].get('wheat',0)}]"
-    screen.blit(tiny.render(footer, True, (170, 200, 220)), (panel.x + 16, panel.bottom - 32))
+    screen.blit(
+        tiny.render(footer, True, (170, 200, 220)), (panel.x + 16, panel.bottom - 32)
+    )
 
 
 # 畫農場左側資訊面板（縮小、可讀）。
@@ -158,11 +181,28 @@ def draw_farm_panel(screen, state):
         y += 16
 
     y += 6
-    screen.blit(font.render(f"Land: {int(data.get('owned_land', 0))}/{len(cfg.get('plots', []))}", True, (200, 230, 230)), (x, y))
+    screen.blit(
+        font.render(
+            f"Land: {int(data.get('owned_land', 0))}/{len(cfg.get('plots', []))}",
+            True,
+            (200, 230, 230),
+        ),
+        (x, y),
+    )
     y += 16
-    screen.blit(font.render(f"Rice: {int(data['crops'].get('rice', 0))}", True, (190, 230, 210)), (x, y))
+    screen.blit(
+        font.render(
+            f"Rice: {int(data['crops'].get('rice', 0))}", True, (190, 230, 210)
+        ),
+        (x, y),
+    )
     y += 16
-    screen.blit(font.render(f"Wheat: {int(data['crops'].get('wheat', 0))}", True, (210, 220, 190)), (x, y))
+    screen.blit(
+        font.render(
+            f"Wheat: {int(data['crops'].get('wheat', 0))}", True, (210, 220, 190)
+        ),
+        (x, y),
+    )
 
 
 # 農場模組渲染入口（商店與農地 UI）。

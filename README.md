@@ -51,6 +51,21 @@ Backup_version_v001/
 python main.py
 ```
 
+## 新電腦快速開始
+```powershell
+./setup_windows.ps1
+```
+
+完成後可直接啟動：
+```bat
+run_il2d.bat
+```
+
+如果 PowerShell 擋腳本，可先執行：
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+```
+
 ## 基本操作
 - `W/A/S/D`：移動
 - `E`：互動

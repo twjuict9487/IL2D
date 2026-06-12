@@ -125,5 +125,12 @@ def build_lore_index(archive):
                 "order": int(entry.get("order", 0) or 0),
             }
         )
-    items.sort(key=lambda row: (row.get("order", 0), row.get("category", ""), row.get("title", ""), row.get("id", "")))
+    items.sort(
+        key=lambda row: (
+            row.get("order", 0),
+            row.get("category", ""),
+            row.get("title", ""),
+            row.get("id", ""),
+        )
+    )
     return items

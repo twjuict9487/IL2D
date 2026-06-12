@@ -154,10 +154,14 @@ def _merge_option_by_next(options, option):
     options.append(option)
 
 
-def _trace_dialog_event(game, npc_id, option, action_type, payload=None, handler=None, result=None):
+def _trace_dialog_event(
+    game, npc_id, option, action_type, payload=None, handler=None, result=None
+):
     trace = {
         "npc_id": str(npc_id or ""),
-        "option": str((option or {}).get("text") or (option or {}).get("text_zh") or ""),
+        "option": str(
+            (option or {}).get("text") or (option or {}).get("text_zh") or ""
+        ),
         "action_type": str(action_type or ""),
         "payload": payload,
         "handler": str(handler or ""),
@@ -187,7 +191,15 @@ def _option_is_available(option):
     if status in {"locked", "unavailable", "disabled", "hidden"}:
         available = False
     reason = ""
-    for key in ("reason", "reason_key", "message", "note", "hint", "locked_reason", "unavailable_reason"):
+    for key in (
+        "reason",
+        "reason_key",
+        "message",
+        "note",
+        "hint",
+        "locked_reason",
+        "unavailable_reason",
+    ):
         value = option.get(key)
         if value not in (None, ""):
             reason = str(value).strip()
@@ -203,7 +215,11 @@ def _dialog_display_name(game, npc_id):
     lang = str(getattr(game, "lang", "") or "").lower()
     mapped = _DIALOG_DISPLAY_NAMES.get(npc_key_l)
     if mapped:
-        return mapped.get("zh") if lang == "zh" else mapped.get("en") or mapped.get("zh") or npc_key
+        return (
+            mapped.get("zh")
+            if lang == "zh"
+            else mapped.get("en") or mapped.get("zh") or npc_key
+        )
     npc = npc_data.get(npc_key_l) if isinstance(npc_data, dict) else {}
     if isinstance(npc, dict):
         for key in ("display_name_zh", "display_name", "name"):
@@ -219,10 +235,14 @@ def _set_dialog_state(game, npc_id, dialog_data, node_ref, source="script"):
     game.active_npc = npc_id
     game.dialog_source = source
     dialog_entry = _resolve_dialog_node(game.dialog_data, node_ref)
-    game.dialog_text_lines = _dialog_lines_from_node(dialog_entry, getattr(game, "lang", None))
+    game.dialog_text_lines = _dialog_lines_from_node(
+        dialog_entry, getattr(game, "lang", None)
+    )
     game.dialog_lines = list(game.dialog_text_lines)
     dialog_options = []
-    if hasattr(game, "get_dialog_responses") and callable(getattr(game, "get_dialog_responses", None)):
+    if hasattr(game, "get_dialog_responses") and callable(
+        getattr(game, "get_dialog_responses", None)
+    ):
         try:
             dialog_options = list(game.get_dialog_responses(dialog_entry) or [])
         except Exception:
@@ -245,8 +265,16 @@ def _set_dialog_state(game, npc_id, dialog_data, node_ref, source="script"):
 
 
 def player_interact(game):
+    try:
+        from . import mission_handlers
+
+        mission_handlers.on_player_interact(game)
+    except Exception as exc:
+        print(f"[mission handler] interact failed: {exc}")
+
     if game.is_ui_blocking():
         return
+
     candidates = []
     for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
         nx, ny = game.player.x + dx, game.player.y + dy
@@ -282,7 +310,9 @@ def player_interact(game):
         mission_target_hit = True
         if hasattr(game, "record_mission_key_interact"):
             game.record_mission_key_interact(
-                target_id=target.get("target_id") or target.get("id") or f"{game.map.name}:{nx}:{ny}",
+                target_id=target.get("target_id")
+                or target.get("id")
+                or f"{game.map.name}:{nx}:{ny}",
                 key_id=target.get("required_key"),
                 consume=bool(target.get("consume_key", False)),
                 flag=target.get("set_flag"),
@@ -346,7 +376,9 @@ def try_harvest_bush(game):
                 except Exception:
                     pass
             unit = "berry" if count == 1 else "berries"
-            game.push_message(tr(game.lang, "msg.harvested_berry", count=count, unit=unit))
+            game.push_message(
+                tr(game.lang, "msg.harvested_berry", count=count, unit=unit)
+            )
             game.map.grid[ny][nx] = "08"
             key = (game.map.name, nx, ny)
             game.bush_regrow[key] = time.time() + random.uniform(20.0, 30.0)
@@ -415,13 +447,19 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit", source="script"):
         game.monst3r_unlocked = True
         game.kaltsit_reward_ready = False
         game.ensure_monst3r_entity()
-        _set_dialog_state(game, npc_id, {
-            "start": "node_1",
-            "node_1": {
-                "text": tr(game.lang, "msg.team_monst3r_joined"),
-                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+        _set_dialog_state(
+            game,
+            npc_id,
+            {
+                "start": "node_1",
+                "node_1": {
+                    "text": tr(game.lang, "msg.team_monst3r_joined"),
+                    "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+                },
             },
-        }, "node_1", source=source)
+            "node_1",
+            source=source,
+        )
         return
     if (
         getattr(game, "kaltsit_completed", 0) >= 10
@@ -431,38 +469,64 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit", source="script"):
         game.wisadel_unlocked = True
         game.ines_reward_ready = False
         game.ensure_wisadel_entity()
-        _set_dialog_state(game, npc_id, {
-            "start": "node_1",
-            "node_1": {
-                "text": tr(game.lang, "msg.team_wisadel_joined"),
-                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+        _set_dialog_state(
+            game,
+            npc_id,
+            {
+                "start": "node_1",
+                "node_1": {
+                    "text": tr(game.lang, "msg.team_wisadel_joined"),
+                    "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+                },
             },
-        }, "node_1", source=source)
+            "node_1",
+            source=source,
+        )
         return
 
     intro_flag = "kaltsit_intro_done" if npc_id == "kaltsit" else "ines_intro_done"
     if not getattr(game, intro_flag, False):
         setattr(game, intro_flag, True)
-        _set_dialog_state(game, npc_id, {
-            "start": "node_1",
-            "node_1": {
-                "text": tr(game.lang, "dialog.kaltsit_intro") if npc_id == "kaltsit" else tr(game.lang, "dialog.ines_intro"),
-                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+        _set_dialog_state(
+            game,
+            npc_id,
+            {
+                "start": "node_1",
+                "node_1": {
+                    "text": (
+                        tr(game.lang, "dialog.kaltsit_intro")
+                        if npc_id == "kaltsit"
+                        else tr(game.lang, "dialog.ines_intro")
+                    ),
+                    "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+                },
             },
-        }, "node_1", source=source)
+            "node_1",
+            source=source,
+        )
         return
-    mission = game.get_mission_by_giver(npc_id) if hasattr(game, "get_mission_by_giver") else None
+    mission = (
+        game.get_mission_by_giver(npc_id)
+        if hasattr(game, "get_mission_by_giver")
+        else None
+    )
     if mission and game_missions.is_ready_to_turn_in(mission):
         mission_id = str(mission.get("id", "") or "").strip()
         if mission_id and hasattr(game, "turn_in_mission"):
             game.turn_in_mission(mission_id)
-        _set_dialog_state(game, npc_id, {
-            "start": "node_1",
-            "node_1": {
-                "text": tr(game.lang, "msg.mission_complete"),
-                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+        _set_dialog_state(
+            game,
+            npc_id,
+            {
+                "start": "node_1",
+                "node_1": {
+                    "text": tr(game.lang, "msg.mission_complete"),
+                    "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+                },
             },
-        }, "node_1", source=source)
+            "node_1",
+            source=source,
+        )
         return
     if not mission or mission.get("done"):
         mission = _generate_kaltsit_mission(game, giver=npc_id)
@@ -473,13 +537,19 @@ def _open_kaltsit_mission_dialog(game, npc_id="kaltsit", source="script"):
     elif not mission.get("giver"):
         mission["giver"] = npc_id
     text = _mission_text(game, mission)
-    _set_dialog_state(game, npc_id, {
-        "start": "node_1",
-        "node_1": {
-            "text": text,
-            "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}]
-        }
-    }, "node_1", source=source)
+    _set_dialog_state(
+        game,
+        npc_id,
+        {
+            "start": "node_1",
+            "node_1": {
+                "text": text,
+                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+            },
+        },
+        "node_1",
+        source=source,
+    )
 
 
 def open_legacy_mission_dialog(game, npc_id="kaltsit", source="script"):
@@ -491,16 +561,48 @@ def _generate_kaltsit_mission(game, giver="kaltsit"):
     mtype = random.choice(types)
     mission_id = f"legacy_{giver}"
     if mtype == "kill_specific":
-        mob_ids = [k for k, v in mobs_data.items() if isinstance(v, dict) and v.get("ai_type") == "hostile"]
+        mob_ids = [
+            k
+            for k, v in mobs_data.items()
+            if isinstance(v, dict) and v.get("ai_type") == "hostile"
+        ]
         mob_id = random.choice(mob_ids) if mob_ids else "slime"
         target = random.randint(1, 10)
-        return {"id": mission_id, "type": mtype, "mob": mob_id, "target": target, "progress": 0, "done": False, "giver": giver, "giver_id": giver, "title": "Legacy Mission"}
+        return {
+            "id": mission_id,
+            "type": mtype,
+            "mob": mob_id,
+            "target": target,
+            "progress": 0,
+            "done": False,
+            "giver": giver,
+            "giver_id": giver,
+            "title": "Legacy Mission",
+        }
     if mtype == "kill_any":
         target = random.randint(1, 10)
-        return {"id": mission_id, "type": mtype, "target": target, "progress": 0, "done": False, "giver": giver, "giver_id": giver, "title": "Legacy Mission"}
+        return {
+            "id": mission_id,
+            "type": mtype,
+            "target": target,
+            "progress": 0,
+            "done": False,
+            "giver": giver,
+            "giver_id": giver,
+            "title": "Legacy Mission",
+        }
     target = random.randint(1, 10)
     target = min(target, 15)
-    return {"id": mission_id, "type": "reach_layer", "target": target, "progress": 0, "done": False, "giver": giver, "giver_id": giver, "title": "Legacy Mission"}
+    return {
+        "id": mission_id,
+        "type": "reach_layer",
+        "target": target,
+        "progress": 0,
+        "done": False,
+        "giver": giver,
+        "giver_id": giver,
+        "title": "Legacy Mission",
+    }
 
 
 def _mission_text(game, mission):
@@ -513,7 +615,9 @@ def _mission_text(game, mission):
             text = str(obj.get("text", "") or "").strip()
             progress = int(obj.get("progress", 0) or 0)
             target = int(obj.get("target", 1) or 1)
-            lines.append(f"{text} ({progress}/{target})" if text else f"({progress}/{target})")
+            lines.append(
+                f"{text} ({progress}/{target})" if text else f"({progress}/{target})"
+            )
         if lines:
             return "\n".join(lines)
     mtype = mission.get("type")
@@ -541,30 +645,44 @@ def _mission_text(game, mission):
 
 
 def open_rogue_rest_intro(game):
-    _set_dialog_state(game, "dev", {
-        "start": "node_1",
-        "node_1": {
-            "text": tr(game.lang, "dialog.rogue_rest_intro"),
-            "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+    _set_dialog_state(
+        game,
+        "dev",
+        {
+            "start": "node_1",
+            "node_1": {
+                "text": tr(game.lang, "dialog.rogue_rest_intro"),
+                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+            },
         },
-    }, "node_1", source="script")
+        "node_1",
+        source="script",
+    )
 
 
 def open_rogue_rest_leave(game):
-    _set_dialog_state(game, "dev", {
-        "start": "node_1",
-        "node_1": {
-            "text": tr(game.lang, "dialog.rogue_rest_prompt"),
-            "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "node_leave"}],
+    _set_dialog_state(
+        game,
+        "dev",
+        {
+            "start": "node_1",
+            "node_1": {
+                "text": tr(game.lang, "dialog.rogue_rest_prompt"),
+                "responses": [
+                    {"text": tr(game.lang, "dialog.ok"), "next": "node_leave"}
+                ],
+            },
+            "node_leave": {
+                "text": tr(game.lang, "dialog.rogue_rest_confirm"),
+                "responses": [
+                    {"text": tr(game.lang, "dialog.yes"), "next": "rogue_leave_yes"},
+                    {"text": tr(game.lang, "dialog.no"), "next": "rogue_leave_no"},
+                ],
+            },
         },
-        "node_leave": {
-            "text": tr(game.lang, "dialog.rogue_rest_confirm"),
-            "responses": [
-                {"text": tr(game.lang, "dialog.yes"), "next": "rogue_leave_yes"},
-                {"text": tr(game.lang, "dialog.no"), "next": "rogue_leave_no"},
-            ],
-        },
-    }, "node_1", source="script")
+        "node_1",
+        source="script",
+    )
 
 
 def dialog_choose(game):
@@ -572,12 +690,28 @@ def dialog_choose(game):
         return
     node = _resolve_dialog_node(game.dialog_data, game.dialog_node)
     if not isinstance(node, dict):
-        _trace_dialog_event(game, getattr(game, "active_npc", None), {}, "resolve_node", payload={"node": game.dialog_node}, handler="_resolve_dialog_node", result="missing_node")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            {},
+            "resolve_node",
+            payload={"node": game.dialog_node},
+            handler="_resolve_dialog_node",
+            result="missing_node",
+        )
         game.close_dialog()
         return
     responses = game.get_dialog_responses(node)
     if not responses:
-        _trace_dialog_event(game, getattr(game, "active_npc", None), {}, "responses", payload={"node": game.dialog_node}, handler="get_dialog_responses", result="no_responses")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            {},
+            "responses",
+            payload={"node": game.dialog_node},
+            handler="get_dialog_responses",
+            result="no_responses",
+        )
         game.close_dialog()
         return
     choice = responses[game.dialog_selected % len(responses)]
@@ -592,72 +726,192 @@ def dialog_choose(game):
                     "disabled": tr(game.lang, "msg.dialog_unavailable"),
                     "hidden": tr(game.lang, "msg.dialog_unavailable"),
                 }
-                msg = fallback.get(status, "") or tr(game.lang, "msg.option_unavailable")
+                msg = fallback.get(status, "") or tr(
+                    game.lang, "msg.option_unavailable"
+                )
             if hasattr(game, "push_message"):
                 game.push_message(msg)
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": choice.get("next"), "reason": reason, "status": status}, handler="availability_check", result="blocked")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={
+                    "next": choice.get("next"),
+                    "reason": reason,
+                    "status": status,
+                },
+                handler="availability_check",
+                result="blocked",
+            )
             return
     next_node = choice.get("next")
-    _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="dialog_choose", result="dispatch")
+    _trace_dialog_event(
+        game,
+        getattr(game, "active_npc", None),
+        choice,
+        "option",
+        payload={"next": next_node},
+        handler="dialog_choose",
+        result="dispatch",
+    )
     if next_node == "end":
         game.close_dialog()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="close_dialog", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="close_dialog",
+            result="closed",
+        )
         return
     if next_node == "gift":
         game.gift_to_npc()
         game.close_dialog()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="gift_to_npc", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="gift_to_npc",
+            result="closed",
+        )
         return
     if next_node == "upgrade":
         game.dialog_node = "upgrade"
         game.dialog_selected = 0
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="dialog_node_transition", result="upgrade")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="dialog_node_transition",
+            result="upgrade",
+        )
         return
     if next_node == "carmen_upgrade_hp":
         game.carmen_roll("hp")
         game.close_dialog()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="carmen_roll", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="carmen_roll",
+            result="closed",
+        )
         return
     if next_node == "carmen_upgrade_mp":
         game.carmen_roll("mp")
         game.close_dialog()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="carmen_roll", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="carmen_roll",
+            result="closed",
+        )
         return
     if next_node == "carmen_talk":
         game.push_message(tr(game.lang, "msg.carmen_talk"))
         game.close_dialog()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="carmen_talk", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="carmen_talk",
+            result="closed",
+        )
         return
     if next_node == "rogue_leave_yes":
         game.close_dialog()
         game.return_from_rogue()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="return_from_rogue", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="return_from_rogue",
+            result="closed",
+        )
         return
     if next_node == "rogue_leave_no":
         game.close_dialog()
-        game.environment_difficulty = max(0.0, float(getattr(game, "environment_difficulty", 0.0)) + 0.2)
+        game.environment_difficulty = max(
+            0.0, float(getattr(game, "environment_difficulty", 0.0)) + 0.2
+        )
         # Keep legacy field in sync for backward compatibility.
         game.rogue_difficulty = game.environment_difficulty
         game.push_message(tr(game.lang, "msg.rogue_deeper_warn"))
         game.start_transition(game.enter_next_rogue_layer)
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="start_transition", result="queued")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="start_transition",
+            result="queued",
+        )
         return
     if next_node == "shop":
         game.open_shop("default")
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="open_shop", result="opened")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="open_shop",
+            result="opened",
+        )
         return
     if next_node == "dev_shop":
         game.open_shop("dev")
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="open_shop", result="opened")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="open_shop",
+            result="opened",
+        )
         return
     if next_node == "farm_shop":
         if hasattr(game, "farm_open_shop"):
             game.farm_open_shop()
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="farm_open_shop", result="opened")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node},
+                handler="farm_open_shop",
+                result="opened",
+            )
         else:
             game.push_message("farm mod is not loaded")
             game.close_dialog()
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="farm_open_shop", result="missing_handler")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node},
+                handler="farm_open_shop",
+                result="missing_handler",
+            )
         return
     if next_node == "blackjack":
         if hasattr(game, "blackjack_start") and hasattr(game, "blackjack_state"):
@@ -669,7 +923,15 @@ def dialog_choose(game):
             if int(getattr(game, "money", 0)) <= 0:
                 game.push_message(tr(game.lang, "blackjack.no_money"))
                 game.ui_mode = None
-                _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="blackjack_start", result="no_money")
+                _trace_dialog_event(
+                    game,
+                    getattr(game, "active_npc", None),
+                    choice,
+                    "option",
+                    payload={"next": next_node},
+                    handler="blackjack_start",
+                    result="no_money",
+                )
                 return
             if int(game.money) <= 1000:
                 bet = max(1, int(game.money))
@@ -678,29 +940,77 @@ def dialog_choose(game):
                 game.blackjack_ui_selected = 0
                 game.blackjack_round_settled = False
                 game.ui_mode = "blackjack"
-                _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node, "bet": bet}, handler="blackjack_start", result="opened")
+                _trace_dialog_event(
+                    game,
+                    getattr(game, "active_npc", None),
+                    choice,
+                    "option",
+                    payload={"next": next_node, "bet": bet},
+                    handler="blackjack_start",
+                    result="opened",
+                )
             else:
                 game.blackjack_bet_input = ""
                 game.blackjack_bet_error = ""
                 game.ui_mode = "blackjack_bet"
-                _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="blackjack_start", result="bet_prompt")
+                _trace_dialog_event(
+                    game,
+                    getattr(game, "active_npc", None),
+                    choice,
+                    "option",
+                    payload={"next": next_node},
+                    handler="blackjack_start",
+                    result="bet_prompt",
+                )
         else:
             game.push_message("blackjack mod is not loaded")
             game.close_dialog()
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="blackjack_start", result="missing_handler")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node},
+                handler="blackjack_start",
+                result="missing_handler",
+            )
         return
     if next_node == "heal":
         game.npc_heal()
         game.close_dialog()
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="npc_heal", result="closed")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="npc_heal",
+            result="closed",
+        )
         return
     if next_node == "lore_archive":
         if getattr(game, "lore_archive", None):
             game.open_lore_archive()
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="open_lore_archive", result="opened")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node},
+                handler="open_lore_archive",
+                result="opened",
+            )
         else:
             game.push_message(tr(game.lang, "msg.archive_unavailable"))
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="open_lore_archive", result="missing_handler")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node},
+                handler="open_lore_archive",
+                result="missing_handler",
+            )
         game.close_dialog()
         return
     if next_node == "mission_board":
@@ -708,27 +1018,73 @@ def dialog_choose(game):
         game.close_dialog()
         if giver and hasattr(game, "open_mission_board"):
             game.open_mission_board(giver, source="interaction")
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node, "giver": giver}, handler="open_mission_board", result="opened")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node, "giver": giver},
+                handler="open_mission_board",
+                result="opened",
+            )
         return
     if next_node in {"legacy_mission", "quest", "random_quest"}:
         giver = getattr(game, "active_npc", None)
         game.close_dialog()
         if giver in {"kaltsit", "ines"}:
             _open_kaltsit_mission_dialog(game, npc_id=giver, source="interaction")
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node, "giver": giver}, handler="legacy_mission", result="opened")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node, "giver": giver},
+                handler="legacy_mission",
+                result="opened",
+            )
         else:
             if hasattr(game, "push_message"):
                 game.push_message(tr(game.lang, "msg.mission_unavailable"))
-            _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node, "giver": giver}, handler="legacy_mission", result="blocked")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node, "giver": giver},
+                handler="legacy_mission",
+                result="blocked",
+            )
         return
     resolved = _resolve_dialog_node(game.dialog_data, next_node)
     if resolved is None:
         if hasattr(game, "push_message"):
             game.push_message(tr(game.lang, "msg.dialog_unavailable"))
-        _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="dialog_node_transition", result="missing_node")
+        _trace_dialog_event(
+            game,
+            getattr(game, "active_npc", None),
+            choice,
+            "option",
+            payload={"next": next_node},
+            handler="dialog_node_transition",
+            result="missing_node",
+        )
         return
-    _set_dialog_state(game, getattr(game, "active_npc", None), game.dialog_data, next_node, source=getattr(game, "dialog_source", "script"))
-    _trace_dialog_event(game, getattr(game, "active_npc", None), choice, "option", payload={"next": next_node}, handler="dialog_node_transition", result="transitioned")
+    _set_dialog_state(
+        game,
+        getattr(game, "active_npc", None),
+        game.dialog_data,
+        next_node,
+        source=getattr(game, "dialog_source", "script"),
+    )
+    _trace_dialog_event(
+        game,
+        getattr(game, "active_npc", None),
+        choice,
+        "option",
+        payload={"next": next_node},
+        handler="dialog_node_transition",
+        result="transitioned",
+    )
 
 
 def get_dialog_responses(game, node):
@@ -736,7 +1092,11 @@ def get_dialog_responses(game, node):
     for pointer in _dialog_pointer_options(node):
         _append_unique_option(responses, pointer)
     global_options = _dialog_global_options(getattr(game, "dialog_data", None))
-    global_nexts = {str(item.get("next")) for item in global_options if isinstance(item, dict) and item.get("next")}
+    global_nexts = {
+        str(item.get("next"))
+        for item in global_options
+        if isinstance(item, dict) and item.get("next")
+    }
     for pointer in global_options:
         _append_unique_option(responses, pointer)
     allow_maps = {"map_1.json", "map_2.json", "map_3.json"}
@@ -760,12 +1120,32 @@ def get_dialog_responses(game, node):
             gift_option["available"] = True
             gift_option["reason"] = ""
         _merge_option_by_next(responses, gift_option)
-    if getattr(game, "active_npc", None) in {"priestess", "kaltsit"} and getattr(game, "dialog_source", None) == "interaction" and "lore_archive" not in global_nexts:
-        _append_unique_option(responses, {"text": tr(game.lang, "dialog.archive"), "next": "lore_archive"})
-    if getattr(game, "active_npc", None) in MISSION_GIVERS and getattr(game, "dialog_source", None) == "interaction" and "mission_board" not in global_nexts:
-        _append_unique_option(responses, {"text": tr(game.lang, "dialog.mission_board"), "next": "mission_board"})
-    if getattr(game, "active_npc", None) in {"kaltsit", "ines"} and getattr(game, "dialog_source", None) == "interaction" and "legacy_mission" not in global_nexts:
-        _append_unique_option(responses, {"text": tr(game.lang, "dialog.legacy_mission"), "next": "legacy_mission"})
+    if (
+        getattr(game, "active_npc", None) in {"priestess", "kaltsit"}
+        and getattr(game, "dialog_source", None) == "interaction"
+        and "lore_archive" not in global_nexts
+    ):
+        _append_unique_option(
+            responses, {"text": tr(game.lang, "dialog.archive"), "next": "lore_archive"}
+        )
+    if (
+        getattr(game, "active_npc", None) in MISSION_GIVERS
+        and getattr(game, "dialog_source", None) == "interaction"
+        and "mission_board" not in global_nexts
+    ):
+        _append_unique_option(
+            responses,
+            {"text": tr(game.lang, "dialog.mission_board"), "next": "mission_board"},
+        )
+    if (
+        getattr(game, "active_npc", None) in {"kaltsit", "ines"}
+        and getattr(game, "dialog_source", None) == "interaction"
+        and "legacy_mission" not in global_nexts
+    ):
+        _append_unique_option(
+            responses,
+            {"text": tr(game.lang, "dialog.legacy_mission"), "next": "legacy_mission"},
+        )
     return responses
 
 
@@ -855,10 +1235,19 @@ def maybe_startup_closure_greet(game):
         return
     if "closure" not in npc_data:
         return
-    _set_dialog_state(game, "closure", {
-        "start": "node_1",
-        "node_1": {"text": tr(game.lang, "dialog.closure_welcome"), "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}]},
-    }, "node_1", source="script")
+    _set_dialog_state(
+        game,
+        "closure",
+        {
+            "start": "node_1",
+            "node_1": {
+                "text": tr(game.lang, "dialog.closure_welcome"),
+                "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+            },
+        },
+        "node_1",
+        source="script",
+    )
     game.__class__.closure_greeted_this_run = True
 
 
@@ -866,10 +1255,17 @@ def open_shop(game, shop_mode="default"):
     game.shop_mode = shop_mode
     if shop_mode == "dev":
         game.shop_base_items = [
-            i for i in game.shop_all_items if i.get("name", "").startswith("dev's super powerful") or i.get("name") == "rogue level skipper"
+            i
+            for i in game.shop_all_items
+            if i.get("name", "").startswith("dev's super powerful")
+            or i.get("name") == "rogue level skipper"
         ]
     else:
-        game.shop_base_items = [i for i in game.shop_all_items if not i.get("name", "").startswith("dev's super powerful")]
+        game.shop_base_items = [
+            i
+            for i in game.shop_all_items
+            if not i.get("name", "").startswith("dev's super powerful")
+        ]
     game.shop_category = "all"
     game.refresh_shop_items()
     game.ui_mode = "shop"
@@ -892,7 +1288,11 @@ def refresh_shop_items(game):
     if game.shop_category == "all":
         game.shop_items = list(game.shop_base_items)
     else:
-        game.shop_items = [item for item in game.shop_base_items if game._shop_item_category(item.get("name", "")) == game.shop_category]
+        game.shop_items = [
+            item
+            for item in game.shop_base_items
+            if game._shop_item_category(item.get("name", "")) == game.shop_category
+        ]
     if not game.shop_items:
         game.shop_selected = 0
     else:
@@ -908,7 +1308,11 @@ def cycle_shop_category(game, step):
 
 
 def grant_dev_set(game):
-    dev_items = [name for name in game.item_defs.keys() if name.startswith("dev's super powerful")]
+    dev_items = [
+        name
+        for name in game.item_defs.keys()
+        if name.startswith("dev's super powerful")
+    ]
     if not dev_items:
         return
     for name in dev_items:
@@ -976,7 +1380,11 @@ def buy_selected_item(game):
     game.inventory[name] = game.inventory.get(name, 0) + 1
     if hasattr(game, "audio"):
         game.audio.play_sfx("purchase_ok")
-    game.tutorial_notify("item_purchased", item_name=name, item_type=game.item_defs.get(name, {}).get("type"))
+    game.tutorial_notify(
+        "item_purchased",
+        item_name=name,
+        item_type=game.item_defs.get(name, {}).get("type"),
+    )
     item_label = game.display_item_name(name)
     key = f"item.{name}"
     tr_label = tr(game.lang, key)

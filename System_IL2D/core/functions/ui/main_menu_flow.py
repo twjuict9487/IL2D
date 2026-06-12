@@ -24,11 +24,13 @@ def handle_main_menu_key(ctx, event, open_new_game_name_input_fn, get_save_slots
             pass
 
 
-def handle_mouse_main_menu(ctx, pos, get_font_fn, open_new_game_name_input_fn, get_save_slots_fn):
+def handle_mouse_main_menu(
+    ctx, pos, get_font_fn, open_new_game_name_input_fn, get_save_slots_fn
+):
     mx, my = pos
     screen = ctx["screen"]
     font2 = get_font_fn(32)
-    opts = ['new_game', 'continue', 'setting', 'leave', 'credits']
+    opts = ["new_game", "continue", "setting", "leave", "credits"]
     total_height = len(opts) * 44
     start_y = screen.get_height() // 2 - total_height // 2 + 40
     for i, opt in enumerate(opts):

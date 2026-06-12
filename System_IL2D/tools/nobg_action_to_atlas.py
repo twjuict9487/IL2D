@@ -7,11 +7,13 @@ from pathlib import Path
 def _load_png(path):
     try:
         from PIL import Image  # type: ignore
+
         return ("pil", Image.open(path).convert("RGBA"))
     except Exception:
         pass
     try:
         import pygame  # type: ignore
+
         if not pygame.get_init():
             pygame.init()
         img = pygame.image.load(str(path)).convert_alpha()
@@ -23,8 +25,10 @@ def _load_png(path):
 def _new_canvas(width, height, backend):
     if backend == "pil":
         from PIL import Image  # type: ignore
+
         return Image.new("RGBA", (width, height), (0, 0, 0, 0))
     import pygame  # type: ignore
+
     surf = pygame.Surface((width, height), flags=pygame.SRCALPHA, depth=32)
     surf.fill((0, 0, 0, 0))
     return surf
@@ -46,9 +50,12 @@ def _paste(canvas, img, x, y, backend):
 def _save_png(canvas, out_path, backend, compress_level=1):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if backend == "pil":
-        canvas.save(str(out_path), "PNG", compress_level=int(compress_level), optimize=False)
+        canvas.save(
+            str(out_path), "PNG", compress_level=int(compress_level), optimize=False
+        )
         return
     import pygame  # type: ignore
+
     pygame.image.save(canvas, str(out_path))
 
 
@@ -70,7 +77,18 @@ def _grid_cols(count):
     return max(1, int(math.ceil(math.sqrt(count))))
 
 
-def _pack_chunk(folder_name, frames, loaded, fw, fh, out_dir, fps, backend, chunk_idx, compress_level):
+def _pack_chunk(
+    folder_name,
+    frames,
+    loaded,
+    fw,
+    fh,
+    out_dir,
+    fps,
+    backend,
+    chunk_idx,
+    compress_level,
+):
     cols = _grid_cols(len(loaded))
     rows = int(math.ceil(len(loaded) / cols))
     atlas_w = cols * fw
@@ -111,7 +129,9 @@ def _pack_chunk(folder_name, frames, loaded, fw, fh, out_dir, fps, backend, chun
         "loop": True,
         "frames": meta_frames,
     }
-    json_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return {
         "atlas": str(atlas_path),
         "json": str(json_path),
@@ -143,7 +163,9 @@ def pack_folder(folder, out_dir, fps, max_frames_per_atlas=0, compress_level=1):
             )
         loaded.append(img)
 
-    chunk_size = int(max_frames_per_atlas) if int(max_frames_per_atlas) > 0 else len(frames)
+    chunk_size = (
+        int(max_frames_per_atlas) if int(max_frames_per_atlas) > 0 else len(frames)
+    )
     pages = []
     chunk_idx = 1
     for start in range(0, len(frames), chunk_size):
@@ -170,15 +192,18 @@ def pack_folder(folder, out_dir, fps, max_frames_per_atlas=0, compress_level=1):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Pack nobg action frames into atlas PNG + JSON.")
+    script_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(
+        description="Pack nobg action frames into atlas PNG + JSON."
+    )
     parser.add_argument(
         "--clips-dir",
-        default="System_IL2D/clips",
+        default=str(script_root / "clips"),
         help="Root clips directory containing nobg_* folders.",
     )
     parser.add_argument(
         "--out-dir",
-        default="System_IL2D/clips/atlas",
+        default=str(script_root / "clips" / "atlas"),
         help="Output directory for atlas png/json.",
     )
     parser.add_argument(

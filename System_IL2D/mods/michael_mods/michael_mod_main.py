@@ -13,4 +13,6 @@ def register_mod(ctx):
     game.blackjack_start = lambda bet: _core().start_round(bet)
     game.blackjack_hit = lambda: _core().hit()
     game.blackjack_stand = lambda: _core().stand()
-    game.blackjack_state = lambda hide_dealer=True: _core().state(hide_dealer=hide_dealer)
+    game.blackjack_state = lambda hide_dealer=True: _core().state(
+        hide_dealer=hide_dealer
+    )

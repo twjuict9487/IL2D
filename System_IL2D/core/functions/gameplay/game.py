@@ -3,12 +3,34 @@ import random
 import time
 import json
 from collections import deque
+
 try:
     from ..world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
     from ..models.entity import Entity
-    from ..support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, MISSIONS_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
+    from ..support.utils import (
+        MAP_DIR,
+        DIALOG_DIR,
+        SAVE_DIR,
+        ITEMS_FILE,
+        SHOP_FILE,
+        SPELLS_FILE,
+        MAGICS_FILE,
+        OBJECTIVES_FILE,
+        MISSIONS_FILE,
+        LORE_ARCHIVE_FILE,
+        ROGUE_FILE,
+        CONFIG_FILE,
+        load_json,
+        clamp,
+        resolve_map_file,
+        iter_all_map_files,
+    )
     from ..support.i18n import tr
-    from ..support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
+    from ..support.asset_resolver import (
+        resolve_atlas_candidates,
+        resolve_folder_candidates,
+    )
+    from ..audio.music_resolver import resolve_current_music, FALLBACK_MUSIC
     from . import rogue_ops as game_rogue_ops
     from . import npc_ops as game_npc_ops
     from . import inventory_ops as game_inventory_ops
@@ -17,21 +39,57 @@ try:
     from .tutorial import GameplayTutorialCore
 except ImportError:
     import sys
-    _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    import importlib
+
+    _ROOT = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+    )
     if _ROOT not in sys.path:
         sys.path.insert(0, _ROOT)
-    from System_IL2D.core.functions.world.map import GameMap, blocktypes, mobs_data, player_data, npc_data
-    from System_IL2D.core.functions.models.entity import Entity
-    from System_IL2D.core.functions.support.utils import MAP_DIR, DIALOG_DIR, SAVE_DIR, ITEMS_FILE, SHOP_FILE, SPELLS_FILE, MAGICS_FILE, OBJECTIVES_FILE, MISSIONS_FILE, LORE_ARCHIVE_FILE, ROGUE_FILE, CONFIG_FILE, load_json, clamp, resolve_map_file, iter_all_map_files
-    from System_IL2D.core.functions.support.i18n import tr
-    from System_IL2D.core.functions.support.asset_resolver import resolve_atlas_candidates, resolve_folder_candidates
-    from System_IL2D.core.functions.gameplay import rogue_ops as game_rogue_ops
-    from System_IL2D.core.functions.gameplay import npc_ops as game_npc_ops
-    from System_IL2D.core.functions.gameplay import inventory_ops as game_inventory_ops
-    from System_IL2D.core.functions.gameplay import save_ops as game_save_ops
-    from System_IL2D.core.functions.gameplay import missions as game_missions
-    from System_IL2D.core.functions.gameplay.tutorial import GameplayTutorialCore
-
+    _map_mod = importlib.import_module("core.functions.world.map")
+    GameMap = _map_mod.GameMap
+    blocktypes = _map_mod.blocktypes
+    mobs_data = _map_mod.mobs_data
+    player_data = _map_mod.player_data
+    npc_data = _map_mod.npc_data
+    Entity = importlib.import_module("core.functions.models.entity").Entity
+    _utils_mod = importlib.import_module("core.functions.support.utils")
+    MAP_DIR = _utils_mod.MAP_DIR
+    DIALOG_DIR = _utils_mod.DIALOG_DIR
+    SAVE_DIR = _utils_mod.SAVE_DIR
+    ITEMS_FILE = _utils_mod.ITEMS_FILE
+    SHOP_FILE = _utils_mod.SHOP_FILE
+    SPELLS_FILE = _utils_mod.SPELLS_FILE
+    MAGICS_FILE = _utils_mod.MAGICS_FILE
+    OBJECTIVES_FILE = _utils_mod.OBJECTIVES_FILE
+    MISSIONS_FILE = _utils_mod.MISSIONS_FILE
+    LORE_ARCHIVE_FILE = _utils_mod.LORE_ARCHIVE_FILE
+    ROGUE_FILE = _utils_mod.ROGUE_FILE
+    CONFIG_FILE = _utils_mod.CONFIG_FILE
+    load_json = _utils_mod.load_json
+    clamp = _utils_mod.clamp
+    resolve_map_file = _utils_mod.resolve_map_file
+    iter_all_map_files = _utils_mod.iter_all_map_files
+    tr = importlib.import_module("core.functions.support.i18n").tr
+    _asset_mod = importlib.import_module("core.functions.support.asset_resolver")
+    resolve_atlas_candidates = _asset_mod.resolve_atlas_candidates
+    resolve_folder_candidates = _asset_mod.resolve_folder_candidates
+    resolve_current_music = importlib.import_module(
+        "core.functions.audio.music_resolver"
+    ).resolve_current_music
+    FALLBACK_MUSIC = importlib.import_module(
+        "core.functions.audio.music_resolver"
+    ).FALLBACK_MUSIC
+    game_rogue_ops = importlib.import_module("core.functions.gameplay.rogue_ops")
+    game_npc_ops = importlib.import_module("core.functions.gameplay.npc_ops")
+    game_inventory_ops = importlib.import_module(
+        "core.functions.gameplay.inventory_ops"
+    )
+    game_save_ops = importlib.import_module("core.functions.gameplay.save_ops")
+    game_missions = importlib.import_module("core.functions.gameplay.missions")
+    GameplayTutorialCore = importlib.import_module(
+        "core.functions.gameplay.tutorial"
+    ).GameplayTutorialCore
 
 class Game:
     closure_greeted_this_run = False
@@ -47,21 +105,24 @@ class Game:
 
     def __init__(self):
         pdata = player_data
-        self.lang = pdata.get('lang', 'zh')
-        self.player_name = pdata.get('name', 'player')
-        self.load_map('map_1.json')
+        self.lang = pdata.get("lang", "zh")
+        self.player_name = pdata.get("name", "player")
+        self.current_music = None
+        self.load_map("tutorial.json")
         self.player = Entity(
-            'player',
+            "player",
             *self.map.spawn,
-            pdata['hp'],
-            pdata.get('mp', 0),
-            pdata.get('attack', 10),
-            pdata.get('defence', 0),
-            ai_type='player'
+            pdata["hp"],
+            pdata.get("mp", 0),
+            pdata.get("attack", 10),
+            pdata.get("defence", 0),
+            ai_type="player",
         )
         self.player.base_attack = self.player.attack
         self.player.base_defence = self.player.defence
-        self.player.base_magic_attack = int(pdata.get("magic_attack", self.player.attack))
+        self.player.base_magic_attack = int(
+            pdata.get("magic_attack", self.player.attack)
+        )
         self.player.base_magic_defense = int(pdata.get("magic_defense", 0))
         self.player.magic_attack = self.player.base_magic_attack
         self.player.magic_defense = self.player.base_magic_defense
@@ -129,24 +190,33 @@ class Game:
 
         self.money = 0
         self.inventory = {
-            'health potion (small)': 0,
-            'magic potion (small)': 0,
-            'revive ring': 0,
-            'berry': 0,
-            'retreat item': 0,
-            'rogue level skipper': 0
+            "health potion (small)": 0,
+            "magic potion (small)": 0,
+            "revive ring": 0,
+            "berry": 0,
+            "retreat item": 0,
+            "rogue level skipper": 0,
         }
         self.equipment = {
-            'weapon': None,
-            'armor': None,
-            'ring1': None,
-            'ring2': None,
-            'ring3': None,
-            'ring4': None,
-            'ring5': None,
-            'ring6': None
+            "weapon": None,
+            "armor": None,
+            "ring1": None,
+            "ring2": None,
+            "ring3": None,
+            "ring4": None,
+            "ring5": None,
+            "ring6": None,
         }
-        self.equip_categories = ["weapon", "armor", "ring1", "ring2", "ring3", "ring4", "ring5", "ring6"]
+        self.equip_categories = [
+            "weapon",
+            "armor",
+            "ring1",
+            "ring2",
+            "ring3",
+            "ring4",
+            "ring5",
+            "ring6",
+        ]
         self.objectives = ["Find the dev", "Try the shop"]
         self.objective_selected = 0
         self.tracked_mission = None
@@ -242,7 +312,11 @@ class Game:
         self.load_game_data()
         self._build_world_map_graph()
         self.mark_map_explored(self.map.name)
-        self.relations = {k: v.get("relation_point", 0) for k, v in npc_data.items() if isinstance(v, dict)}
+        self.relations = {
+            k: v.get("relation_point", 0)
+            for k, v in npc_data.items()
+            if isinstance(v, dict)
+        }
 
     def start_new_player_tutorial(self):
         self.tutorial_core = GameplayTutorialCore(lang=self.lang)
@@ -289,14 +363,22 @@ class Game:
         self.spawn_interval = cfg.get("spawn_interval", self.spawn_interval)
         self.message_show_time = cfg.get("message_show_time", self.message_show_time)
         self.message_fade_time = cfg.get("message_fade_time", self.message_fade_time)
-        self.transition_duration = cfg.get("transition_duration", self.transition_duration)
+        self.transition_duration = cfg.get(
+            "transition_duration", self.transition_duration
+        )
         self.move_anim_duration = cfg.get("move_anim_duration", self.move_anim_duration)
         self.leave_rogue_hp = cfg.get("leave_rogue_hp", 100)
         self._load_item_defs(load_json(ITEMS_FILE))
-        spells_path = MAGICS_FILE if MAGICS_FILE and os.path.isfile(MAGICS_FILE) else SPELLS_FILE
+        spells_path = (
+            MAGICS_FILE if MAGICS_FILE and os.path.isfile(MAGICS_FILE) else SPELLS_FILE
+        )
         self._load_spells(load_json(spells_path))
         if not self.unlocked_magics:
-            self.unlocked_magics = [sp.get("name") for sp in self.spells if sp.get("starter_unlocked", False)]
+            self.unlocked_magics = [
+                sp.get("name")
+                for sp in self.spells
+                if sp.get("starter_unlocked", False)
+            ]
         raw_shop = load_json(SHOP_FILE)
         self._refresh_equipment_layout()
         self.shop_all_items = self._build_synced_shop_items(raw_shop)
@@ -318,9 +400,15 @@ class Game:
         else:
             self.mission_book = game_missions.empty_mission_book()
         self._normalize_mission_state()
+        try:
+            game_missions.validate_missions(emit=True)
+        except Exception as exc:
+            print(f"[missions] validation skipped: {exc}")
 
     def _normalize_mission_state(self):
-        state = game_missions.normalize_state(getattr(self, "mission_state", None), getattr(self, "mission_book", None))
+        state = game_missions.normalize_state(
+            getattr(self, "mission_state", None), getattr(self, "mission_book", None)
+        )
         self.mission_state = state
         self.mission_key_items = state.get("key_items", {})
         self.mission_flags = state.get("flags", {})
@@ -331,11 +419,20 @@ class Game:
             active = {
                 mid: mission
                 for mid, mission in active.items()
-                if isinstance(mission, dict) and str(mission.get("status") or mission.get("state") or "").strip().lower() in {"active", "ready_to_return"}
+                if isinstance(mission, dict)
+                and str(mission.get("status") or mission.get("state") or "")
+                .strip()
+                .lower()
+                in {"active", "ready_to_return"}
             }
             state["active"] = active
         self.active_missions = list(active.values()) if isinstance(active, dict) else []
-        tracked = str(getattr(self, "tracked_mission", None) or state.get("tracked") or "").strip() or None
+        tracked = (
+            str(
+                getattr(self, "tracked_mission", None) or state.get("tracked") or ""
+            ).strip()
+            or None
+        )
         if tracked and tracked not in state.get("active", {}):
             tracked = None
         if not tracked and state.get("active"):
@@ -368,9 +465,18 @@ class Game:
 
     def get_mission_board_entries(self, giver_id):
         self._normalize_mission_state()
-        return [game_missions.get_summary(self, row.get("id")) for row in game_missions.get_giver_missions(self, giver_id)]
+        return [
+            game_missions.get_summary(self, row.get("id"))
+            for row in game_missions.get_giver_missions(self, giver_id)
+        ]
 
     def open_mission_board(self, giver_id, source="interaction"):
+        self.mission_board_context = {
+            "giver_id": giver_id,
+            "source": source,
+            "opened_at": time.time(),
+        }
+        self.mission_feedback = None
         self._normalize_mission_state()
         self.mission_board_giver = str(giver_id or "")
         self.mission_board_selected = 0
@@ -393,11 +499,35 @@ class Game:
         self.ui_mode = "mission_board"
 
     def accept_mission(self, mission_id):
-        ok = game_missions.accept_mission(self, mission_id)
-        if ok:
-            self._normalize_mission_state()
-            self.push_message(tr(self.lang, "msg.mission_accepted"))
-        return ok
+        giver_id = None
+        ctx = getattr(self, "mission_board_context", None)
+        if isinstance(ctx, dict):
+            giver_id = ctx.get("giver_id")
+
+        ok, reason, _entry = game_missions.can_accept_mission(
+            self, mission_id, giver_id=giver_id
+        )
+        if not ok:
+            _set_mission_feedback(self, reason, mission_id=mission_id)
+            return False
+
+        success = bool(game_missions.accept_mission(self, mission_id))
+        if not success:
+            _set_mission_feedback(self, "mission.accept_failed", mission_id=mission_id)
+            return False
+
+        try:
+            from . import mission_handlers
+
+            runtime = self.mission_state.get("active", {}).get(str(mission_id))
+            if runtime:
+                mission_handlers.start_runtime(self, runtime)
+        except Exception as exc:
+            print(f"[mission handler] start_runtime failed: {exc}")
+
+        self._normalize_mission_state()
+        _set_mission_feedback(self, "msg.mission_accepted", mission_id=mission_id)
+        return True
 
     def turn_in_mission(self, mission_id):
         runtime = self._mission_runtime(mission_id)
@@ -410,7 +540,11 @@ class Game:
     def has_pending_upload_mission(self):
         for mission in self.get_active_missions():
             for obj in mission.get("objectives", []) or []:
-                if isinstance(obj, dict) and str(obj.get("type", "")).strip() == "upload_data" and not obj.get("done"):
+                if (
+                    isinstance(obj, dict)
+                    and str(obj.get("type", "")).strip() == "upload_data"
+                    and not obj.get("done")
+                ):
                     return True
         return False
 
@@ -452,15 +586,32 @@ class Game:
             self.push_message(tr(self.lang, "msg.upload_complete"))
         return ok
 
-    def record_mission_key_interact(self, target_id=None, key_id=None, consume=False, flag=None, target_kind=None):
-        if str(target_kind or "").strip() == "terminal" and self.has_pending_upload_mission():
-            return self.start_mission_upload(target_id=target_id, key_id=key_id, flag=flag)
-        if game_missions.record_key_interaction(self, target_id=target_id, key_id=key_id, consume=consume, flag=flag, target_kind=target_kind):
+    def record_mission_key_interact(
+        self, target_id=None, key_id=None, consume=False, flag=None, target_kind=None
+    ):
+        if (
+            str(target_kind or "").strip() == "terminal"
+            and self.has_pending_upload_mission()
+        ):
+            return self.start_mission_upload(
+                target_id=target_id, key_id=key_id, flag=flag
+            )
+        if game_missions.record_key_interaction(
+            self,
+            target_id=target_id,
+            key_id=key_id,
+            consume=consume,
+            flag=flag,
+            target_kind=target_kind,
+        ):
             self._normalize_mission_state()
             return True
         return False
 
-    def record_mission_completion_event(self):
+    def record_mission_completion_event(self, mission_id=None):
+        from . import mission_handlers
+
+        mission_handlers.on_mission_complete(self, mission_id=mission_id)
         if game_missions.update_on_mission_complete(self):
             self._normalize_mission_state()
             return True
@@ -473,43 +624,63 @@ class Game:
         return False
 
     def record_mission_enemy_death(self, enemy_id):
+        from . import mission_handlers
+
+        mission_handlers.on_enemy_death(self, enemy_id)
         if game_missions.update_on_enemy_death(self, enemy_id):
             self._normalize_mission_state()
             return True
         return False
 
     def record_mission_talk(self, npc_id=None):
-        if hasattr(game_missions, "update_on_talk_to_npc") and game_missions.update_on_talk_to_npc(self, npc_id):
+        if hasattr(
+            game_missions, "update_on_talk_to_npc"
+        ) and game_missions.update_on_talk_to_npc(self, npc_id):
             self._normalize_mission_state()
             return True
         return False
 
     def record_mission_item_gain(self, item_name=None, amount=1, source=None):
-        if hasattr(game_missions, "update_on_item_gain") and game_missions.update_on_item_gain(self, item_name=item_name, amount=amount, source=source):
+        from . import mission_handlers
+
+        mission_handlers.on_item_gain(self, item_name=item_name, amount=amount, source=source)
+        if hasattr(
+            game_missions, "update_on_item_gain"
+        ) and game_missions.update_on_item_gain(
+            self, item_name=item_name, amount=amount, source=source
+        ):
             self._normalize_mission_state()
             return True
         return False
 
     def record_mission_module_play(self, module_id=None):
-        if hasattr(game_missions, "update_on_module_play") and game_missions.update_on_module_play(self, module_id):
+        if hasattr(
+            game_missions, "update_on_module_play"
+        ) and game_missions.update_on_module_play(self, module_id):
             self._normalize_mission_state()
             return True
         return False
 
     def record_mission_protect_target(self, target_id=None):
-        if hasattr(game_missions, "update_on_protect_target") and game_missions.update_on_protect_target(self, target_id):
+        if hasattr(
+            game_missions, "update_on_protect_target"
+        ) and game_missions.update_on_protect_target(self, target_id):
             self._normalize_mission_state()
             return True
         return False
 
     def record_mission_event(self, event_name, amount=1, **ctx):
-        if hasattr(game_missions, "update_on_event") and game_missions.update_on_event(self, event_name, amount=amount, **ctx):
+        if hasattr(game_missions, "update_on_event") and game_missions.update_on_event(
+            self, event_name, amount=amount, **ctx
+        ):
             self._normalize_mission_state()
             return True
         return False
 
     def record_mission_map_explore(self, map_name=None):
-        if hasattr(game_missions, "update_on_map_explored") and game_missions.update_on_map_explored(self, map_name):
+        if hasattr(
+            game_missions, "update_on_map_explored"
+        ) and game_missions.update_on_map_explored(self, map_name):
             self._normalize_mission_state()
             return True
         return False
@@ -534,9 +705,16 @@ class Game:
         self.item_defs = defs
         self.item_alias = alias
         self.item_display = display
-        self.inventory = {self.canonical_item_name(k): int(v) for k, v in self.inventory.items()}
-        self.inventory = {k: v for k, v in self.inventory.items() if k and isinstance(v, int)}
-        self.equipment = {k: self.canonical_item_name(v) if v else None for k, v in self.equipment.items()}
+        self.inventory = {
+            self.canonical_item_name(k): int(v) for k, v in self.inventory.items()
+        }
+        self.inventory = {
+            k: v for k, v in self.inventory.items() if k and isinstance(v, int)
+        }
+        self.equipment = {
+            k: self.canonical_item_name(v) if v else None
+            for k, v in self.equipment.items()
+        }
 
     def _load_spells(self, raw_spells):
         spells = []
@@ -561,10 +739,16 @@ class Game:
         self.spells = spells
         self.spell_alias = alias
         self.spell_display = display
-        self.magic_hotbar_slots = [self.canonical_spell_name(v) if v else None for v in self.magic_hotbar_slots]
+        self.magic_hotbar_slots = [
+            self.canonical_spell_name(v) if v else None for v in self.magic_hotbar_slots
+        ]
 
     def get_unlocked_spell_ids(self):
-        unlocked = [self.canonical_spell_name(v) for v in getattr(self, "unlocked_magics", []) if v]
+        unlocked = [
+            self.canonical_spell_name(v)
+            for v in getattr(self, "unlocked_magics", [])
+            if v
+        ]
         valid = {sp.get("name") for sp in self.spells if isinstance(sp, dict)}
         out = []
         for sid in unlocked:
@@ -599,7 +783,9 @@ class Game:
                 continue
             discovered.add(slot)
         categories = [s for s in slot_order if s in discovered]
-        extras = sorted([s for s in discovered if s not in set(slot_order) and s != "ring"])
+        extras = sorted(
+            [s for s in discovered if s not in set(slot_order) and s != "ring"]
+        )
         categories.extend(extras)
         categories.extend([f"ring{i}" for i in range(1, 7)])
         if not categories:
@@ -668,7 +854,7 @@ class Game:
         for slot, names in by_slot.items():
             names = sorted(
                 names,
-                key=lambda n: (self._item_power_score(self.item_defs.get(n, {})), n)
+                key=lambda n: (self._item_power_score(self.item_defs.get(n, {})), n),
             )
             if not names:
                 continue
@@ -680,7 +866,7 @@ class Game:
                 score = self._item_power_score(self.item_defs.get(name, {}))
                 if prev_score is not None and score > prev_score:
                     level += 1
-                price = int(base_price * (2 ** level))
+                price = int(base_price * (2**level))
                 seeded_price = price_map.get(name, 0)
                 if seeded_price > price:
                     price = seeded_price
@@ -688,12 +874,20 @@ class Game:
                 prev_score = score
 
         # Stable order: non-equipment first, then equipment by slot/order.
-        slot_rank = {"weapon": 0, "shield": 1, "helmet": 2, "armor": 3, "pants": 4, "boots": 5, "ring": 6}
+        slot_rank = {
+            "weapon": 0,
+            "shield": 1,
+            "helmet": 2,
+            "armor": 3,
+            "pants": 4,
+            "boots": 5,
+            "ring": 6,
+        }
         equipment_rows.sort(
             key=lambda r: (
                 slot_rank.get(self.item_defs.get(r["name"], {}).get("slot"), 99),
                 r["price"],
-                r["name"]
+                r["name"],
             )
         )
         spell_books = []
@@ -719,10 +913,10 @@ class Game:
         if hasattr(self, "entities"):
             allowed_npcs = set(self._npc_layout_for_map().keys())
             self.entities = [
-                e for e in self.entities
+                e
+                for e in self.entities
                 if e.eid == "player"
                 or e.ai_type == "team"
-                or e.immortal
                 or e.eid in allowed_npcs
             ]
         # map_1/map_2/map_3 stay fully pre-coded; do not randomize runtime layout.
@@ -739,6 +933,33 @@ class Game:
             self.rogue_rest_intro_done = False
             self.open_rogue_rest_intro()
         self.mark_map_explored(self.map.name)
+        self.refresh_music()
+
+    def refresh_music(self):
+        requested_music = resolve_current_music(self)
+        audio = getattr(self, "audio", None)
+        print("[music] requested =", requested_music)
+        print("[music] current =", getattr(self, "current_music", None))
+        print("[music] map =", getattr(getattr(self, "map", None), "name", None))
+        print("[music] region =", getattr(getattr(self, "map", None), "region", ""))
+        print("[music] audio exists =", bool(audio))
+        if not audio:
+            return
+        if requested_music == getattr(self, "current_music", None):
+            return
+        if requested_music:
+            ok = audio.switch_bgm(requested_music, fadeout_ms=400, fadein_ms=400)
+            if ok is not False:
+                self.current_music = requested_music
+                return
+            fallback_ok = audio.switch_bgm(
+                FALLBACK_MUSIC, fadeout_ms=400, fadein_ms=400
+            )
+            if fallback_ok is not False:
+                self.current_music = FALLBACK_MUSIC
+        else:
+            audio.stop_bgm(fadeout_ms=400)
+            self.current_music = None
 
     def mark_map_explored(self, map_name):
         if not map_name:
@@ -746,7 +967,9 @@ class Game:
         if not isinstance(getattr(self, "explored_maps", None), set):
             self.explored_maps = set()
         self.explored_maps.add(map_name)
-        if hasattr(game_missions, "update_on_map_explored") and game_missions.update_on_map_explored(self, map_name):
+        if hasattr(
+            game_missions, "update_on_map_explored"
+        ) and game_missions.update_on_map_explored(self, map_name):
             self._normalize_mission_state()
 
     def _normalize_map_ref(self, name):
@@ -783,7 +1006,9 @@ class Game:
                 return portal
         return None
 
-    def _iter_safe_spawn_candidates(self, pos=None, anchor=None, direction=None, fallback=None):
+    def _iter_safe_spawn_candidates(
+        self, pos=None, anchor=None, direction=None, fallback=None
+    ):
         seen = set()
 
         def _add(candidate):
@@ -815,11 +1040,15 @@ class Game:
             for item in _add(fallback):
                 yield item
 
-    def _resolve_safe_spawn(self, pos, fallback=None, radius=2, anchor=None, direction=None):
+    def _resolve_safe_spawn(
+        self, pos, fallback=None, radius=2, anchor=None, direction=None
+    ):
         if not hasattr(self, "map") or self.map is None:
             return fallback if fallback is not None else pos
         candidates = []
-        for base in self._iter_safe_spawn_candidates(pos=pos, anchor=anchor, direction=direction, fallback=fallback):
+        for base in self._iter_safe_spawn_candidates(
+            pos=pos, anchor=anchor, direction=direction, fallback=fallback
+        ):
             candidates.append(base)
         if not candidates and fallback is not None:
             candidates.append(tuple(fallback))
@@ -850,7 +1079,11 @@ class Game:
         explicit = str((portal or {}).get("spawn_direction", "") or "").strip().lower()
         if explicit:
             return explicit
-        if target_map is not None and getattr(target_map, "w", 0) > 0 and getattr(target_map, "h", 0) > 0:
+        if (
+            target_map is not None
+            and getattr(target_map, "w", 0) > 0
+            and getattr(target_map, "h", 0) > 0
+        ):
             try:
                 x = int(portal.get("x", 0))
                 y = int(portal.get("y", 0))
@@ -883,26 +1116,34 @@ class Game:
 
         current_map = getattr(self, "map", None)
         current_name = str(getattr(current_map, "name", "") or "")
+
         requested_name = map_name or current_map
         if hasattr(requested_name, "name"):
             requested_name = requested_name.name
-        requested_name = str(requested_name or "")
+        requested_name = str(requested_name or "").strip()
 
+        if requested_name and not requested_name.endswith(".json") and requested_name != "rogue":
+            requested_name = f"{requested_name}.json"
+
+        # First priority: current loaded map npc_layout.
+        # If map JSON explicitly has npc_layout, respect it even if it is empty.
         if requested_name and requested_name == current_name:
-            layout = _normalize_layout(getattr(current_map, "npc_layout", {}) or {})
-            if layout:
-                return layout
+            raw_layout = getattr(current_map, "npc_layout", None)
+            if isinstance(raw_layout, dict):
+                return _normalize_layout(raw_layout)
 
+        # Second priority: map JSON file npc_layout.
+        # If map JSON explicitly has npc_layout, respect it even if it is empty.
         if requested_name:
             try:
                 map_path = resolve_map_file(requested_name)
                 map_data = load_json(map_path)
-                layout = _normalize_layout(map_data.get("npc_layout", {}))
-                if layout:
-                    return layout
+                if isinstance(map_data, dict) and "npc_layout" in map_data:
+                    return _normalize_layout(map_data.get("npc_layout", {}))
             except Exception:
                 pass
 
+        # Fallback only for old maps that do not define npc_layout at all.
         layouts = {
             "map_1.json": {
                 "dev": (2, 8),
@@ -923,6 +1164,7 @@ class Game:
                 "priestess": (11, 2),
             },
         }
+
         return layouts.get(requested_name, {})
 
     def _build_world_map_graph(self):
@@ -972,10 +1214,10 @@ class Game:
         allowed_ids = set(layout.keys())
         if hasattr(self, "entities"):
             self.entities = [
-                e for e in self.entities
+                e
+                for e in self.entities
                 if e.eid == "player"
                 or e.ai_type == "team"
-                or e.immortal
                 or e.eid not in npc_data
                 or e.eid in allowed_ids
             ]
@@ -1002,25 +1244,65 @@ class Game:
             ent.x, ent.y = spot
 
     def spawn_default_entities(self):
-        if 'slime' in mobs_data:
-            sdata = mobs_data['slime']
+        if "slime" in mobs_data:
+            sdata = mobs_data["slime"]
             self.entities.append(
-                Entity('slime', 2, 1, sdata['hp'], sdata.get('mp', 0), sdata.get('attack', 10), sdata.get('defence', 0), sdata.get('ai_type'), sdata.get('immortal', False))
+                Entity(
+                    "slime",
+                    2,
+                    1,
+                    sdata["hp"],
+                    sdata.get("mp", 0),
+                    sdata.get("attack", 10),
+                    sdata.get("defence", 0),
+                    sdata.get("ai_type"),
+                    sdata.get("immortal", False),
+                )
             )
-        if 'skeleton' in mobs_data:
-            kdata = mobs_data['skeleton']
+        if "skeleton" in mobs_data:
+            kdata = mobs_data["skeleton"]
             self.entities.append(
-                Entity('skeleton', 7, 1, kdata['hp'], kdata.get('mp', 0), kdata.get('attack', 10), kdata.get('defence', 0), kdata.get('ai_type'), kdata.get('immortal', False))
+                Entity(
+                    "skeleton",
+                    7,
+                    1,
+                    kdata["hp"],
+                    kdata.get("mp", 0),
+                    kdata.get("attack", 10),
+                    kdata.get("defence", 0),
+                    kdata.get("ai_type"),
+                    kdata.get("immortal", False),
+                )
             )
-        if 'zombie' in mobs_data:
-            zdata = mobs_data['zombie']
+        if "zombie" in mobs_data:
+            zdata = mobs_data["zombie"]
             self.entities.append(
-                Entity('zombie', 1, 6, zdata['hp'], zdata.get('mp', 0), zdata.get('attack', 10), zdata.get('defence', 0), zdata.get('ai_type'), zdata.get('immortal', False))
+                Entity(
+                    "zombie",
+                    1,
+                    6,
+                    zdata["hp"],
+                    zdata.get("mp", 0),
+                    zdata.get("attack", 10),
+                    zdata.get("defence", 0),
+                    zdata.get("ai_type"),
+                    zdata.get("immortal", False),
+                )
             )
-        if 'soldier' in mobs_data:
-            mdata = mobs_data['soldier']
+        if "soldier" in mobs_data:
+            mdata = mobs_data["soldier"]
             self.entities.append(
-                Entity('soldier', 8, 6, mdata['hp'], mdata.get('mp', 0), mdata.get('attack', 10), mdata.get('defence', 0), mdata.get('ai_type'), mdata.get('immortal', False))
+                Entity(
+                    "soldier",
+                    8,
+                    6,
+                    mdata["hp"],
+                    mdata.get("mp", 0),
+                    mdata.get("attack", 10),
+                    mdata.get("defence", 0),
+                    mdata.get("ai_type"),
+                    mdata.get("immortal", False),
+                )
             )
         for ent in self.entities:
             self._ensure_entity_combat_profile(ent)
@@ -1117,13 +1399,188 @@ class Game:
 
     def entity_at(self, x, y):
         for e in self.entities:
-            size = getattr(e, "size", 1)
-            if size > 1:
-                if e.x <= x < e.x + size and e.y <= y < e.y + size and (e.immortal or e.hp > 0):
+            width = max(1, int(getattr(e, "width", getattr(e, "size", 1)) or 1))
+            height = max(1, int(getattr(e, "height", getattr(e, "size", 1)) or 1))
+            if width > 1 or height > 1:
+                if (
+                    e.x <= x < e.x + width
+                    and e.y <= y < e.y + height
+                    and (e.immortal or e.hp > 0)
+                ):
                     return e
             elif (e.x, e.y) == (x, y) and (e.immortal or e.hp > 0):
                 return e
         return None
+
+    def get_mob_enemy_class(self, mob_id):
+        mob = mobs_data.get(str(mob_id), {})
+        if not isinstance(mob, dict):
+            return "normal"
+        return str(mob.get("enemy_class", "normal") or "normal").strip().lower()
+
+    def get_map_spawn_pool(self):
+        allowed = self.get_map_allowed_enemy_classes()
+        raw_pool = getattr(getattr(self, "map", None), "mob_spawn_pool", None)
+        if not isinstance(raw_pool, list):
+            return []
+        out = []
+        for entry in raw_pool:
+            if not isinstance(entry, dict):
+                continue
+            mob_id = str(entry.get("mob", "") or "").strip()
+            mob = mobs_data.get(mob_id)
+            if not isinstance(mob, dict) or mob.get("ai_type") != "hostile":
+                continue
+            if allowed and self.get_mob_enemy_class(mob_id) not in allowed:
+                continue
+            try:
+                weight = max(1, int(entry.get("weight", 1) or 1))
+            except Exception:
+                weight = 1
+            out.append({"mob": mob_id, "weight": weight})
+        return out
+
+    def get_map_allowed_enemy_classes(self):
+        raw = getattr(getattr(self, "map", None), "mob_spawn_classes", None)
+        if isinstance(raw, str):
+            raw = [part.strip() for part in raw.replace("|", ",").split(",")]
+        if isinstance(raw, (list, tuple, set)):
+            allowed = {
+                str(part or "").strip().lower()
+                for part in raw
+                if str(part or "").strip().lower() in {"normal", "elite", "boss"}
+            }
+            if allowed:
+                return allowed
+        rank = getattr(getattr(self, "map", None), "mob_spawn_rank", None)
+        rank_aliases = {
+            1: {"normal"},
+            2: {"normal", "elite"},
+            3: {"normal", "elite", "boss"},
+            4: {"elite"},
+            5: {"elite", "boss"},
+            6: {"boss"},
+        }
+        try:
+            rank = int(rank)
+        except Exception:
+            rank = 0
+        return set(rank_aliases.get(rank, set()))
+
+    def weighted_pick_spawn(self, pool):
+        valid = []
+        total = 0
+        for entry in pool or []:
+            if not isinstance(entry, dict):
+                continue
+            mob_id = str(entry.get("mob", "") or "").strip()
+            mob = mobs_data.get(mob_id)
+            if not isinstance(mob, dict) or mob.get("ai_type") != "hostile":
+                continue
+            try:
+                weight = max(1, int(entry.get("weight", 1) or 1))
+            except Exception:
+                weight = 1
+            valid.append((mob_id, weight))
+            total += weight
+        if total <= 0:
+            return None
+        roll = random.randint(1, total)
+        upto = 0
+        for mob_id, weight in valid:
+            upto += weight
+            if roll <= upto:
+                return mob_id
+        return valid[-1][0] if valid else None
+
+    def get_rogue_allowed_enemy_classes(self, layer=None):
+        layer = int(layer or getattr(self, "rogue_layer", 0) or 0)
+        if layer >= 40:
+            return {"normal", "elite", "boss"}
+        if layer >= 20:
+            return {"normal", "elite"}
+        return {"normal"}
+
+    def build_rogue_spawn_pool(self, layer=None):
+        allowed = self.get_rogue_allowed_enemy_classes(layer)
+        pool = []
+        for mob_id, mob in mobs_data.items():
+            if not isinstance(mob, dict) or mob.get("ai_type") != "hostile":
+                continue
+            if self.get_mob_enemy_class(mob_id) not in allowed:
+                continue
+            pool.append({"mob": mob_id, "weight": int(mob.get("spawn_weight", 10) or 10)})
+        return pool
+
+    def can_spawn_entity_at_size(self, x, y, width=1, height=1, ignore_ent=None):
+        try:
+            x = int(x)
+            y = int(y)
+            width = max(1, int(width or 1))
+            height = max(1, int(height or 1))
+        except Exception:
+            return False
+        for cy in range(y, y + height):
+            for cx in range(x, x + width):
+                if not self.map.is_walkable(cx, cy):
+                    return False
+                target = self.entity_at(cx, cy)
+                if target is not None and target is not ignore_ent:
+                    return False
+        return True
+
+    def create_hostile_entity(
+        self,
+        mob_id,
+        x,
+        y,
+        width=1,
+        height=1,
+        hp_multiplier=1.0,
+        attack_multiplier=1.0,
+        defence_multiplier=1.0,
+        reward_multiplier=1.0,
+        exp_multiplier=1.0,
+        extra_flags=None,
+    ):
+        mob = mobs_data.get(mob_id)
+        if not isinstance(mob, dict) or mob.get("ai_type") != "hostile":
+            return None
+        hp = int(max(1, (mob.get("hp", 1) or 1) * float(hp_multiplier or 1.0)))
+        atk = int(max(1, (mob.get("attack", 10) or 10) * float(attack_multiplier or 1.0)))
+        defence = int(max(0, (mob.get("defence", 0) or 0) * float(defence_multiplier or 1.0)))
+        magic_attack = int(
+            max(
+                1,
+                (mob.get("magic_attack", mob.get("attack", 10)) or mob.get("attack", 10) or 10)
+                * float(attack_multiplier or 1.0),
+            )
+        )
+        magic_defense = float((mob.get("magic_defense", 0) or 0) * float(defence_multiplier or 1.0))
+        ent = Entity(
+            mob_id,
+            x,
+            y,
+            hp,
+            mob.get("mp", 0),
+            atk,
+            defence,
+            mob.get("ai_type"),
+            mob.get("immortal", False),
+        )
+        ent.size = max(int(width or 1), int(height or 1))
+        ent.width = max(1, int(width or 1))
+        ent.height = max(1, int(height or 1))
+        ent.magic_attack = magic_attack
+        ent.magic_defense = magic_defense
+        ent.attack_type = str(mob.get("attack_type", "P")).upper()
+        ent.reward_multiplier = float(reward_multiplier or 1.0)
+        ent.exp_multiplier = float(exp_multiplier or 1.0)
+        if isinstance(extra_flags, dict):
+            for key, value in extra_flags.items():
+                setattr(ent, key, value)
+        self._ensure_entity_combat_profile(ent)
+        return ent
 
     def is_ui_blocking(self):
         return self.ui_mode is not None
@@ -1131,7 +1588,7 @@ class Game:
     def request_player_move(self, dx, dy):
         if self.transition_active:
             return False
-        if hasattr(self, 'death_timer') and self.death_timer is not None:
+        if hasattr(self, "death_timer") and self.death_timer is not None:
             return False
         if self.is_ui_blocking():
             return False
@@ -1147,17 +1604,22 @@ class Game:
         if not self.map.is_walkable(nx, ny):
             return False
         target = self.entity_at(nx, ny)
-        if target and target.eid != 'player' and target.hp > 0:
+        if target and target.eid != "player" and target.hp > 0:
             target_def = self.get_entity_def(target.eid)
-            if target_def.get('ai_type') in ('friendly', 'neutral'):
+            if target_def.get("ai_type") in ("friendly", "neutral"):
                 return False
-            if target_def.get('ai_type') == 'team':
+            if target_def.get("ai_type") == "team":
                 # Team member should never be attacked by player.
                 # Swap positions so movement feels natural.
                 tx, ty = target.x, target.y
                 target.x, target.y = oldx, oldy
                 self.player.x, self.player.y = tx, ty
-                self.player_move_anim = {"from": (oldx, oldy), "to": (tx, ty), "start": time.time(), "duration": self.move_anim_duration}
+                self.player_move_anim = {
+                    "from": (oldx, oldy),
+                    "to": (tx, ty),
+                    "start": time.time(),
+                    "duration": self.move_anim_duration,
+                }
                 self.tutorial_notify("move_key")
                 self.state_cleanup()
                 self.update(player_tick=False)
@@ -1174,7 +1636,12 @@ class Game:
             if target.hp <= 0:
                 target.hp = -1
                 self.player.x, self.player.y = nx, ny
-                self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
+                self.player_move_anim = {
+                    "from": (oldx, oldy),
+                    "to": (nx, ny),
+                    "start": time.time(),
+                    "duration": self.move_anim_duration,
+                }
                 self.tutorial_notify("move_key")
                 self.on_enemy_death(target)
                 self.state_cleanup()
@@ -1189,13 +1656,21 @@ class Game:
             self.state_cleanup()
             return False
         self.player.x, self.player.y = nx, ny
-        self.player_move_anim = {"from": (oldx, oldy), "to": (nx, ny), "start": time.time(), "duration": self.move_anim_duration}
+        self.player_move_anim = {
+            "from": (oldx, oldy),
+            "to": (nx, ny),
+            "start": time.time(),
+            "duration": self.move_anim_duration,
+        }
         self.tutorial_notify("move_key")
+        from . import mission_handlers
+
+        mission_handlers.on_player_update(self)
         bt = self.map.get_block(nx, ny)
-        if bt and 'on_step' in blocktypes[bt]:
-            if blocktypes[bt]['on_step'] == 'portal':
+        if bt and "on_step" in blocktypes[bt]:
+            if blocktypes[bt]["on_step"] == "portal":
                 self.handle_portal_at(nx, ny)
-            elif blocktypes[bt]['on_step'] == 'level_exit':
+            elif blocktypes[bt]["on_step"] == "level_exit":
                 self.handle_exit_tile()
         self.state_cleanup()
         self.update(player_tick=False)
@@ -1213,32 +1688,60 @@ class Game:
                 message_text = p.get("message", "")
                 locked = bool(p.get("locked", False))
                 if locked or (not target_map and (message_key or message_text)):
-                    msg = tr(self.lang, message_key) if message_key else (message_text or tr(self.lang, "msg.area_still_cooking"))
+                    msg = (
+                        tr(self.lang, message_key)
+                        if message_key
+                        else (message_text or tr(self.lang, "msg.area_still_cooking"))
+                    )
                     self.push_message(msg)
                     return
                 if target_map:
                     if target_map == "rogue":
-                        self.start_transition(lambda: self.enter_rogue_layer(new_entry=True))
+                        self.start_transition(
+                            lambda: self.enter_rogue_layer(new_entry=True)
+                        )
                     else:
+
                         def do_load():
                             self.load_map(target_map)
-                            anchor_portal = self._portal_by_id(target_portal_id, self.map) if target_portal_id else None
+                            anchor_portal = (
+                                self._portal_by_id(target_portal_id, self.map)
+                                if target_portal_id
+                                else None
+                            )
                             anchor_spawn = None
                             if anchor_portal is not None:
                                 try:
-                                    ax, ay = int(anchor_portal.get("x", 0)), int(anchor_portal.get("y", 0))
+                                    ax, ay = int(anchor_portal.get("x", 0)), int(
+                                        anchor_portal.get("y", 0)
+                                    )
                                     anchor_spawn = [ax, ay]
                                 except Exception:
                                     anchor_spawn = None
-                            preferred_spawn = target_spawn if (isinstance(target_spawn, (list, tuple)) and len(target_spawn) == 2) else None
-                            entry_direction = self._portal_entry_direction(anchor_portal or {}, self.map) if anchor_portal else None
+                            preferred_spawn = (
+                                target_spawn
+                                if (
+                                    isinstance(target_spawn, (list, tuple))
+                                    and len(target_spawn) == 2
+                                )
+                                else None
+                            )
+                            entry_direction = (
+                                self._portal_entry_direction(
+                                    anchor_portal or {}, self.map
+                                )
+                                if anchor_portal
+                                else None
+                            )
                             safe_spawn = self._resolve_safe_spawn(
                                 preferred_spawn,
                                 fallback=self.map.spawn,
                                 anchor=anchor_spawn,
                                 direction=entry_direction,
                             )
-                            if preferred_spawn is None or tuple(safe_spawn) != tuple(preferred_spawn):
+                            if preferred_spawn is None or tuple(safe_spawn) != tuple(
+                                preferred_spawn
+                            ):
                                 self.last_portal_fallback = {
                                     "from_map": getattr(self.map, "name", ""),
                                     "from_portal": (x, y),
@@ -1255,6 +1758,7 @@ class Game:
                                 self.last_portal_fallback = None
                             self.player.x, self.player.y = safe_spawn
                             self.teleport_team_to_player()
+
                         self.start_transition(do_load)
                 return
 
@@ -1273,10 +1777,12 @@ class Game:
 
     def on_enemy_death(self, ent):
         mob = mobs_data.get(ent.eid, {})
-        reward_money = mob.get('reward_money', {})
-        reward_items = mob.get('reward_items', [])
+        reward_money = mob.get("reward_money", {})
+        reward_items = mob.get("reward_items", [])
         lines = [tr(self.lang, "reward.killed", name=ent.eid)]
         is_boss = getattr(ent, "is_boss", False)
+        reward_mult = max(0.0, float(getattr(ent, "reward_multiplier", 1.0) or 1.0))
+        exp_mult = max(0.0, float(getattr(ent, "exp_multiplier", 1.0) or 1.0))
         if reward_money:
             if isinstance(reward_money, dict):
                 amount = reward_money.get("amount", 0)
@@ -1287,12 +1793,16 @@ class Game:
             if amount and random.random() < chance:
                 if is_boss:
                     amount = amount * 10
+                amount = int(max(0, amount * reward_mult))
                 self.money += amount
                 lines.append(tr(self.lang, "reward.dropped", text=f"{amount} robux"))
         dropped_items = []
         if reward_items:
             if isinstance(reward_items, dict):
-                reward_items = [{"name": k, "count": v, "chance": 0.5} for k, v in reward_items.items()]
+                reward_items = [
+                    {"name": k, "count": v, "chance": 0.5}
+                    for k, v in reward_items.items()
+                ]
             for item in reward_items:
                 name = item.get("name")
                 count = item.get("count", 1)
@@ -1300,6 +1810,7 @@ class Game:
                 if is_boss:
                     chance = 1.0
                     count = count * 3
+                count = max(1, int(count * reward_mult))
                 if name and random.random() < chance:
                     self.inventory[name] = self.inventory.get(name, 0) + count
                     if hasattr(self, "record_mission_item_gain"):
@@ -1315,7 +1826,9 @@ class Game:
             bonus_money = int(bonus.get("money", 0))
             if bonus_money > 0:
                 self.money += bonus_money
-                lines.append(tr(self.lang, "reward.dropped", text=f"{bonus_money} robux"))
+                lines.append(
+                    tr(self.lang, "reward.dropped", text=f"{bonus_money} robux")
+                )
             for name, count in bonus.get("items", []):
                 if not name:
                     continue
@@ -1330,23 +1843,17 @@ class Game:
                         pass
                 lines.append(tr(self.lang, "reward.dropped", text=f"{name} x{c}"))
         self.push_message_lines(lines)
-        self.add_exp(int(mob.get("exp_reward", 10)))
+        self.add_exp(int((mob.get("exp_reward", 10) or 10) * exp_mult))
         self.tutorial_notify("enemy_killed", enemy_id=ent.eid)
 
         # Mission progress (mission framework v0)
         self.record_mission_enemy_death(ent.eid)
 
     def push_message(self, text):
-        self.message_queue.append({
-            "text": text,
-            "created": time.time()
-        })
+        self.message_queue.append({"text": text, "created": time.time()})
 
     def push_message_lines(self, lines):
-        self.message_queue.append({
-            "lines": lines,
-            "created": time.time()
-        })
+        self.message_queue.append({"lines": lines, "created": time.time()})
 
     def exp_to_next_level(self):
         if self.player_level < 20:
@@ -1368,7 +1875,9 @@ class Game:
             gained = self.skill_points_on_level_up()
             self.player_skill_points += gained
             leveled += 1
-            self.push_message(tr(self.lang, "msg.level_up", level=self.player_level, sp=gained))
+            self.push_message(
+                tr(self.lang, "msg.level_up", level=self.player_level, sp=gained)
+            )
             if self.player_level % 5 == 0:
                 self.level_stat_pending += 1
         if leveled == 0:
@@ -1399,7 +1908,10 @@ class Game:
         members = self.get_team_member_ids()
         if not members:
             return None
-        idx = max(0, min(len(members) - 1, int(getattr(self, "team_equip_member_selected", 0))))
+        idx = max(
+            0,
+            min(len(members) - 1, int(getattr(self, "team_equip_member_selected", 0))),
+        )
         return members[idx]
 
     def get_team_equip_categories(self):
@@ -1434,8 +1946,14 @@ class Game:
         if not member:
             return
         equipables = self.get_team_equipable_items()
-        slot_key = "ring" if self.team_equip_category.startswith("ring") else self.team_equip_category
-        filtered = [n for n in equipables if self.item_defs.get(n, {}).get("slot") == slot_key]
+        slot_key = (
+            "ring"
+            if self.team_equip_category.startswith("ring")
+            else self.team_equip_category
+        )
+        filtered = [
+            n for n in equipables if self.item_defs.get(n, {}).get("slot") == slot_key
+        ]
         if not filtered:
             self.push_message(tr(self.lang, "msg.no_items_category"))
             return
@@ -1471,7 +1989,10 @@ class Game:
                 candidates.append(name)
             if not candidates:
                 continue
-            best = max(candidates, key=lambda n: self._item_power_score(self.item_defs.get(n, {})))
+            best = max(
+                candidates,
+                key=lambda n: self._item_power_score(self.item_defs.get(n, {})),
+            )
             if row.get(slot) != best:
                 row[slot] = best
                 changed = True
@@ -1503,7 +2024,9 @@ class Game:
 
     def _ensure_team_equipment_for_member(self, member_id):
         if member_id not in self.team_equipment:
-            self.team_equipment[member_id] = {slot: None for slot in self.get_team_slot_keys()}
+            self.team_equipment[member_id] = {
+                slot: None for slot in self.get_team_slot_keys()
+            }
         row = self.team_equipment.get(member_id, {})
         for slot in self.get_team_slot_keys():
             row.setdefault(slot, None)
@@ -1618,7 +2141,9 @@ class Game:
             self.player.base_defence += val
         self.level_stat_pending = max(0, self.level_stat_pending - 1)
         self.recalculate_stats()
-        self.push_message(tr(self.lang, "msg.level_stat_chosen", name=pick["name"], value=val))
+        self.push_message(
+            tr(self.lang, "msg.level_stat_chosen", name=pick["name"], value=val)
+        )
         if self.level_stat_pending > 0:
             self.ui_mode = "level_stat_choice"
             self.level_stat_selected = 0
@@ -1627,7 +2152,9 @@ class Game:
         return True
 
     def state_cleanup(self):
-        self.entities = [e for e in self.entities if e.eid == 'player' or e.immortal or e.hp > 0]
+        self.entities = [
+            e for e in self.entities if e.eid == "player" or e.immortal or e.hp > 0
+        ]
 
     def check_player_death(self):
         if self.player.hp <= 0:
@@ -1666,7 +2193,9 @@ class Game:
         if self.load_latest_save():
             self.ui_mode = None
             return
-        self.death_no_save_notice = "welp, looks like you dont have any saves, adios then"
+        self.death_no_save_notice = (
+            "welp, looks like you dont have any saves, adios then"
+        )
 
     def start_blackout(self):
         self.blackout = 1
@@ -1682,7 +2211,7 @@ class Game:
             self.tick += 1
             self.update_spell_cooldowns_tick()
             for ent in self.entities:
-                if ent.eid != 'player':
+                if ent.eid != "player":
                     self.update_enemy(ent)
             self.update_monst3r(player_tick=True)
             self.update_wisadel(player_tick=True)
@@ -1696,7 +2225,7 @@ class Game:
             self.black_alpha += 20
             if self.black_alpha >= 255:
                 self.black_alpha = 255
-                self.load_map('map_1.json')
+                self.load_map("map_1.json")
                 self.player.x, self.player.y = self.map.spawn
                 self.blackout = 2
         elif self.blackout == 2:
@@ -1716,7 +2245,14 @@ class Game:
             return
         if self.is_ui_blocking():
             return
-        current_spawn_interval = self.map.spawn_interval if self.map.spawn_interval is not None else self.spawn_interval
+        from . import mission_handlers
+
+        mission_handlers.on_player_update(self)
+        current_spawn_interval = (
+            self.map.spawn_interval
+            if self.map.spawn_interval is not None
+            else self.spawn_interval
+        )
         self.spawn_timer += dt
         if self.spawn_timer >= current_spawn_interval and self.map.name != "rogue":
             self.spawn_timer = 0.0
@@ -1726,6 +2262,8 @@ class Game:
         self.update_monst3r(player_tick=False)
         self.update_wisadel(player_tick=False)
         game_inventory_ops.update_spell_effects(self)
+        from . import mission_handlers
+        mission_handlers.on_player_update(self)
         self.cleanup_messages()
 
     def ensure_monst3r_entity(self):
@@ -1763,12 +2301,19 @@ class Game:
         ]
         for tx, ty in candidates:
             blocker = self.entity_at(tx, ty)
-            if self.map.is_walkable(tx, ty) and (blocker is None or blocker.eid == ignore_eid):
+            if self.map.is_walkable(tx, ty) and (
+                blocker is None or blocker.eid == ignore_eid
+            ):
                 return tx, ty
         return None, None
 
     def _is_hostile_entity(self, ent):
-        return ent.eid != "player" and ent.ai_type != "team" and mobs_data.get(ent.eid, {}).get("ai_type") == "hostile" and ent.hp > 0
+        return (
+            ent.eid != "player"
+            and ent.ai_type != "team"
+            and mobs_data.get(ent.eid, {}).get("ai_type") == "hostile"
+            and ent.hp > 0
+        )
 
     def teleport_team_to_player(self):
         for member_id in ("monst3r", "wisadel"):
@@ -1785,11 +2330,21 @@ class Game:
         if not runtime:
             return
         self._normalize_mission_state()
-        self.mission_complete_count = int(getattr(self, "mission_complete_count", 0)) + 1
+        self.mission_complete_count = (
+            int(getattr(self, "mission_complete_count", 0)) + 1
+        )
         self.mission_state["completed_count"] = self.mission_complete_count
         self.kaltsit_completed = self.mission_complete_count
-        self.push_message(tr(self.lang, "msg.mission_complete_count", count=self.mission_complete_count))
-        self.record_mission_completion_event()
+        self.push_message(
+            tr(
+                self.lang,
+                "msg.mission_complete_count",
+                count=self.mission_complete_count,
+            )
+        )
+        self.record_mission_completion_event(
+            mission_id=mission.get("id") if isinstance(mission, dict) else None
+        )
         if self.mission_complete_count >= 10 and not self.monst3r_unlocked:
             self.kaltsit_reward_ready = True
         if self.mission_complete_count >= 10 and not self.wisadel_unlocked:
@@ -1876,7 +2431,14 @@ class Game:
             return
         if time.time() >= self.monst3r_anim_until:
             self.monst3r_anim_state = "move"
-        hostiles = [e for e in self.entities if e.eid != "player" and e.eid != "monst3r" and mobs_data.get(e.eid, {}).get("ai_type") == "hostile" and e.hp > 0]
+        hostiles = [
+            e
+            for e in self.entities
+            if e.eid != "player"
+            and e.eid != "monst3r"
+            and mobs_data.get(e.eid, {}).get("ai_type") == "hostile"
+            and e.hp > 0
+        ]
         target = None
         best_dist = 9999
         for e in hostiles:
@@ -1916,7 +2478,11 @@ class Game:
         ring_def = self.item_defs.get(ring_name, {})
         per_hp = ring_def.get("per_tick_hp", 2)
         per_mp = ring_def.get("per_tick_mp", 1)
-        count = sum(1 for slot, name in self.equipment.items() if slot.startswith("ring") and name == ring_name)
+        count = sum(
+            1
+            for slot, name in self.equipment.items()
+            if slot.startswith("ring") and name == ring_name
+        )
         if count <= 0:
             return
         self.player.hp = clamp(self.player.hp + per_hp * count, 0, self.player.max_hp)
@@ -1924,7 +2490,11 @@ class Game:
 
     def apply_dev_ring_tick(self):
         ring_name = "dev's super powerful ring"
-        count = sum(1 for slot, name in self.equipment.items() if slot.startswith("ring") and name == ring_name)
+        count = sum(
+            1
+            for slot, name in self.equipment.items()
+            if slot.startswith("ring") and name == ring_name
+        )
         if count <= 0:
             return
         if count > 1:
@@ -1980,8 +2550,8 @@ class Game:
             "start": "node_1",
             "node_1": {
                 "text": tr(self.lang, "dialog.cheat_warn"),
-                "responses": [{"text": tr(self.lang, "dialog.ok"), "next": "end"}]
-            }
+                "responses": [{"text": tr(self.lang, "dialog.ok"), "next": "end"}],
+            },
         }
         self.dialog_node = "node_1"
         self.dialog_text_lines = [tr(self.lang, "dialog.cheat_warn")]
@@ -2009,7 +2579,11 @@ class Game:
             if mname != current_map:
                 continue
             if now >= t:
-                if 0 <= y < self.map.h and 0 <= x < self.map.w and self.map.grid[y][x] == "08":
+                if (
+                    0 <= y < self.map.h
+                    and 0 <= x < self.map.w
+                    and self.map.grid[y][x] == "08"
+                ):
                     self.map.grid[y][x] = "07"
                 to_remove.append((mname, x, y))
         for key in to_remove:
@@ -2018,7 +2592,11 @@ class Game:
     def count_hostile_mobs(self):
         count = 0
         for e in self.entities:
-            if e.eid != 'player' and mobs_data.get(e.eid, {}).get('ai_type') == 'hostile' and e.hp > 0:
+            if (
+                e.eid != "player"
+                and mobs_data.get(e.eid, {}).get("ai_type") == "hostile"
+                and e.hp > 0
+            ):
                 count += 1
         return count
 
@@ -2026,10 +2604,14 @@ class Game:
         cfg = getattr(self, "objectives_cfg", {})
         if self.map.name == "rogue":
             lines = cfg.get("rogue", ["obj.rogue"])
-            self.objectives = [tr(self.lang, s) if s.startswith("obj.") else s for s in lines]
+            self.objectives = [
+                tr(self.lang, s) if s.startswith("obj.") else s for s in lines
+            ]
         else:
             lines = cfg.get("default", ["Find the dev", "Try the shop"])
-            self.objectives = [tr(self.lang, s) if s.startswith("obj.") else s for s in lines]
+            self.objectives = [
+                tr(self.lang, s) if s.startswith("obj.") else s for s in lines
+            ]
 
     def get_objective_lines(self):
         return list(self.objectives)
@@ -2037,31 +2619,51 @@ class Game:
     def get_trackable_missions(self):
         missions = []
         active = [m for m in self.get_active_missions() if isinstance(m, dict)]
-        active.sort(key=lambda m: (int(m.get("order", m.get("index", 0)) or 0), str(m.get("id", ""))))
+        active.sort(
+            key=lambda m: (
+                int(m.get("order", m.get("index", 0)) or 0),
+                str(m.get("id", "")),
+            )
+        )
         for mission in active:
             giver = str(mission.get("giver_id", mission.get("giver", "kaltsit")))
             giver_label = self._giver_display_name(giver, fallback=giver)
-            name = self._mission_display_name(mission, fallback=giver_label, prefer_giver=True)
+            name = self._mission_display_name(
+                mission, fallback=giver_label, prefer_giver=True
+            )
             if name in {"", "Mission", giver}:
                 name = giver_label or giver or "Mission"
-            text = self._mission_text_short(mission) or self._mission_long_text(mission)
+            detail_lines = []
+            if hasattr(game_missions, "get_objective_summary"):
+                detail_lines = list(game_missions.get_objective_summary(mission) or [])
+            text = (detail_lines[0] if detail_lines else "") or self._mission_long_text(mission)
             mission_id = str(mission.get("id", giver) or giver)
-            status = str(game_missions.get_status(self, mission_id) if hasattr(game_missions, "get_status") else "active")
+            status = str(
+                game_missions.get_status(self, mission_id)
+                if hasattr(game_missions, "get_status")
+                else "active"
+            )
             if not text or text in {mission_id, giver, name, "Mission"}:
                 if status in {"ready", "ready_to_return", "done"}:
-                    text = tr(self.lang, "mission.board.ready_to_return") or "ready to return"
+                    text = (
+                        tr(self.lang, "mission.board.ready_to_return")
+                        or "ready to return"
+                    )
                 else:
                     text = tr(self.lang, "mission.board.active") or "active"
             if not name:
                 name = giver or "Mission"
-            missions.append({
-                "id": mission_id,
-                "name": name,
-                "giver": giver,
-                "text": text,
-                "done": self._mission_ready_to_turn_in(mission),
-                "status": status,
-            })
+            missions.append(
+                {
+                    "id": mission_id,
+                    "name": name,
+                    "giver": giver,
+                    "text": text,
+                    "detail_lines": detail_lines,
+                    "done": self._mission_ready_to_turn_in(mission),
+                    "status": status,
+                }
+            )
         return missions
 
     def _mission_display_name(self, mission, fallback="Mission", prefer_giver=False):
@@ -2069,7 +2671,15 @@ class Game:
             return fallback
         keys = ["title", "name", "giver_name", "giver_id", "giver", "provider", "id"]
         if prefer_giver:
-            keys = ["giver_name", "giver_id", "giver", "title", "name", "provider", "id"]
+            keys = [
+                "giver_name",
+                "giver_id",
+                "giver",
+                "title",
+                "name",
+                "provider",
+                "id",
+            ]
         for key in keys:
             raw = str(mission.get(key, "") or "").strip()
             if raw:
@@ -2079,7 +2689,13 @@ class Game:
     def _mission_long_text(self, mission):
         if not isinstance(mission, dict):
             return ""
-        for key in ("objective_lines", "description_lines", "description", "accept_lines", "return_lines"):
+        for key in (
+            "objective_lines",
+            "description_lines",
+            "description",
+            "accept_lines",
+            "return_lines",
+        ):
             raw = mission.get(key)
             if isinstance(raw, list):
                 for item in raw:
@@ -2117,7 +2733,9 @@ class Game:
         if not missions:
             self.set_tracked_mission(None)
             return
-        idx = max(0, min(len(missions) - 1, int(getattr(self, "objective_selected", 0))))
+        idx = max(
+            0, min(len(missions) - 1, int(getattr(self, "objective_selected", 0)))
+        )
         mid = missions[idx].get("id")
         self.set_tracked_mission(mid)
 
@@ -2134,10 +2752,19 @@ class Game:
         for row in missions:
             if row.get("id") != tracked:
                 continue
+            detail_lines = [
+                str(line or "").strip()
+                for line in (row.get("detail_lines") or [])
+                if str(line or "").strip()
+            ]
             text = row.get("text", "")
             name = str(row.get("name", "Mission") or "Mission").strip()
             if name in {"Mission", str(tracked or "")}:
-                name = self._giver_display_name(row.get("giver", tracked), fallback=name)
+                name = self._giver_display_name(
+                    row.get("giver", tracked), fallback=name
+                )
+            if detail_lines:
+                return [f"{name}: {detail_lines[0]}"] + detail_lines[1:3]
             if text:
                 return [f"{name}: {text}"]
             if name:
@@ -2158,16 +2785,27 @@ class Game:
         return out
 
     def get_mission_by_giver(self, giver):
-        giver = str(giver or "kaltsit")
-        for m in self.get_active_missions():
-            if str(m.get("giver_id", m.get("giver", "kaltsit"))) == giver:
-                return m
+        book = getattr(self, "mission_book", None)
+        giver_key = giver
+        if hasattr(game_missions, "_resolve_giver_key"):
+            try:
+                giver_key = game_missions._resolve_giver_key(book, giver)
+            except Exception:
+                giver_key = giver
+
+        for key in (giver_key, giver):
+            key = str(key or "kaltsit")
+            for mission in self.get_active_missions():
+                if str(mission.get("giver_id", mission.get("giver", "kaltsit"))) == key:
+                    return mission
         return None
 
     def add_active_mission(self, mission):
         if not isinstance(mission, dict):
             return
-        giver_id = str(mission.get("giver_id", mission.get("giver", "kaltsit")) or "kaltsit")
+        giver_id = str(
+            mission.get("giver_id", mission.get("giver", "kaltsit")) or "kaltsit"
+        )
         mid = str(mission.get("id", f"legacy_{giver_id}"))
         payload = dict(mission)
         if not str(payload.get("id", "") or "").strip():
@@ -2175,8 +2813,12 @@ class Game:
         if not str(payload.get("giver_id", "") or "").strip():
             payload["giver_id"] = giver_id
         if not str(payload.get("giver_name", "") or "").strip():
-            payload["giver_name"] = str(payload.get("giver", payload.get("giver_id", mid)) or mid)
-        runtime = game_missions.normalize_runtime(payload, getattr(self, "mission_book", None))
+            payload["giver_name"] = str(
+                payload.get("giver", payload.get("giver_id", mid)) or mid
+            )
+        runtime = game_missions.normalize_runtime(
+            payload, getattr(self, "mission_book", None)
+        )
         self.mission_state.setdefault("active", {})[mid] = runtime
         self.mission_state.setdefault("accepted", [])
         if mid not in self.mission_state["accepted"]:
@@ -2218,15 +2860,19 @@ class Game:
 
     def show_enter_banner(self, label):
         name = label.replace(".json", "")
-        self.banner = {"text": tr(self.lang, "banner.now_entering", where=name), "created": time.time(), "duration": 3.0}
+        self.banner = {
+            "text": tr(self.lang, "banner.now_entering", where=name),
+            "created": time.time(),
+            "duration": 3.0,
+        }
 
     def show_dev_block(self):
         self.dialog_data = {
             "start": "node_1",
             "node_1": {
                 "text": tr(self.lang, "dialog.dev_block"),
-                "responses": [{"text": tr(self.lang, "dialog.ok"), "next": "end"}]
-            }
+                "responses": [{"text": tr(self.lang, "dialog.ok"), "next": "end"}],
+            },
         }
         self.dialog_node = "node_1"
         self.dialog_text_lines = [tr(self.lang, "dialog.dev_block")]
@@ -2274,10 +2920,12 @@ class Game:
             # Keep legacy field in sync for backward compatibility.
             self.rogue_difficulty = 0.0
             self.push_message(tr(self.lang, "msg.retreat_cleared"))
+
         self.start_transition(do_return)
 
     def enter_rogue_layer(self, new_entry=False):
         out = game_rogue_ops.enter_rogue_layer(self, new_entry)
+        self.refresh_music()
         self.tutorial_notify("rogue_entered")
         return out
 
@@ -2308,35 +2956,53 @@ class Game:
         return game_rogue_ops.spawn_rogue_boss(self)
 
     def spawn_random_hostile(self):
-        hostile_ids = [k for k, v in mobs_data.items() if isinstance(v, dict) and v.get('ai_type') == 'hostile']
-        if not hostile_ids:
+        pool = []
+        if self.map.name == "rogue":
+            pool = self.build_rogue_spawn_pool(getattr(self, "rogue_layer", 0))
+        else:
+            pool = self.get_map_spawn_pool()
+        if not pool:
+            allowed = self.get_map_allowed_enemy_classes()
+            pool = [
+                {"mob": k, "weight": 1}
+                for k, v in mobs_data.items()
+                if isinstance(v, dict) and v.get("ai_type") == "hostile"
+                and (not allowed or self.get_mob_enemy_class(k) in allowed)
+            ]
+        if not pool:
             return False
-        mob_id = random.choice(hostile_ids)
-        mob = mobs_data[mob_id]
-        for _ in range(50):
-            x = random.randint(0, self.map.w - 1)
-            y = random.randint(0, self.map.h - 1)
-            if not self.map.is_walkable(x, y):
+        for _ in range(100):
+            mob_id = self.weighted_pick_spawn(pool)
+            if not mob_id:
+                return False
+            enemy_class = self.get_mob_enemy_class(mob_id)
+            width = 2 if self.map.name == "rogue" and enemy_class == "boss" else 1
+            height = 2 if self.map.name == "rogue" and enemy_class == "boss" else 1
+            x = random.randint(0, max(0, self.map.w - width))
+            y = random.randint(0, max(0, self.map.h - height))
+            if not self.can_spawn_entity_at_size(x, y, width, height):
                 continue
-            if self.entity_at(x, y):
-                continue
-            hp = mob['hp']
-            atk = mob.get('attack', 10)
-            defence = mob.get('defence', 0)
-            magic_attack = mob.get("magic_attack", atk)
-            magic_defense = mob.get("magic_defense", 0)
+            mult = 1.0
             if self.map.name == "rogue":
-                mult = 1.0 + max(0.0, float(getattr(self, "environment_difficulty", 0.0)))
-                hp = int(hp * mult)
-                atk = int(atk * mult)
-                defence = int(defence * mult)
-                magic_attack = int(magic_attack * mult)
-                magic_defense = int(magic_defense * mult)
-            ent = Entity(mob_id, x, y, hp, mob.get('mp', 0), atk, defence, mob.get('ai_type'), mob.get('immortal', False))
-            ent.magic_attack = int(magic_attack)
-            ent.magic_defense = float(magic_defense)
-            ent.attack_type = str(mob.get("attack_type", "P")).upper()
-            self._ensure_entity_combat_profile(ent)
+                mult = 1.0 + max(
+                    0.0, float(getattr(self, "environment_difficulty", 0.0))
+                )
+            ent = self.create_hostile_entity(
+                mob_id,
+                x,
+                y,
+                width=width,
+                height=height,
+                hp_multiplier=mult,
+                attack_multiplier=mult,
+                defence_multiplier=mult,
+                extra_flags={
+                    "rogue_boss_class": self.map.name == "rogue" and enemy_class == "boss",
+                    "enemy_class": enemy_class,
+                },
+            )
+            if ent is None:
+                continue
             self.entities.append(ent)
             return True
         return False
@@ -2355,7 +3021,7 @@ class Game:
         mob = mobs_data.get(ent.eid)
         if mob is None:
             return
-        if mob.get('ai_type') in ('friendly', 'neutral'):
+        if mob.get("ai_type") in ("friendly", "neutral"):
             return
         force_detect = self.has_attention_ring()
         detect_range = int(mob.get("detect_range", 0))
@@ -2372,7 +3038,7 @@ class Game:
                         self.on_enemy_death(ent)
                 self.check_player_death()
             return
-        if self.tick % mob.get('move_interval', 1) != 0:
+        if self.tick % mob.get("move_interval", 1) != 0:
             return
         px, py = self.player.x, self.player.y
         dist = abs(ent.x - px) + abs(ent.y - py)
@@ -2399,7 +3065,9 @@ class Game:
         path = self.find_path((ent.x, ent.y), goal)
         if path and len(path) > 1:
             nx, ny = path[1]
-            if not self.entity_at(nx, ny):
+            width = max(1, int(getattr(ent, "width", getattr(ent, "size", 1)) or 1))
+            height = max(1, int(getattr(ent, "height", getattr(ent, "size", 1)) or 1))
+            if self.can_spawn_entity_at_size(nx, ny, width, height, ignore_ent=ent):
                 ent.x, ent.y = nx, ny
 
     def _clamp_md(self, value):
@@ -2430,11 +3098,17 @@ class Game:
             if not weapon:
                 return "P"
             idef = self.item_defs.get(weapon, {})
-            at = str(idef.get("weapon_attack_type", idef.get("attack_type", ""))).upper()
+            at = str(
+                idef.get("weapon_attack_type", idef.get("attack_type", ""))
+            ).upper()
             if at in ("P", "M"):
                 return at
             return self.DEFAULT_WEAPON_ATTACK_TYPE.get(weapon, "P")
-        return str(getattr(attacker, "attack_type", "P")).upper() if str(getattr(attacker, "attack_type", "P")).upper() in ("P", "M") else "P"
+        return (
+            str(getattr(attacker, "attack_type", "P")).upper()
+            if str(getattr(attacker, "attack_type", "P")).upper() in ("P", "M")
+            else "P"
+        )
 
     def compute_outgoing_damage(self, attacker, defender):
         atk_type = self._entity_attack_type(attacker)
@@ -2628,7 +3302,9 @@ class Game:
         for p in candidates:
             if os.path.isdir(p):
                 return p
-        return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "clips")
+        return os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "clips")
+        )
 
     def _anim_folder_for_state(self, ent_id, state):
         if ent_id == "wisadel":
@@ -2665,7 +3341,9 @@ class Game:
             page_idx = 2
             while True:
                 page_meta = None
-                for p in resolve_atlas_candidates(f"{folder_name}_atlas_p{page_idx:02d}.json"):
+                for p in resolve_atlas_candidates(
+                    f"{folder_name}_atlas_p{page_idx:02d}.json"
+                ):
                     if os.path.isfile(p):
                         page_meta = p
                         break
@@ -2675,7 +3353,8 @@ class Game:
                 page_idx += 1
             for mp in meta_files:
                 try:
-                    data = json.loads(open(mp, "r", encoding="utf-8").read())
+                    with open(mp, "r", encoding="utf-8") as f:
+                        data = json.load(f)
                     frames = data.get("frames", [])
                     if isinstance(frames, list):
                         total += len(frames)
@@ -2688,7 +3367,9 @@ class Game:
                     folder = p
                     break
             if folder and os.path.isdir(folder):
-                total = len([n for n in os.listdir(folder) if n.lower().endswith(".png")])
+                total = len(
+                    [n for n in os.listdir(folder) if n.lower().endswith(".png")]
+                )
         cache[folder_name] = total
         self._anim_frame_count_cache = cache
         return total
@@ -2716,7 +3397,9 @@ class Game:
         return False
 
     def _play_entity_action_anim(self, ent_id, state, fallback_seconds=0.5):
-        end_time = self._compute_anim_end_time(ent_id, state, fallback_seconds=fallback_seconds)
+        end_time = self._compute_anim_end_time(
+            ent_id, state, fallback_seconds=fallback_seconds
+        )
         if ent_id == "wisadel":
             self.wisadel_anim_state = state
             self.wisadel_anim_until = end_time
@@ -2742,6 +3425,7 @@ class Game:
 
     def get_equipable_items(self):
         return game_inventory_ops.get_equipable_items(self)
+
 def _mission_feedback_text(game, reason_key, mission_id=None):
     reason_key = str(reason_key or "").strip()
     mission_id = str(mission_id or "").strip()
@@ -2763,7 +3447,6 @@ def _mission_feedback_text(game, reason_key, mission_id=None):
             return text.replace("{id}", mission_id)
         return lookup.get(reason_key, reason_key.replace(".", " ").title())
     return reason_key
-
 
 def _set_mission_feedback(game, reason_key, mission_id=None):
     text = _mission_feedback_text(game, reason_key, mission_id=mission_id)
@@ -2793,93 +3476,3 @@ def _set_mission_feedback(game, reason_key, mission_id=None):
             game.add_message(text)
         except Exception:
             pass
-
-
-try:
-    _ORIG_GAME_LOAD_GAME_DATA = Game.load_game_data
-    _ORIG_GAME_OPEN_MISSION_BOARD = Game.open_mission_board
-    _ORIG_GAME_ACCEPT_MISSION = Game.accept_mission
-    _ORIG_GAME_GET_MISSION_BY_GIVER = Game.get_mission_by_giver
-except Exception:
-    _ORIG_GAME_LOAD_GAME_DATA = None
-    _ORIG_GAME_OPEN_MISSION_BOARD = None
-    _ORIG_GAME_ACCEPT_MISSION = None
-    _ORIG_GAME_GET_MISSION_BY_GIVER = None
-
-
-def _game_load_game_data(self):
-    result = _ORIG_GAME_LOAD_GAME_DATA(self) if _ORIG_GAME_LOAD_GAME_DATA else None
-    try:
-        from . import missions as game_missions
-        game_missions.validate_missions(emit=True)
-    except Exception as exc:
-        print(f"[missions] validation skipped: {exc}")
-    return result
-
-
-def _game_open_mission_board(self, giver_id, source="interaction"):
-    self.mission_board_context = {
-        "giver_id": giver_id,
-        "source": source,
-        "opened_at": time.time(),
-    }
-    self.mission_feedback = None
-    if _ORIG_GAME_OPEN_MISSION_BOARD:
-        return _ORIG_GAME_OPEN_MISSION_BOARD(self, giver_id, source=source)
-    return None
-
-
-def _game_get_mission_by_giver(self, giver):
-    try:
-        from . import missions as game_missions
-    except Exception:
-        game_missions = None
-    book = getattr(self, "mission_book", None)
-    giver_key = giver
-    if game_missions is not None and hasattr(game_missions, "_resolve_giver_key"):
-        try:
-            giver_key = game_missions._resolve_giver_key(book, giver)
-        except Exception:
-            giver_key = giver
-    if _ORIG_GAME_GET_MISSION_BY_GIVER:
-        result = _ORIG_GAME_GET_MISSION_BY_GIVER(self, giver_key)
-        if result:
-            return result
-        if giver_key != giver:
-            try:
-                return _ORIG_GAME_GET_MISSION_BY_GIVER(self, giver)
-            except Exception:
-                return result
-        return result
-    return None
-
-
-def _game_accept_mission(self, mission_id):
-    try:
-        from . import missions as game_missions
-    except Exception as exc:
-        _set_mission_feedback(self, "mission.accept_failed", mission_id=mission_id)
-        print(f"[missions] accept failed: {exc}")
-        return False
-    giver_id = None
-    ctx = getattr(self, "mission_board_context", None)
-    if isinstance(ctx, dict):
-        giver_id = ctx.get("giver_id")
-    ok, reason, _entry = game_missions.can_accept_mission(self, mission_id, giver_id=giver_id)
-    if not ok:
-        _set_mission_feedback(self, reason, mission_id=mission_id)
-        return False
-    success = bool(game_missions.accept_mission(self, mission_id))
-    if not success:
-        _set_mission_feedback(self, "mission.accept_failed", mission_id=mission_id)
-        return False
-    self._normalize_mission_state()
-    _set_mission_feedback(self, "msg.mission_accepted", mission_id=mission_id)
-    return True
-
-
-if "Game" in globals():
-    Game.load_game_data = _game_load_game_data
-    Game.open_mission_board = _game_open_mission_board
-    Game.get_mission_by_giver = _game_get_mission_by_giver
-    Game.accept_mission = _game_accept_mission

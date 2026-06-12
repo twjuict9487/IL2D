@@ -64,6 +64,7 @@ class Suit(Enum):
     CLUBS = "♣"
     SPADES = "♠"
 
+
 class Rank(Enum):
     ACE = "A"
     TWO = "2"
@@ -78,6 +79,7 @@ class Rank(Enum):
     JACK = "J"
     QUEEN = "Q"
     KING = "K"
+
 
 class Card:
     def __init__(self, suit, rank):
@@ -94,6 +96,7 @@ class Card:
         if self.rank in [Rank.JACK, Rank.QUEEN, Rank.KING]:
             return 10
         return int(self.rank.value)
+
 
 class Hand:
     def __init__(self):
@@ -122,6 +125,7 @@ class Hand:
     def is_blackjack(self):
         """檢查是否是 21 點（兩張牌且總值為 21）"""
         return len(self.cards) == 2 and self.get_value() == 21
+
 
 class Deck:
     def __init__(self, num_decks=1, reshuffle_threshold=10):
@@ -157,7 +161,9 @@ class BlackjackGame:
         """
         根據玩家手牌分數返回荷官的反應
         """
-        return random.choice(NERVOUS_REACTIONS if self.player_hand.get_value() >= 19 else COLD_REACTIONS)
+        return random.choice(
+            NERVOUS_REACTIONS if self.player_hand.get_value() >= 19 else COLD_REACTIONS
+        )
 
     def get_dealer_final_comment(self):
         """
@@ -192,7 +198,11 @@ class BlackjackGame:
         self.player_hand.add_card(self.deck.draw_card())
         v = self.player_hand.get_value()
         if v > 21:
-            self.game_over, self.result, self.winnings = True, "玩家爆牌 - 超過 21 點", 0
+            self.game_over, self.result, self.winnings = (
+                True,
+                "玩家爆牌 - 超過 21 點",
+                0,
+            )
         elif v == 21:
             self.player_stand()
 
@@ -205,7 +215,9 @@ class BlackjackGame:
 
     def dealer_play(self):
         """莊家的自動遊戲邏輯"""
-        while self.dealer_hand.get_value() < 17 or (self.hit_soft_17 and self._is_soft_17(self.dealer_hand)):
+        while self.dealer_hand.get_value() < 17 or (
+            self.hit_soft_17 and self._is_soft_17(self.dealer_hand)
+        ):
             self.dealer_hand.add_card(self.deck.draw_card())
         pv, dv = self.player_hand.get_value(), self.dealer_hand.get_value()
         if dv > 21:
@@ -236,7 +248,7 @@ class BlackjackGame:
 
         print("\n荷官：")
         dealer_reaction = self.get_dealer_reaction()
-        print(f"  \"{dealer_reaction}\"")
+        print(f'  "{dealer_reaction}"')
 
         print("\n莊家的牌：")
         if show_dealer_hole_card or self.game_over:
@@ -251,7 +263,7 @@ class BlackjackGame:
             print("\n" + "-" * 50)
             print(f"【結果】{self.result}")
             final_comment = self.get_dealer_final_comment()
-            print(f"\n荷官：\"{final_comment}\"")
+            print(f'\n荷官："{final_comment}"')
             if self.winnings > self.bet:
                 print(f"\n獲得: +{self.winnings - self.bet} 籌碼")
             elif self.winnings < self.bet:
@@ -281,18 +293,29 @@ class BlackjackCore:
         if len(pool) == 1:
             return pool[0]
         picked = random.choice(pool)
-        return picked if picked != last_value else random.choice([x for x in pool if x != last_value] or [picked])
+        return (
+            picked
+            if picked != last_value
+            else random.choice([x for x in pool if x != last_value] or [picked])
+        )
 
     def _build_reaction(self):
         if self._game is None or self._game.player_hand is None:
             return ""
         pv = self._game.player_hand.get_value()
-        du = self._game.dealer_hand.cards[0].get_value() if self._game.dealer_hand.cards else 0
+        du = (
+            self._game.dealer_hand.cards[0].get_value()
+            if self._game.dealer_hand.cards
+            else 0
+        )
         pool = (
-            PRESSURE_REACTIONS + NERVOUS_REACTIONS if self._player_streak >= 2
-            else NERVOUS_REACTIONS if pv >= 19
-            else DANGER_REACTIONS if 15 <= pv <= 18 and du >= 9
-            else COLD_REACTIONS
+            PRESSURE_REACTIONS + NERVOUS_REACTIONS
+            if self._player_streak >= 2
+            else (
+                NERVOUS_REACTIONS
+                if pv >= 19
+                else DANGER_REACTIONS if 15 <= pv <= 18 and du >= 9 else COLD_REACTIONS
+            )
         )
         return self._pick_non_repeat(pool, self._last_reaction)
 
@@ -302,12 +325,18 @@ class BlackjackCore:
         result = self._game.result
         if "玩家獲勝" in result:
             base = self._pick_non_repeat(PLAYER_WIN_COMMENTS, self._last_final_comment)
-            return f"{base} 你已經連贏了，氣勢很足。" if self._player_streak >= 2 else base
+            return (
+                f"{base} 你已經連贏了，氣勢很足。" if self._player_streak >= 2 else base
+            )
         if "平手" in result:
             return self._pick_non_repeat(DRAW_COMMENTS, self._last_final_comment)
         if "莊家獲勝" in result or "玩家爆牌" in result:
             base = self._pick_non_repeat(DEALER_WIN_COMMENTS, self._last_final_comment)
-            return f"{base} 先穩住節奏，下局再拿回來。" if self._dealer_streak >= 2 else base
+            return (
+                f"{base} 先穩住節奏，下局再拿回來。"
+                if self._dealer_streak >= 2
+                else base
+            )
         return "遊戲結束。"
 
     def _update_streak(self):
@@ -315,16 +344,32 @@ class BlackjackCore:
             return
         r = self._game.result
         self._player_streak, self._dealer_streak = (
-            (self._player_streak + 1, 0) if "玩家獲勝" in r
-            else (0, self._dealer_streak + 1) if ("莊家獲勝" in r or "玩家爆牌" in r)
-            else (0, 0)
+            (self._player_streak + 1, 0)
+            if "玩家獲勝" in r
+            else (
+                (0, self._dealer_streak + 1)
+                if ("莊家獲勝" in r or "玩家爆牌" in r)
+                else (0, 0)
+            )
         )
 
     def _build_state(self, hide_dealer=True):
         if self._game is None or self._game.player_hand is None:
-            return {"finished": True, "result": "idle", "bet": 0, "payout": 0, "player": {"cards": [], "text": "", "value": 0}, "dealer": {"cards": [], "text": "", "value": None}, "narrative": {"reaction": "", "final_comment": ""}}
+            return {
+                "finished": True,
+                "result": "idle",
+                "bet": 0,
+                "payout": 0,
+                "player": {"cards": [], "text": "", "value": 0},
+                "dealer": {"cards": [], "text": "", "value": None},
+                "narrative": {"reaction": "", "final_comment": ""},
+            }
         g = self._game
-        shown = [g.dealer_hand.cards[0]] if hide_dealer and not g.game_over and g.dealer_hand.cards else g.dealer_hand.cards
+        shown = (
+            [g.dealer_hand.cards[0]]
+            if hide_dealer and not g.game_over and g.dealer_hand.cards
+            else g.dealer_hand.cards
+        )
         dealer_text = ", ".join(str(c) for c in shown)
         if hide_dealer and not g.game_over and len(g.dealer_hand.cards) > 1:
             dealer_text = f"{dealer_text}, [隱藏]"
@@ -333,16 +378,38 @@ class BlackjackCore:
             "result": g.result or "playing",
             "bet": g.bet,
             "payout": g.winnings,
-            "player": {"cards": [(c.rank.value, c.suit.value) for c in g.player_hand.cards], "text": str(g.player_hand), "value": g.player_hand.get_value()},
-            "dealer": {"cards": [(c.rank.value, c.suit.value) for c in shown], "text": dealer_text, "value": None if (hide_dealer and not g.game_over) else g.dealer_hand.get_value()},
-            "narrative": {"reaction": self._reaction, "final_comment": self._final_comment},
+            "player": {
+                "cards": [(c.rank.value, c.suit.value) for c in g.player_hand.cards],
+                "text": str(g.player_hand),
+                "value": g.player_hand.get_value(),
+            },
+            "dealer": {
+                "cards": [(c.rank.value, c.suit.value) for c in shown],
+                "text": dealer_text,
+                "value": (
+                    None
+                    if (hide_dealer and not g.game_over)
+                    else g.dealer_hand.get_value()
+                ),
+            },
+            "narrative": {
+                "reaction": self._reaction,
+                "final_comment": self._final_comment,
+            },
         }
 
     def start_round(self, bet):
-        self._game = BlackjackGame(bet=max(1, int(bet)), num_decks=self._decks, hit_soft_17=self._hit_soft_17, reshuffle_threshold=self._reshuffle_threshold)
+        self._game = BlackjackGame(
+            bet=max(1, int(bet)),
+            num_decks=self._decks,
+            hit_soft_17=self._hit_soft_17,
+            reshuffle_threshold=self._reshuffle_threshold,
+        )
         self._game.start_game()
         self._reaction = self._last_reaction = self._build_reaction()
-        self._final_comment = self._build_final_comment() if self._game.game_over else ""
+        self._final_comment = (
+            self._build_final_comment() if self._game.game_over else ""
+        )
         if self._final_comment:
             self._last_final_comment = self._final_comment
             self._update_streak()

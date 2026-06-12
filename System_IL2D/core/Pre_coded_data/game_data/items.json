@@ -210,5 +210,33 @@
     "id": "magic_book_holy_light",
     "type": "magic_book",
     "magic_id": "holy light"
+  },
+  "源石碎片": {
+    "id": "originium shard",
+    "type": "material"
+  },
+  "防禦者裝甲板": {
+    "id": "defender plate",
+    "type": "material"
+  },
+  "迫擊砲彈殼": {
+    "id": "mortar shell",
+    "type": "material"
+  },
+  "薩卡茲符文": {
+    "id": "sarkaz rune",
+    "type": "material"
+  },
+  "鮑勃的錘子碎片": {
+    "id": "bob's hammer fragment",
+    "type": "material"
+  },
+  "熔融源石核心": {
+    "id": "molten originium core",
+    "type": "material"
+  },
+  "紫色法術碎片": {
+    "id": "purple spell fragment",
+    "type": "material"
   }
 }

@@ -1,5 +1,5 @@
 import pygame
-import os
+
 from core.functions.audio.audio_manager import AudioManager
 from ..gameplay.game import Game
 
@@ -10,7 +10,9 @@ def open_new_game_name_input(ctx):
     ctx["state"] = "name_input"
 
 
-def handle_name_input_key(ctx, event, has_seen_tutorial_fn, build_tutorial_lines_fn, start_lore_intro_fn=None):
+def handle_name_input_key(
+    ctx, event, has_seen_tutorial_fn, build_tutorial_lines_fn, start_lore_intro_fn=None
+):
     if event.key == pygame.K_ESCAPE:
         pygame.key.stop_text_input()
         ctx["state"] = "main_menu"
@@ -32,28 +34,8 @@ def handle_name_input_key(ctx, event, has_seen_tutorial_fn, build_tutorial_lines
         except Exception as exc:
             print(f"[audio] mixer init failed: {exc}")
 
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-
-        game.audio = AudioManager(
-            sfx_index_path=os.path.join(
-                base_dir,
-                "core",
-                "Pre_coded_data",
-                "game_data",
-                "audio_sfx.json",
-            ),
-            sfx_volume=0.7,
-            bgm_volume=0.4,
-        )
-        game.audio.play_bgm(
-        os.path.join(
-            base_dir,
-            "clips",
-            "audio",
-            "短兵相接.mp3.mp3"
-            )
-        )
-
+        game.audio = AudioManager(sfx_volume=0.7, bgm_volume=0.4)
+        game.refresh_music()
         game.audio.play_sfx("confirm")
 
         game.start_new_player_tutorial()

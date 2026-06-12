@@ -1,6 +1,8 @@
+import os
+
 from .utils import load_json, GAME_DATA_DIR
 
-I18N_FILE = f"{GAME_DATA_DIR}/i18n.json"
+I18N_FILE = os.path.join(GAME_DATA_DIR, "i18n.json") if GAME_DATA_DIR else ""
 
 
 def _load_translations():

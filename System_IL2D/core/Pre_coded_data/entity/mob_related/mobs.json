@@ -5,6 +5,7 @@
     "mp": 0,
     "attack": 10,
     "defence": 0,
+    "enemy_class": "normal",
     "ai_type": "hostile",
     "detect_range": 5,
     "move_interval": 2,
@@ -27,6 +28,7 @@
     "mp": 0,
     "attack": 10,
     "defence": 5,
+    "enemy_class": "normal",
     "ai_type": "hostile",
     "detect_range": 4,
     "move_interval": 2,
@@ -49,6 +51,7 @@
     "mp": 0,
     "attack": 10,
     "defence": 2,
+    "enemy_class": "normal",
     "ai_type": "hostile",
     "detect_range": 3,
     "move_interval": 4,
@@ -71,6 +74,7 @@
     "mp": 0,
     "attack": 10,
     "defence": 15,
+    "enemy_class": "normal",
     "ai_type": "hostile",
     "detect_range": 6,
     "attack_range": 2,
@@ -88,5 +92,215 @@
       }
     ],
     "exp_reward": 10
+  },
+  "originium_slug": {
+    "hp": 45,
+    "mp": 0,
+    "attack": 12,
+    "defence": 3,
+    "enemy_class": "normal",
+    "ai_type": "hostile",
+    "detect_range": 4,
+    "move_interval": 3,
+    "image": "头像_敌人_源石虫_nobg.png",
+    "reward_money": {
+      "amount": 18,
+      "chance": 0.55
+    },
+    "reward_items": [
+      {
+        "name": "originium shard",
+        "count": 1,
+        "chance": 0.45
+      },
+      {
+        "name": "health potion (small)",
+        "count": 1,
+        "chance": 0.15
+      }
+    ],
+    "exp_reward": 14
+  },
+  "heavy_defender": {
+    "hp": 90,
+    "mp": 0,
+    "attack": 16,
+    "defence": 45,
+    "enemy_class": "elite",
+    "ai_type": "hostile",
+    "detect_range": 5,
+    "move_interval": 3,
+    "image": "头像_敌人_重装防御者_nobg.png",
+    "reward_money": {
+      "amount": 55,
+      "chance": 0.6
+    },
+    "reward_items": [
+      {
+        "name": "iron chestplate",
+        "count": 1,
+        "chance": 0.28
+      },
+      {
+        "name": "defender plate",
+        "count": 1,
+        "chance": 0.35
+      }
+    ],
+    "exp_reward": 35
+  },
+  "mortar_gunner": {
+    "hp": 55,
+    "mp": 0,
+    "attack": 22,
+    "defence": 8,
+    "enemy_class": "elite",
+    "ai_type": "hostile",
+    "detect_range": 12,
+    "attack_range": 8,
+    "move_interval": 3,
+    "image": "头像_敌人_炮手_nobg.png",
+    "reward_money": {
+      "amount": 60,
+      "chance": 0.6
+    },
+    "reward_items": [
+      {
+        "name": "mortar shell",
+        "count": 1,
+        "chance": 0.45
+      },
+      {
+        "name": "magic potion (small)",
+        "count": 1,
+        "chance": 0.2
+      }
+    ],
+    "exp_reward": 38
+  },
+  "sarkaz_caster": {
+    "hp": 50,
+    "mp": 120,
+    "attack": 14,
+    "defence": 6,
+    "magic_attack": 28,
+    "magic_defense": 0.25,
+    "attack_type": "M",
+    "enemy_class": "elite",
+    "ai_type": "hostile",
+    "detect_range": 8,
+    "attack_range": 6,
+    "move_interval": 2,
+    "image": "头像_敌人_萨卡兹术师_nobg.png",
+    "reward_money": {
+      "amount": 70,
+      "chance": 0.65
+    },
+    "reward_items": [
+      {
+        "name": "sarkaz rune",
+        "count": 1,
+        "chance": 0.35
+      },
+      {
+        "name": "magic potion (small)",
+        "count": 1,
+        "chance": 0.35
+      }
+    ],
+    "exp_reward": 45
+  },
+  "big_bob": {
+    "hp": 220,
+    "mp": 0,
+    "attack": 38,
+    "defence": 35,
+    "enemy_class": "boss",
+    "reflect_true_damage_rate": 0.1,
+    "ai_type": "hostile",
+    "detect_range": 6,
+    "move_interval": 2,
+    "image": "头像_敌人_大鲍勃_nobg.png",
+    "reward_money": {
+      "amount": 180,
+      "chance": 1.0
+    },
+    "reward_items": [
+      {
+        "name": "bob hammer fragment",
+        "count": 1,
+        "chance": 0.5
+      },
+      {
+        "name": "diamond chestplate",
+        "count": 1,
+        "chance": 0.18
+      }
+    ],
+    "exp_reward": 120
+  },
+  "pompeii": {
+    "hp": 260,
+    "mp": 80,
+    "attack": 30,
+    "defence": 25,
+    "magic_attack": 34,
+    "attack_type": "M",
+    "enemy_class": "boss",
+    "burn_duration": 5,
+    "ai_type": "hostile",
+    "detect_range": 7,
+    "attack_range": 5,
+    "move_interval": 3,
+    "image": "头像_敌人_“庞贝”_nobg.png",
+    "reward_money": {
+      "amount": 220,
+      "chance": 1.0
+    },
+    "reward_items": [
+      {
+        "name": "molten originium core",
+        "count": 1,
+        "chance": 0.55
+      },
+      {
+        "name": "originium shard",
+        "count": 3,
+        "chance": 0.75
+      }
+    ],
+    "exp_reward": 150
+  },
+  "eblana": {
+    "hp": 180,
+    "mp": 200,
+    "attack": 20,
+    "defence": 12,
+    "magic_attack": 42,
+    "magic_defense": 0.35,
+    "attack_type": "M",
+    "enemy_class": "boss",
+    "ai_type": "hostile",
+    "detect_range": 9,
+    "attack_range": 7,
+    "move_interval": 2,
+    "image": "头像_敌人_“领袖”_nobg.png",
+    "reward_money": {
+      "amount": 260,
+      "chance": 1.0
+    },
+    "reward_items": [
+      {
+        "name": "purple spell fragment",
+        "count": 1,
+        "chance": 0.65
+      },
+      {
+        "name": "magic potion (small)",
+        "count": 2,
+        "chance": 0.45
+      }
+    ],
+    "exp_reward": 170
   }
 }

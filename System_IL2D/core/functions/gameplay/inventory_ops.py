@@ -38,7 +38,11 @@ def open_equip(game):
     game.ui_mode = "equip"
     game.equip_root_selected = 0
     game.equip_focus = "tabs"
-    game.equip_category_selected = max(0, game.get_equip_categories().index(game.equip_category)) if game.get_equip_categories() else 0
+    game.equip_category_selected = (
+        max(0, game.get_equip_categories().index(game.equip_category))
+        if game.get_equip_categories()
+        else 0
+    )
 
 
 def open_equip_items(game):
@@ -56,7 +60,9 @@ def equip_selected_item(game):
     if not equipables:
         return
     slot_key = "ring" if game.equip_category.startswith("ring") else game.equip_category
-    filtered = [n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key]
+    filtered = [
+        n for n in equipables if game.item_defs.get(n, {}).get("slot") == slot_key
+    ]
     if not filtered:
         game.push_message(tr(game.lang, "msg.no_items_category"))
         return
@@ -70,14 +76,23 @@ def equip_selected_item(game):
         game.push_message(tr(game.lang, "msg.not_enough_items"))
         return
     if name == "dev's super powerful ring":
-        target_slot = game.equip_category if game.equip_category.startswith("ring") else slot
-        if any(v == name for v in game.equipment.values()) and game.equipment.get(target_slot) != name:
+        target_slot = (
+            game.equip_category if game.equip_category.startswith("ring") else slot
+        )
+        if (
+            any(v == name for v in game.equipment.values())
+            and game.equipment.get(target_slot) != name
+        ):
             game.handle_cheat_ring()
             return
-    target_slot = game.equip_category if game.equip_category.startswith("ring") else slot
+    target_slot = (
+        game.equip_category if game.equip_category.startswith("ring") else slot
+    )
     game.equipment[target_slot] = name
     game.recalculate_stats()
-    game.push_message(tr(game.lang, "msg.equipped_item", name=game.display_item_name(name)))
+    game.push_message(
+        tr(game.lang, "msg.equipped_item", name=game.display_item_name(name))
+    )
     game.tutorial_notify("equipment_changed", item_name=name, slot=target_slot)
 
 
@@ -108,7 +123,9 @@ def equip_best(game):
             continue
         dev_candidates = [n for n in candidates if n.startswith("dev's super powerful")]
         pool = dev_candidates if dev_candidates else candidates
-        best_name = max(pool, key=lambda n: game._item_power_score(game.item_defs.get(n, {})))
+        best_name = max(
+            pool, key=lambda n: game._item_power_score(game.item_defs.get(n, {}))
+        )
         if slot.startswith("ring") and best_name == "dev's super powerful ring":
             if any(v == best_name for k, v in game.equipment.items() if k != slot):
                 continue
@@ -175,7 +192,9 @@ def use_item(game):
             return
         game.inventory[name] = max(0, game.inventory.get(name, 0) - 1)
         game.return_from_rogue()
-        game.push_message(tr(game.lang, "msg.used_item", name=game.display_item_name(name)))
+        game.push_message(
+            tr(game.lang, "msg.used_item", name=game.display_item_name(name))
+        )
         game.ui_mode = None
         game.request_close_esc_menu = True
         return
@@ -183,12 +202,24 @@ def use_item(game):
         game.open_level_skipper_ui()
         return
     elif name.startswith("magic_book_"):
-        magic_id = name[len("magic_book_"):]
+        magic_id = name[len("magic_book_") :]
         if game.unlock_magic(magic_id):
             game.inventory[name] = max(0, game.inventory.get(name, 0) - 1)
-            game.push_message(tr(game.lang, "msg.magic_unlocked", name=game.display_spell_name(magic_id)))
+            game.push_message(
+                tr(
+                    game.lang,
+                    "msg.magic_unlocked",
+                    name=game.display_spell_name(magic_id),
+                )
+            )
         else:
-            game.push_message(tr(game.lang, "msg.magic_already_unlocked", name=game.display_spell_name(magic_id)))
+            game.push_message(
+                tr(
+                    game.lang,
+                    "msg.magic_already_unlocked",
+                    name=game.display_spell_name(magic_id),
+                )
+            )
         return
     else:
         game.push_message(tr(game.lang, "msg.cannot_use_item"))
@@ -198,7 +229,11 @@ def use_item(game):
 
 
 def cast_spell(game):
-    spells_pool = game.get_unlocked_spells() if hasattr(game, "get_unlocked_spells") else game.spells
+    spells_pool = (
+        game.get_unlocked_spells()
+        if hasattr(game, "get_unlocked_spells")
+        else game.spells
+    )
     if not spells_pool:
         game.push_message(tr(game.lang, "msg.no_spells"))
         return
@@ -209,7 +244,9 @@ def cast_spell(game):
     cooldown_ticks = int(spell.get("cooldown_ticks", spell.get("cooldown", 10)))
     remain = int(game.spell_cd_ticks.get(name, 0))
     if remain > 0:
-        game.push_message(tr(game.lang, "msg.spell_cooldown", name=spell_label, sec=remain))
+        game.push_message(
+            tr(game.lang, "msg.spell_cooldown", name=spell_label, sec=remain)
+        )
         return
     if game.player.mp < cost:
         game.push_message(tr(game.lang, "msg.out_of_mp"))
@@ -228,7 +265,9 @@ def cast_spell(game):
     if target_ent is not None:
         target_tile = (target_ent.x, target_ent.y)
     else:
-        target_tile = pick_random_tile_in_manhattan(game, game.player.x, game.player.y, target_range) or (game.player.x, game.player.y)
+        target_tile = pick_random_tile_in_manhattan(
+            game, game.player.x, game.player.y, target_range
+        ) or (game.player.x, game.player.y)
 
     _spawn_projectile_effect(game, spell, (game.player.x, game.player.y), target_tile)
     game.push_message(tr(game.lang, "msg.cast_spell", name=spell_label))
@@ -273,7 +312,9 @@ def find_nearest_enemy_in_range(game, caster, target_range):
 def pick_random_tile_in_manhattan(game, cx, cy, target_range):
     cells = []
     for y in range(max(0, cy - target_range), min(game.map.h, cy + target_range + 1)):
-        for x in range(max(0, cx - target_range), min(game.map.w, cx + target_range + 1)):
+        for x in range(
+            max(0, cx - target_range), min(game.map.w, cx + target_range + 1)
+        ):
             dist = abs(cx - x) + abs(cy - y)
             if dist <= target_range:
                 cells.append((x, y))
@@ -377,14 +418,16 @@ def _apply_beneficial_spell(game, spell, spell_label):
         total_heal += max(0, ent.hp - before)
         if not isinstance(getattr(game, "active_spell_effects", None), list):
             game.active_spell_effects = []
-        game.active_spell_effects.append({
-            "kind": "impact",
-            "spell": dict(spell),
-            "x": float(ent.x),
-            "y": float(ent.y),
-            "start": time.time(),
-            "life_sec": float(spell.get("beneficial_life_sec", 0.45)),
-        })
+        game.active_spell_effects.append(
+            {
+                "kind": "impact",
+                "spell": dict(spell),
+                "x": float(ent.x),
+                "y": float(ent.y),
+                "start": time.time(),
+                "life_sec": float(spell.get("beneficial_life_sec", 0.45)),
+            }
+        )
     if total_heal <= 0:
         game.push_message(tr(game.lang, "msg.heal_full"))
     else:
@@ -400,12 +443,18 @@ def compute_magic_damage(caster, target, base_damage, magic_ratio):
 
 
 def cast_spell_by_name(game, spell_name):
-    spells_pool = game.get_unlocked_spells() if hasattr(game, "get_unlocked_spells") else game.spells
+    spells_pool = (
+        game.get_unlocked_spells()
+        if hasattr(game, "get_unlocked_spells")
+        else game.spells
+    )
     if not spells_pool:
         game.push_message(tr(game.lang, "msg.no_spells"))
         return
     spell_name = game.canonical_spell_name(spell_name)
-    idx = next((i for i, sp in enumerate(spells_pool) if sp.get("name") == spell_name), None)
+    idx = next(
+        (i for i, sp in enumerate(spells_pool) if sp.get("name") == spell_name), None
+    )
     if idx is None:
         game.push_message(tr(game.lang, "msg.no_spells"))
         return
@@ -429,8 +478,13 @@ def recalculate_stats(game):
         magic_defense_bonus += item_def.get("magic_defense", 0)
     game.player.attack = game.player.base_attack + attack_bonus
     game.player.defence = game.player.base_defence + defence_bonus
-    game.player.magic_attack = getattr(game.player, "base_magic_attack", game.player.attack) + magic_attack_bonus
-    game.player.magic_defense = getattr(game.player, "base_magic_defense", 0) + magic_defense_bonus
+    game.player.magic_attack = (
+        getattr(game.player, "base_magic_attack", game.player.attack)
+        + magic_attack_bonus
+    )
+    game.player.magic_defense = (
+        getattr(game.player, "base_magic_defense", 0) + magic_defense_bonus
+    )
 
 
 def get_equipable_items(game):

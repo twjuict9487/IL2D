@@ -3,9 +3,8 @@ import pygame
 
 from ..support.utils import SAVE_DIR
 from ..audio.audio_manager import AudioManager
-base_dir = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..")
-)
+
+
 def get_save_slots():
     slots = []
     for i in range(1, 4):
@@ -29,19 +28,10 @@ def handle_continue_menu_key(ctx, event):
         if ctx["game"].load_save(slot):
             if not hasattr(ctx["game"], "audio"):
                 ctx["game"].audio = AudioManager()
-
-            ctx["game"].audio.play_bgm(
-                os.path.join(
-                    base_dir,
-                    "clips",
-                    "audio",
-                    "短兵相接.mp3.mp3"
-                )
-            )
-
+            ctx["game"].refresh_music()
             ctx["state"] = "game"
-        elif event.key == pygame.K_ESCAPE:
-            ctx["state"] = "main_menu"
+    elif event.key == pygame.K_ESCAPE:
+        ctx["state"] = "main_menu"
 
 
 def handle_mouse_continue_menu(ctx, pos, get_font_fn):
@@ -54,10 +44,18 @@ def handle_mouse_continue_menu(ctx, pos, get_font_fn):
     start_y = 140
     item_h = font.get_height() + 10
     for i, _ in enumerate(slots):
-        rect = pygame.Rect(screen.get_width() // 2 - 140, start_y + i * item_h - 4, 280, font.get_height() + 8)
+        rect = pygame.Rect(
+            screen.get_width() // 2 - 140,
+            start_y + i * item_h - 4,
+            280,
+            font.get_height() + 8,
+        )
         if rect.collidepoint(mx, my):
             ctx["continue_selected"] = i
             slot = slots[i]["slot"]
             if ctx["game"].load_save(slot):
+                if not hasattr(ctx["game"], "audio"):
+                    ctx["game"].audio = AudioManager()
+                ctx["game"].refresh_music()
                 ctx["state"] = "game"
             break

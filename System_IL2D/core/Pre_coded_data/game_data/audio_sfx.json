@@ -1,12 +1,11 @@
 {
-  "confirm": "System_IL2D experimental version/clips/audio/Confirm.mp3",
-  "cancel": "System_IL2D experimental version/clips/audio/Cancel.mp3",
-  "explosion": "System_IL2D experimental version/clips/audio/Explosion.mp3",
-  "level_up": "System_IL2D experimental version/clips/audio/LevelUp.mp3",
-  "mission_update": "System_IL2D experimental version/clips/audio/MissionUpdate.mp3",
-  "sword": "System_IL2D experimental version/clips/audio/SwordSound.mp3",
-
-  "vine_boom": "System_IL2D experimental version/clips/audio/vine_boom_sound_effect_longer_verison_for_real_read_description_pleaseyoutubetomp4.mp3",
-  "player_death": "System_IL2D experimental version/clips/audio/nihahahaha.mp3",
-  "purchase_ok": "System_IL2D experimental version/clips/audio/misono-mika-ok.mp3"
+  "confirm": "Confirm.mp3",
+  "cancel": "Cancell.mp3",
+  "explosion": "Explosion.mp3",
+  "level_up": "LevelUp.mp3",
+  "mission_update": "MissionUpdate.mp3",
+  "sword": "SwordSound.mp3",
+  "vine_boom": "vine_boom_sound_effect_longer_verison_for_real_read_description_pleaseyoutubetomp4.mp3",
+  "player_death": "nihahahaha.mp3",
+  "purchase_ok": "misono-mika-ok.mp3"
 }
