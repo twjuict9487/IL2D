@@ -275,10 +275,47 @@ def player_interact(game):
     if game.is_ui_blocking():
         return
 
+    nearby_campfire = None
+    if hasattr(game, "map"):
+        for row in getattr(game.map, "campfires", []) or []:
+            try:
+                distance = abs(int(row.get("x")) - int(game.player.x)) + abs(
+                    int(row.get("y")) - int(game.player.y)
+                )
+            except Exception:
+                continue
+            if distance <= 1:
+                nearby_campfire = row
+                break
+    if (
+        nearby_campfire
+        and str(nearby_campfire.get("id", "")) not in getattr(game, "activated_campfires", set())
+        and hasattr(game, "try_activate_nearby_campfire")
+        and game.try_activate_nearby_campfire()
+    ):
+        return
+
     candidates = []
-    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+    for dx, dy in [
+        (0, 0),
+        (-1, -1), (0, -1), (1, -1),
+        (-1, 0),             (1, 0),
+        (-1, 1),  (0, 1),   (1, 1),
+    ]:
         nx, ny = game.player.x + dx, game.player.y + dy
         ent = game.entity_at(nx, ny)
+        if ent and ent.eid == "player":
+            ent = next(
+                (
+                    e
+                    for e in getattr(game, "entities", [])
+                    if e.eid != "player"
+                    and int(getattr(e, "x", -999)) == int(nx)
+                    and int(getattr(e, "y", -999)) == int(ny)
+                    and (getattr(e, "immortal", False) or getattr(e, "hp", 0) > 0)
+                ),
+                None,
+            )
         if ent and ent.eid != "player":
             ent_def = game.get_entity_def(ent.eid)
             if ent_def.get("ai_type") in ("friendly", "neutral"):
@@ -298,6 +335,8 @@ def player_interact(game):
             game.interact_selected = 0
             game.ui_mode = "interact_pick"
         return
+    if hasattr(game, "try_activate_nearby_campfire") and game.try_activate_nearby_campfire():
+        return
     mission_target_hit = False
     # TODO: add explicit mission_targets entries to maps once placement is finalized.
     for dx, dy in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
@@ -308,6 +347,57 @@ def player_interact(game):
         if not target:
             continue
         mission_target_hit = True
+        target_kind = str(target.get("kind", "") or "").strip().lower()
+        if target_kind in {"item", "collect_item"}:
+            target_id = str(target.get("id") or target.get("target_id") or f"{nx}:{ny}")
+            flag = f"collected_target:{game.map.name}:{target_id}"
+            flags = getattr(game, "mission_flags", {})
+            if not isinstance(flags, dict):
+                flags = {}
+                game.mission_flags = flags
+            if flags.get(flag):
+                game.push_message(tr(game.lang, "mission.target_collected"))
+                break
+            item_id = str(target.get("item_id") or target.get("target_id") or "").strip()
+            amount = max(1, int(target.get("amount", 1) or 1))
+            if not item_id:
+                game.push_message(tr(game.lang, "mission.target_invalid"))
+                break
+            needed = False
+            active_missions = (
+                game.get_active_missions() if hasattr(game, "get_active_missions") else []
+            )
+            for mission in active_missions:
+                for objective in mission.get("objectives", []) or []:
+                    if not isinstance(objective, dict) or objective.get("done"):
+                        continue
+                    if str(objective.get("type", "")).upper() != "CI":
+                        continue
+                    wanted = str(
+                        objective.get("item_id") or objective.get("target_id") or "*"
+                    ).strip()
+                    if wanted in {"", "*", "any", item_id}:
+                        needed = True
+                        break
+                if needed:
+                    break
+            if not needed:
+                game.push_message(tr(game.lang, "mission.target_inactive"))
+                break
+            item_id = game.canonical_item_name(item_id)
+            game.inventory[item_id] = int(game.inventory.get(item_id, 0) or 0) + amount
+            flags[flag] = True
+            if hasattr(game, "record_mission_item_gain"):
+                game.record_mission_item_gain(item_id, amount, source="mission_target")
+            game.push_message(
+                tr(
+                    game.lang,
+                    "mission.item_collected",
+                    item=game.display_item_name(item_id),
+                    amount=amount,
+                )
+            )
+            break
         if hasattr(game, "record_mission_key_interact"):
             game.record_mission_key_interact(
                 target_id=target.get("target_id")
@@ -361,31 +451,51 @@ def cancel_interact_choice(game):
 
 
 def try_harvest_bush(game):
+    adjacent_bush = None
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        nx, ny = game.player.x + dx, game.player.y + dy
+        if game.map.get_block(nx, ny) == "07":
+            adjacent_bush = (nx, ny)
+            break
+    if adjacent_bush is None:
+        return
     if not getattr(game, "skill_tree", {}).get("harvest_barries", False):
         game.push_message(tr(game.lang, "msg.need_skill_harvest"))
         return
-    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-        nx, ny = game.player.x + dx, game.player.y + dy
-        bt = game.map.get_block(nx, ny)
-        if bt == "07":
-            count = random.randint(1, 3)
-            game.inventory["berry"] = game.inventory.get("berry", 0) + count
-            if hasattr(game, "record_mission_item_gain"):
-                try:
-                    game.record_mission_item_gain("berry", count, source="bush")
-                except Exception:
-                    pass
-            unit = "berry" if count == 1 else "berries"
-            game.push_message(
-                tr(game.lang, "msg.harvested_berry", count=count, unit=unit)
-            )
-            game.map.grid[ny][nx] = "08"
-            key = (game.map.name, nx, ny)
-            game.bush_regrow[key] = time.time() + random.uniform(20.0, 30.0)
-            return
+    nx, ny = adjacent_bush
+    count = random.randint(1, 3)
+    game.inventory["berry"] = game.inventory.get("berry", 0) + count
+    if hasattr(game, "record_mission_item_gain"):
+        try:
+            game.record_mission_item_gain("berry", count, source="bush")
+        except Exception:
+            pass
+    unit = "berry" if count == 1 else "berries"
+    game.push_message(
+        tr(game.lang, "msg.harvested_berry", count=count, unit=unit)
+    )
+    game.map.grid[ny][nx] = "08"
+    key = (game.map.name, nx, ny)
+    game.bush_regrow[key] = time.time() + random.uniform(20.0, 30.0)
+    return
 
 
 def open_dialog(game, npc_id, source="script"):
+    if source == "interaction" and hasattr(game, "start_pending_story_dialogue_for_npc"):
+        if game.start_pending_story_dialogue_for_npc(npc_id):
+            return
+    if source == "interaction" and hasattr(game, "get_ready_story_runtime_for_npc"):
+        ready_mid = game.get_ready_story_runtime_for_npc(npc_id)
+        if ready_mid and hasattr(game, "turn_in_mission"):
+            if game.turn_in_mission(ready_mid):
+                if hasattr(game, "start_pending_story_dialogue_for_npc"):
+                    game.start_pending_story_dialogue_for_npc(npc_id)
+                return
+    if source == "interaction" and hasattr(game, "get_unstarted_story_mission_for_npc"):
+        story_mid = game.get_unstarted_story_mission_for_npc(npc_id)
+        if story_mid and hasattr(game, "start_story_mission"):
+            if game.start_story_mission(story_mid):
+                return
     dialog_path = resolve_dialog_file(npc_id)
     if not os.path.isfile(dialog_path):
         if npc_id in MISSION_GIVERS and hasattr(game, "open_mission_board"):
@@ -780,6 +890,35 @@ def dialog_choose(game):
             result="closed",
         )
         return
+    if next_node == "story_continue":
+        game.close_dialog()
+        if hasattr(game, "advance_story_scene"):
+            game.advance_story_scene()
+        return
+    if next_node == "great_chase_guidance":
+        flags = getattr(game, "story_state", {}).setdefault("stage_flags", {})
+        if not flags.get("great_chase_unlocked"):
+            game.push_message(tr(game.lang, "chase.guidance_locked"))
+            return
+        controller = getattr(game, "chase_controller", None)
+        if not controller:
+            game.push_message(tr(game.lang, "chase.unavailable"))
+            return
+        controller.unlock_guidance(game)
+        _set_dialog_state(
+            game,
+            "kaltsit",
+            {
+                "start": "guidance",
+                "guidance": {
+                    "text": tr(game.lang, "chase.guidance_dialogue"),
+                    "responses": [{"text": tr(game.lang, "dialog.ok"), "next": "end"}],
+                },
+            },
+            "guidance",
+            source="interaction",
+        )
+        return
     if next_node == "upgrade":
         game.dialog_node = "upgrade"
         game.dialog_selected = 0
@@ -1016,7 +1155,18 @@ def dialog_choose(game):
     if next_node == "mission_board":
         giver = getattr(game, "active_npc", None)
         game.close_dialog()
-        if giver and hasattr(game, "open_mission_board"):
+        if giver and hasattr(game, "open_story_or_mission_board"):
+            opened = game.open_story_or_mission_board(giver, source="interaction")
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node, "giver": giver},
+                handler="open_story_or_mission_board",
+                result=opened,
+            )
+        elif giver and hasattr(game, "open_mission_board"):
             game.open_mission_board(giver, source="interaction")
             _trace_dialog_event(
                 game,
@@ -1025,6 +1175,20 @@ def dialog_choose(game):
                 "option",
                 payload={"next": next_node, "giver": giver},
                 handler="open_mission_board",
+                result="opened",
+            )
+        return
+    if next_node == "story_timeline":
+        game.close_dialog()
+        if hasattr(game, "open_story_timeline"):
+            game.open_story_timeline()
+            _trace_dialog_event(
+                game,
+                getattr(game, "active_npc", None),
+                choice,
+                "option",
+                payload={"next": next_node},
+                handler="open_story_timeline",
                 result="opened",
             )
         return

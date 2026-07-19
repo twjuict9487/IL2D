@@ -1,0 +1,72 @@
+{
+  "compact_layout": {
+    "width": 80,
+    "height": 20,
+    "base": "01",
+    "boundary": "02",
+    "border": true,
+    "rects": [
+      {"x": 18, "y": 3, "w": 8, "h": 4, "tile": "06"},
+      {"x": 34, "y": 12, "w": 10, "h": 3, "tile": "06"},
+      {"x": 52, "y": 2, "w": 7, "h": 5, "tile": "06"},
+      {"x": 66, "y": 11, "w": 6, "h": 4, "tile": "06"}
+    ]
+  },
+  "spawn": [7, 10],
+  "region": "stage_5_settlement",
+  "mob_limit": 0,
+  "spawn_interval": 6.0,
+  "world_hidden": false,
+  "portals": [],
+  "npc_layout": {
+    "kaltsit": [10, 10],
+    "priestess": [14, 10]
+  },
+  "campfires": [
+    {"id": "campfire_stage_5", "x": 8, "y": 10, "arrival": [7, 10]}
+  ],
+  "mission_targets": [
+    {"id": "survey_north", "kind": "data", "x": 16, "y": 8},
+    {"id": "survey_east", "kind": "data", "x": 28, "y": 10},
+    {"id": "survey_south", "kind": "data", "x": 16, "y": 15},
+    {"id": "environment_record", "kind": "data", "x": 24, "y": 8},
+    {"id": "underground_signal_1", "kind": "data", "x": 47, "y": 9},
+    {"id": "underground_signal_2", "kind": "data", "x": 49, "y": 9},
+    {"id": "underground_signal_3", "kind": "data", "x": 50, "y": 8},
+    {"id": "underground_terminal", "kind": "terminal", "x": 51, "y": 9},
+    {"id": "originium_project_core", "kind": "data", "x": 52, "y": 9},
+    {"id": "research_terminal", "kind": "terminal", "x": 12, "y": 12},
+    {"id": "reaction_data_1", "target_group": "reaction_data", "kind": "data", "x": 26, "y": 16},
+    {"id": "reaction_data_2", "target_group": "reaction_data", "kind": "data", "x": 56, "y": 16},
+    {"id": "scrap_1", "kind": "item", "item_id": "building_scrap", "x": 20, "y": 9},
+    {"id": "scrap_2", "kind": "item", "item_id": "building_scrap", "x": 22, "y": 11},
+    {"id": "scrap_3", "kind": "item", "item_id": "building_scrap", "x": 24, "y": 13},
+    {"id": "scrap_4", "kind": "item", "item_id": "building_scrap", "x": 27, "y": 8},
+    {"id": "scrap_5", "kind": "item", "item_id": "building_scrap", "x": 29, "y": 14},
+    {"id": "scrap_6", "kind": "item", "item_id": "building_scrap", "x": 32, "y": 9},
+    {"id": "scrap_7", "kind": "item", "item_id": "building_scrap", "x": 34, "y": 16},
+    {"id": "scrap_8", "kind": "item", "item_id": "building_scrap", "x": 37, "y": 9},
+    {"id": "fastener_1", "kind": "item", "item_id": "fastening_parts", "x": 39, "y": 7},
+    {"id": "fastener_2", "kind": "item", "item_id": "fastening_parts", "x": 41, "y": 10},
+    {"id": "fastener_3", "kind": "item", "item_id": "fastening_parts", "x": 44, "y": 8},
+    {"id": "fastener_4", "kind": "item", "item_id": "fastening_parts", "x": 46, "y": 14},
+    {"id": "power_core_pickup", "kind": "item", "item_id": "power_core", "x": 48, "y": 12},
+    {"id": "sample_1", "kind": "item", "item_id": "originium_sample", "x": 25, "y": 16},
+    {"id": "sample_2", "kind": "item", "item_id": "originium_sample", "x": 50, "y": 15},
+    {"id": "sample_3", "kind": "item", "item_id": "originium_sample", "x": 63, "y": 8},
+    {"id": "cable_1", "kind": "item", "item_id": "power_cable", "x": 19, "y": 12},
+    {"id": "cable_2", "kind": "item", "item_id": "power_cable", "x": 28, "y": 12},
+    {"id": "cable_3", "kind": "item", "item_id": "power_cable", "x": 37, "y": 11},
+    {"id": "cable_4", "kind": "item", "item_id": "power_cable", "x": 46, "y": 12},
+    {"id": "cable_5", "kind": "item", "item_id": "power_cable", "x": 55, "y": 12},
+    {"id": "cable_6", "kind": "item", "item_id": "power_cable", "x": 64, "y": 12},
+    {"id": "lighting_core_1", "kind": "item", "item_id": "lighting_core", "x": 30, "y": 7},
+    {"id": "lighting_core_2", "kind": "item", "item_id": "lighting_core", "x": 48, "y": 7},
+    {"id": "lighting_core_3", "kind": "item", "item_id": "lighting_core", "x": 62, "y": 15},
+    {"id": "road_lamp_1", "target_group": "road_lamp", "kind": "data", "x": 20, "y": 10},
+    {"id": "road_lamp_2", "target_group": "road_lamp", "kind": "data", "x": 30, "y": 10},
+    {"id": "road_lamp_3", "target_group": "road_lamp", "kind": "data", "x": 40, "y": 10},
+    {"id": "road_lamp_4", "target_group": "road_lamp", "kind": "data", "x": 50, "y": 10},
+    {"id": "road_lamp_5", "target_group": "road_lamp", "kind": "data", "x": 60, "y": 10}
+  ]
+}

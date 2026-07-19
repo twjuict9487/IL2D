@@ -1,4 +1,6 @@
 import os
+os.environ.setdefault("SDL_VIDEO_CENTERED", "1")
+
 import pygame
 from core.functions.support.utils import CONFIG_FILE, SAVE_DIR, load_json
 from core.functions.support.asset_resolver import (
@@ -18,6 +20,7 @@ from core.functions.rendering.draw import (
     TILE_SIZE,
     VIEWPORT,
     FPS,
+    ESC_MENU_OPTIONS,
     _dialog_layout,
     _resolve_dialog_node,
     _ui_visible_range,
@@ -52,6 +55,12 @@ from core.functions.ui.name_input_flow import (
     open_new_game_name_input as _ui_open_new_game_name_input,
     handle_name_input_key as _ui_handle_name_input_key,
     handle_text_input as _ui_handle_text_input,
+)
+from core.functions.ui.prologue_presentation import (
+    draw_prologue_presentation as _ui_draw_prologue_presentation,
+    load_prologue_presentation as _ui_load_prologue_presentation,
+    start_prologue_presentation as _ui_start_prologue_presentation,
+    update_prologue_presentation as _ui_update_prologue_presentation,
 )
 from core.functions.ui.dev_menu_flow import (
     handle_dev_menu_key as _ui_handle_dev_menu_key,
@@ -142,6 +151,55 @@ def _set_always_on_top():
         pass
 
 
+def _centered_window_position(window_size, work_area):
+    width, height = (max(0, int(v)) for v in window_size)
+    left, top, right, bottom = (int(v) for v in work_area)
+    usable_w = max(0, right - left)
+    usable_h = max(0, bottom - top)
+    return (
+        max(0, left + max(0, usable_w - width) // 2),
+        max(0, top + max(0, usable_h - height) // 2),
+    )
+
+
+def _center_window(screen=None):
+    screen = screen or pygame.display.get_surface()
+    if screen is None:
+        return False
+    width, height = screen.get_size()
+    try:
+        import ctypes
+
+        class RECT(ctypes.Structure):
+            _fields_ = [
+                ("left", ctypes.c_long),
+                ("top", ctypes.c_long),
+                ("right", ctypes.c_long),
+                ("bottom", ctypes.c_long),
+            ]
+
+        info = pygame.display.get_wm_info()
+        hwnd = info.get("window")
+        rect = RECT()
+        if hwnd and ctypes.windll.user32.SystemParametersInfoW(48, 0, ctypes.byref(rect), 0):
+            x, y = _centered_window_position(
+                (width, height), (rect.left, rect.top, rect.right, rect.bottom)
+            )
+            flags = 1 | 4 | 16  # SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE
+            return bool(ctypes.windll.user32.SetWindowPos(int(hwnd), 0, x, y, 0, 0, flags))
+    except Exception:
+        pass
+    try:
+        desktop_w, desktop_h = pygame.display.get_desktop_sizes()[0]
+        x, y = _centered_window_position((width, height), (0, 0, desktop_w, desktop_h))
+        from pygame._sdl2.video import Window
+
+        Window.from_display_module().position = (x, y)
+        return True
+    except Exception:
+        return False
+
+
 def _has_seen_start_tutorial():
     try:
         if not os.path.isfile(_TUTORIAL_STATE_FILE):
@@ -178,6 +236,7 @@ def init_context():
     win_h = TILE_SIZE * (VIEWPORT + 1)
     screen = pygame.display.set_mode((win_w, win_h))
     pygame.display.set_caption('Projekt:"IL2D" Prototype')
+    _center_window(screen)
     _set_always_on_top()
     clock = pygame.time.Clock()
     ctx = {
@@ -206,6 +265,7 @@ def init_context():
         "tutorial_idx": 0,
         "tutorial_return_state": "game",
         "tutorial_mode": "start",
+        "prologue_presentation": None,
         "menu_selected": 0,
         "settings_selected": 0,
         "settings_sub": None,
@@ -217,6 +277,7 @@ def init_context():
         "dev_menu_selected": 0,
         "dev_menu_target": None,
         "dev_menu_input": "",
+        "dev_story_selected": 0,
         "held_keys": {"w": False, "a": False, "s": False, "d": False},
         "press_time": {"w": 0.0, "a": 0.0, "s": 0.0, "d": 0.0},
         "last_move_time": 0.0,
@@ -235,6 +296,7 @@ def init_context():
         )
     except Exception:
         pass
+    ctx["game"].runtime_context = ctx
     mods_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mods")
     _load_mods(ctx, mods_dir)
     return ctx
@@ -243,9 +305,31 @@ def init_context():
 def run_frame(ctx):
     dt = ctx["clock"].tick(FPS) / 1000.0
     _process_events(ctx)
+    if getattr(ctx["game"], "request_open_save_menu", False):
+        ctx["game"].request_open_save_menu = False
+        ctx["state"] = "esc_menu"
+        ctx["esc_selected"] = 4
     _handle_held_movement(ctx)
     _update(ctx, dt)
+    _sync_chase_window(ctx)
     _render(ctx)
+
+
+def _sync_chase_window(ctx):
+    game = ctx["game"]
+    chase = getattr(game, "chase_controller", None)
+    wide = bool(
+        chase
+        and chase.is_chase_map(game)
+    )
+    desired = (TILE_SIZE * (VIEWPORT * 2 if wide else VIEWPORT), TILE_SIZE * (VIEWPORT + 1))
+    if ctx["screen"].get_size() == desired:
+        return
+    flags = pygame.FULLSCREEN if ctx.get("fullscreen", False) else 0
+    ctx["screen"] = pygame.display.set_mode(desired, flags)
+    if not ctx.get("fullscreen", False):
+        _center_window(ctx["screen"])
+    _set_always_on_top()
 
 
 def run():
@@ -298,6 +382,8 @@ def _handle_key(ctx, event):
         _handle_main_menu_key(ctx, event)
     elif state == "name_input":
         _handle_name_input_key(ctx, event)
+    elif state == "prologue_presentation":
+        return
     elif state == "opening_cutscene":
         _handle_cutscene_key(ctx, event)
     elif state == "lore_reader":
@@ -317,17 +403,21 @@ def _handle_key(ctx, event):
 
 
 def _check_dev_secret(ctx, event):
-    if ctx["state"] != "game":
-        return False
     if not event.unicode:
         return False
     ch = event.unicode.lower()
     if not ch.isalnum():
         return False
-    secret = "twjuict9487isaprogamer"
-    buf = (ctx.get("type_buffer", "") + ch)[-len(secret) :]
+    dev_secret = "twjuict9487isaprogamer"
+    skip_secret = "twjuict9487wantstoskip"
+    max_length = max(len(dev_secret), len(skip_secret))
+    buf = (ctx.get("type_buffer", "") + ch)[-max_length:]
     ctx["type_buffer"] = buf
-    if buf.endswith(secret):
+    if buf.endswith(skip_secret):
+        ctx["type_buffer"] = ""
+        _skip_active_cutscene(ctx)
+        return True
+    if ctx["state"] == "game" and buf.endswith(dev_secret):
         ctx["state"] = "dev_menu"
         ctx["dev_menu_selected"] = 0
         ctx["dev_menu_target"] = None
@@ -337,8 +427,42 @@ def _check_dev_secret(ctx, event):
     return False
 
 
+def _skip_active_cutscene(ctx):
+    game = ctx["game"]
+    state = ctx.get("state")
+    if state == "prologue_presentation":
+        _finish_prologue_presentation(ctx)
+        return True
+    if state == "opening_cutscene":
+        ctx["cutscene_idx"] = len(ctx.get("cutscene_lines", []))
+        ctx["state"] = "game"
+        return True
+    if state != "game":
+        return False
+    if getattr(game, "ui_mode", None) == "story_title_card":
+        card = getattr(game, "story_title_card", None)
+        if isinstance(card, dict):
+            card["started_at"] = -1.0
+        game.update_story_title_card()
+        return True
+    if (
+        getattr(game, "ui_mode", None) == "dialog"
+        and getattr(game, "dialog_source", None) == "story"
+    ):
+        game.close_dialog()
+        game.advance_story_scene()
+        return True
+    if getattr(game, "story_mission_card", None):
+        game.story_mission_card = None
+        return True
+    if getattr(game, "transition_active", False):
+        game.update_transition(float(getattr(game, "transition_duration", 1.0) or 1.0))
+        return True
+    return False
+
+
 def _handle_dev_menu_key(ctx, event):
-    _ui_handle_dev_menu_key(ctx, event)
+    _ui_handle_dev_menu_key(ctx, event, _start_prologue_presentation)
 
 
 def _handle_main_menu_key(ctx, event):
@@ -355,8 +479,49 @@ def _open_new_game_name_input(ctx):
 
 def _handle_name_input_key(ctx, event):
     _ui_handle_name_input_key(
-        ctx, event, _has_seen_start_tutorial, _build_tutorial_lines, _start_lore_entry
+        ctx,
+        event,
+        _has_seen_start_tutorial,
+        _build_tutorial_lines,
+        _start_prologue_presentation,
     )
+
+
+def _start_prologue_presentation(ctx, game, force=False):
+    if _ui_start_prologue_presentation(ctx, force=force):
+        return
+    game.opening_showcase_completed = True
+    game.start_new_player_tutorial()
+    ctx["state"] = "game"
+
+
+def _finish_prologue_presentation(ctx, error=None):
+    game = ctx["game"]
+    presentation = ctx.get("prologue_presentation") or {}
+    purpose = str(presentation.get("purpose", "prologue"))
+    if error:
+        print(f"[prologue presentation] recovered from error: {error}")
+    if purpose == "tgc":
+        ctx["prologue_presentation"] = None
+        game.ui_mode = None
+        ctx["state"] = "game"
+        controller = getattr(game, "chase_controller", None)
+        if controller:
+            controller.complete_presentation(game)
+        return
+    if purpose == "story_png_dialogue":
+        ctx["prologue_presentation"] = None
+        game.ui_mode = None
+        ctx["state"] = "game"
+        manager = getattr(game, "story_manager", None)
+        if manager:
+            manager.advance_scene(game)
+        return
+    game.opening_showcase_completed = True
+    ctx["prologue_presentation"] = None
+    game.ui_mode = None
+    game.start_new_player_tutorial()
+    ctx["state"] = "game"
 
 
 def _handle_text_input(ctx, text):
@@ -755,6 +920,69 @@ def _handle_hotbar_menu_key(game, event):
         return
 
 
+def _open_esc_option(ctx, idx):
+    game = ctx["game"]
+    options = ESC_MENU_OPTIONS
+    if not options:
+        return
+    idx = max(0, min(len(options) - 1, int(idx or 0)))
+    opt = options[idx]
+    if opt == "item":
+        if game.ui_mode == "item":
+            game.ui_mode = None
+        else:
+            game.ui_mode = "item"
+            game.item_focus = "tabs"
+    elif opt == "hotbar":
+        if game.ui_mode == "hotbar":
+            game.ui_mode = None
+        else:
+            game.ui_mode = "hotbar"
+            game.hotbar_stage = "grid"
+            game.hotbar_slot_selected = 0
+            if game.hotbar_mode == "item":
+                game.hotbar_list_selected = max(
+                    0, int(getattr(game, "hotbar_item_list_selected", 0))
+                )
+            else:
+                game.hotbar_list_selected = max(
+                    0, int(getattr(game, "hotbar_magic_list_selected", 0))
+                )
+    elif opt == "equipments":
+        game.open_equip()
+    elif opt == "team":
+        game.ui_mode = "team"
+    elif opt == "tutorial":
+        ctx["tutorial_mode"] = "manual"
+        ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
+        ctx["tutorial_idx"] = 0
+        ctx["tutorial_return_state"] = "esc_menu"
+        game.ui_mode = None
+        ctx["state"] = "tutorial"
+    elif opt == "map":
+        game.ui_mode = "map"
+        if hasattr(game, "reload_world_map"):
+            game.reload_world_map()
+        if hasattr(game, "reset_world_map_reticle"):
+            game.reset_world_map_reticle()
+        else:
+            game.world_map_pan_initialized = False
+    elif opt == "objective":
+        game.ui_mode = "objective"
+        game.objective_selected = 0
+        game.tutorial_notify("objective_opened")
+    elif opt == "story":
+        game.ui_mode = "story"
+        if hasattr(game, "reset_story_graph"):
+            game.reset_story_graph()
+    elif opt == "skill_tree":
+        game.ui_mode = "skill_tree"
+    elif opt == "save":
+        game.open_save()
+    elif opt == "leave":
+        game.open_leave_confirm()
+
+
 def _handle_esc_menu_key(ctx, event):
     game = ctx["game"]
     if game.ui_mode:
@@ -764,6 +992,64 @@ def _handle_esc_menu_key(ctx, event):
                 game.request_close_esc_menu = False
                 game.ui_mode = None
                 ctx["state"] = "game"
+            return
+        if game.ui_mode == "map":
+            if event.key in (pygame.K_LEFT, pygame.K_a):
+                game.move_world_map_reticle(-1, 0)
+            elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                game.move_world_map_reticle(1, 0)
+            elif event.key in (pygame.K_UP, pygame.K_w):
+                game.move_world_map_reticle(0, -1)
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
+                game.move_world_map_reticle(0, 1)
+            elif event.key == pygame.K_r:
+                game.reset_world_map_reticle()
+            elif event.key == pygame.K_RETURN:
+                if getattr(game, "world_map_reticle_state", "FREE") == "SNAPPED":
+                    target_id = getattr(game, "world_map_reticle_target", None)
+                    if game.fast_travel_to_campfire(target_id):
+                        game.ui_mode = None
+                        ctx["state"] = "game"
+            elif event.key == pygame.K_ESCAPE:
+                if getattr(game, "world_map_reticle_state", "FREE") in {
+                    "ATTRACTING",
+                    "SNAPPED",
+                }:
+                    game.release_world_map_reticle()
+                else:
+                    game.ui_mode = None
+            return
+        if game.ui_mode == "story":
+            if getattr(game, "story_graph_view", "graph") == "detail":
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    game.story_graph_detail_scroll = max(
+                        0, int(getattr(game, "story_graph_detail_scroll", 0)) - 1
+                    )
+                elif event.key in (pygame.K_DOWN, pygame.K_s):
+                    game.story_graph_detail_scroll = int(
+                        getattr(game, "story_graph_detail_scroll", 0)
+                    ) + 1
+                elif event.key == pygame.K_ESCAPE:
+                    if hasattr(game, "back_story_graph"):
+                        game.back_story_graph()
+                return
+            direction = None
+            if event.key in (pygame.K_LEFT, pygame.K_a):
+                direction = "left"
+            elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                direction = "right"
+            elif event.key in (pygame.K_UP, pygame.K_w):
+                direction = "up"
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
+                direction = "down"
+            if direction and hasattr(game, "move_story_graph_selection"):
+                game.move_story_graph_selection(direction)
+            elif event.key == pygame.K_RETURN and hasattr(game, "activate_story_graph_node"):
+                game.activate_story_graph_node()
+            elif event.key == pygame.K_ESCAPE:
+                handled = game.back_story_graph() if hasattr(game, "back_story_graph") else False
+                if not handled:
+                    game.ui_mode = None
             return
         if game.ui_mode == "team":
             members = (
@@ -909,7 +1195,19 @@ def _handle_esc_menu_key(ctx, event):
                         else:
                             idx = max(0, idx - 2)
                         game.item_selected = idx
-            elif game.ui_mode in ("objective", "mission_board"):
+            elif game.ui_mode in ("objective", "mission_board", "story"):
+                if game.ui_mode == "story":
+                    rows = (
+                        game.get_story_timeline_rows()
+                        if hasattr(game, "get_story_timeline_rows")
+                        else []
+                    )
+                    if rows:
+                        game.story_timeline_selected = max(
+                            0,
+                            int(getattr(game, "story_timeline_selected", 0) or 0) - 1,
+                        )
+                    return
                 if game.ui_mode == "objective":
                     missions = (
                         game.get_trackable_missions()
@@ -1045,7 +1343,19 @@ def _handle_esc_menu_key(ctx, event):
                         else:
                             idx = min(len(items) - 1, idx + 2)
                         game.item_selected = idx
-            elif game.ui_mode in ("objective", "mission_board"):
+            elif game.ui_mode in ("objective", "mission_board", "story"):
+                if game.ui_mode == "story":
+                    rows = (
+                        game.get_story_timeline_rows()
+                        if hasattr(game, "get_story_timeline_rows")
+                        else []
+                    )
+                    if rows:
+                        game.story_timeline_selected = min(
+                            len(rows) - 1,
+                            int(getattr(game, "story_timeline_selected", 0) or 0) + 1,
+                        )
+                    return
                 if game.ui_mode == "objective":
                     missions = (
                         game.get_trackable_missions()
@@ -1080,7 +1390,12 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "level_skipper":
                 game.change_level_skip_amount(1)
         elif event.key == pygame.K_ESCAPE:
-            if game.ui_mode == "equip":
+            if game.ui_mode == "save":
+                chase = getattr(game, "chase_controller", None)
+                if chase:
+                    chase.cancel_save()
+                game.ui_mode = None
+            elif game.ui_mode == "equip":
                 focus = getattr(game, "equip_focus", "tabs")
                 if focus == "items":
                     game.equip_focus = "slots"
@@ -1175,6 +1490,11 @@ def _handle_esc_menu_key(ctx, event):
             elif game.ui_mode == "objective":
                 if hasattr(game, "set_tracked_selected_mission"):
                     game.set_tracked_selected_mission()
+            elif game.ui_mode == "story":
+                if hasattr(game, "confirm_story_timeline_selection"):
+                    game.confirm_story_timeline_selection()
+                    if game.ui_mode != "story":
+                        ctx["state"] = "game"
             elif game.ui_mode == "mission_board":
                 giver = getattr(game, "mission_board_giver", None)
                 missions = (
@@ -1232,57 +1552,14 @@ def _handle_esc_menu_key(ctx, event):
                 ctx["state"] = "game"
         return
     if event.key == pygame.K_UP:
-        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % 10
+        ctx["esc_selected"] = (ctx["esc_selected"] - 1) % len(ESC_MENU_OPTIONS)
     elif event.key == pygame.K_DOWN:
-        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % 10
+        ctx["esc_selected"] = (ctx["esc_selected"] + 1) % len(ESC_MENU_OPTIONS)
     elif event.key == pygame.K_ESCAPE:
         game.tutorial_notify("esc_close")
         ctx["state"] = "game"
     elif event.key == pygame.K_RETURN:
-        if ctx["esc_selected"] == 0:
-            if game.ui_mode == "item":
-                game.ui_mode = None
-            else:
-                game.ui_mode = "item"
-                game.item_focus = "tabs"
-        elif ctx["esc_selected"] == 1:
-            if game.ui_mode == "hotbar":
-                game.ui_mode = None
-            else:
-                game.ui_mode = "hotbar"
-                game.hotbar_stage = "grid"
-                game.hotbar_slot_selected = 0
-                if game.hotbar_mode == "item":
-                    game.hotbar_list_selected = max(
-                        0, int(getattr(game, "hotbar_item_list_selected", 0))
-                    )
-                else:
-                    game.hotbar_list_selected = max(
-                        0, int(getattr(game, "hotbar_magic_list_selected", 0))
-                    )
-        elif ctx["esc_selected"] == 2:
-            game.open_equip()
-        elif ctx["esc_selected"] == 3:
-            game.ui_mode = "team"
-        elif ctx["esc_selected"] == 4:
-            ctx["tutorial_mode"] = "manual"
-            ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
-            ctx["tutorial_idx"] = 0
-            ctx["tutorial_return_state"] = "esc_menu"
-            game.ui_mode = None
-            ctx["state"] = "tutorial"
-        elif ctx["esc_selected"] == 5:
-            game.ui_mode = "map"
-        elif ctx["esc_selected"] == 6:
-            game.ui_mode = "objective"
-            game.objective_selected = 0
-            game.tutorial_notify("objective_opened")
-        elif ctx["esc_selected"] == 7:
-            game.ui_mode = "skill_tree"
-        elif ctx["esc_selected"] == 8:
-            game.open_save()
-        elif ctx["esc_selected"] == 9:
-            game.open_leave_confirm()
+        _open_esc_option(ctx, ctx["esc_selected"])
 
 
 def _handle_game_key(ctx, event):
@@ -1291,7 +1568,7 @@ def _handle_game_key(ctx, event):
     if event.key == pygame.K_ESCAPE:
         ctx["game"].tutorial_notify("esc_open")
     _input_handle_game_key(
-        ctx, event, _press_move, _set_always_on_top, TILE_SIZE, VIEWPORT
+        ctx, event, _press_move, _set_always_on_top, _center_window, TILE_SIZE, VIEWPORT
     )
 
 
@@ -1349,7 +1626,7 @@ def _handle_mouse_esc_menu(ctx, pos):
     item_h = font.get_height() + 10
     if mx < menu_w:
         hit_idx = None
-        for i in range(10):
+        for i in range(len(ESC_MENU_OPTIONS)):
             rect = pygame.Rect(12, 20 + i * item_h, menu_w - 24, item_h)
             if rect.collidepoint(mx, my):
                 hit_idx = i
@@ -1357,49 +1634,7 @@ def _handle_mouse_esc_menu(ctx, pos):
         if hit_idx is not None:
             idx = hit_idx
             ctx["esc_selected"] = idx
-            if idx == 0:
-                if game.ui_mode == "item":
-                    game.ui_mode = None
-                else:
-                    game.ui_mode = "item"
-                    game.item_focus = "tabs"
-            elif idx == 1:
-                if game.ui_mode == "hotbar":
-                    game.ui_mode = None
-                else:
-                    game.ui_mode = "hotbar"
-                    game.hotbar_stage = "grid"
-                    game.hotbar_slot_selected = 0
-                    if game.hotbar_mode == "item":
-                        game.hotbar_list_selected = max(
-                            0, int(getattr(game, "hotbar_item_list_selected", 0))
-                        )
-                    else:
-                        game.hotbar_list_selected = max(
-                            0, int(getattr(game, "hotbar_magic_list_selected", 0))
-                        )
-            elif idx == 2:
-                game.open_equip()
-            elif idx == 3:
-                game.ui_mode = "team"
-            elif idx == 4:
-                ctx["tutorial_mode"] = "manual"
-                ctx["tutorial_lines"] = _build_tutorial_lines(game.lang, mode="manual")
-                ctx["tutorial_idx"] = 0
-                ctx["tutorial_return_state"] = "esc_menu"
-                game.ui_mode = None
-                ctx["state"] = "tutorial"
-            elif idx == 5:
-                game.ui_mode = "map"
-            elif idx == 6:
-                game.ui_mode = "objective"
-                game.tutorial_notify("objective_opened")
-            elif idx == 7:
-                game.ui_mode = "skill_tree"
-            elif idx == 8:
-                game.open_save()
-            elif idx == 9:
-                game.open_leave_confirm()
+            _open_esc_option(ctx, idx)
             return
     else:
         panel = pygame.Rect(menu_w, 0, screen.get_width() - menu_w, screen.get_height())
@@ -1407,7 +1642,16 @@ def _handle_mouse_esc_menu(ctx, pos):
             return
         font = pygame.font.SysFont("consolas", 14)
         y = panel.y + 48
-        if game.ui_mode == "save":
+        if game.ui_mode == "story" and getattr(game, "story_graph_view", "graph") == "graph":
+            for node_id, rect in reversed(
+                list(getattr(game, "story_graph_hitboxes", []) or [])
+            ):
+                if rect.collidepoint(mx, my):
+                    game.story_graph_selected_id = node_id
+                    if hasattr(game, "activate_story_graph_node"):
+                        game.activate_story_graph_node()
+                    return
+        elif game.ui_mode == "save":
             for i in range(3):
                 rect = pygame.Rect(
                     panel.x + 16, y - 2, panel.width - 32, font.get_height() + 4
@@ -1948,6 +2192,40 @@ def _handle_mouse_game(ctx, pos):
 def _update(ctx, dt):
     game = ctx["game"]
     _invoke_mod_hooks(ctx, "on_update", dt)
+    if ctx.get("state") == "game":
+        controller = getattr(game, "chase_controller", None)
+        chase_state = getattr(controller, "state", {}) if controller else {}
+        if (
+            chase_state.get("phase") == "PNG_SCENE"
+            and not chase_state.get("presentation_started")
+            and controller.is_presentation_ready()
+        ):
+            chase_state["presentation_started"] = True
+            presentation_name = os.path.basename(
+                str(controller.config.get("presentation_file", "tgc_presentation.json"))
+            )
+            presentation_path = os.path.join(
+                os.path.dirname(CONFIG_FILE), "presentations", presentation_name
+            )
+            config = _ui_load_prologue_presentation(presentation_path)
+            if not _ui_start_prologue_presentation(
+                ctx, config=config, force=True, purpose="tgc"
+            ):
+                controller.complete_presentation(game)
+    if (
+        ctx.get("state") == "esc_menu"
+        and getattr(game, "ui_mode", None) == "map"
+        and hasattr(game, "update_world_map_reticle")
+    ):
+        game.update_world_map_reticle(dt)
+    if ctx.get("state") == "prologue_presentation":
+        try:
+            if _ui_update_prologue_presentation(ctx, dt):
+                state = ctx.get("prologue_presentation") or {}
+                _finish_prologue_presentation(ctx, error=state.get("error"))
+        except Exception as exc:
+            _finish_prologue_presentation(ctx, error=exc)
+        return
     if ctx.get("state") == "lore_reader":
         _update_lore_reader(ctx, dt)
     if (
@@ -2127,6 +2405,11 @@ def _render(ctx):
         draw_main_menu(ctx["screen"], ctx["menu_selected"], ctx["game"].lang)
     elif ctx["state"] == "name_input":
         _draw_name_input(ctx)
+    elif ctx["state"] == "prologue_presentation":
+        try:
+            _ui_draw_prologue_presentation(ctx)
+        except Exception as exc:
+            _finish_prologue_presentation(ctx, error=exc)
     elif ctx["state"] == "opening_cutscene":
         _draw_cutscene(ctx)
     elif ctx["state"] == "lore_reader":

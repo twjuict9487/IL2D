@@ -1,0 +1,103 @@
+{
+    "transitions": {
+        "fade_to_black": 1.0,
+        "character_reveal": 2.2,
+        "reveal_hold": 0.8,
+        "scene_fade_out": 0.8,
+        "scene_fade_in": 1.0
+    },
+    "defaults": {
+        "narrator_speed": 13.5,
+        "dialogue_speed": 12.0,
+        "thought_speed": 11.25,
+        "heavy_speed": 10.125,
+        "pre_delay": 0.15,
+        "post_delay": 0.55,
+        "speaker_transition": 0.5,
+        "finish_fade": 0.6
+    },
+    "actors": [
+        {
+            "id": "kaltsit",
+            "name_zh": "凱爾希",
+            "name_en": "Kal'tsit",
+            "image": "1536px-Kal'tsit_nobg.png",
+            "x": 0.18,
+            "scale": 0.9
+        },
+        {
+            "id": "priestess",
+            "name_zh": "Priestess",
+            "name_en": "Priestess",
+            "image": "priestess_nobg.png",
+            "x": 0.5,
+            "scale": 0.94
+        },
+        {
+            "id": "doctor",
+            "name_zh": "博士",
+            "name_en": "Doctor",
+            "image": "Doctor_nobg.png",
+            "x": 0.82,
+            "scale": 0.9
+        }
+    ],
+    "initial_scene": "scene1",
+    "scenes": {
+        "scene1": {
+            "actors": [
+                "kaltsit",
+                "priestess",
+                "doctor"
+            ]
+        }
+    },
+    "lines": [
+        {
+            "speaker": "narrator",
+            "style": "narrator",
+            "text": "追逐的轟鳴終於消失。\n空曠的設施中央，只剩一座尚未點燃的營火。"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「你終於回來了，Doctor。」"
+        },
+        {
+            "speaker": "kaltsit",
+            "style": "dialogue",
+            "text": "「不要急著替他的抵達賦予意義。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "thought",
+            "text": "［回來？可我根本不記得自己曾經來過。］"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「身體會遺忘，記憶也會破損。\n但你依然找到了這裡。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「我只是逃到了這裡。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「那也沒有關係。結果並沒有改變。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「先把火點起來。\n至少這一次，我要知道自己會從哪裡醒來。」"
+        },
+        {
+            "speaker": "narrator",
+            "style": "narrator",
+            "text": "火光亮起。\nTGC 的道路從此不再是唯一的入口。",
+            "post_delay": 0.9
+        }
+    ]
+}

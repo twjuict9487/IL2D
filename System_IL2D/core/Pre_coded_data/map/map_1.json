@@ -290,6 +290,14 @@
       "02"
     ]
   ],
+  "campfires": [
+    {
+      "id": "campfire_map1",
+      "x": 3,
+      "y": 8,
+      "arrival": [3, 9]
+    }
+  ],
   "spawn": [
     2,
     7

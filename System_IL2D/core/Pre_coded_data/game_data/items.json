@@ -1,4 +1,10 @@
 {
+  "建築廢料": {"id": "building_scrap", "type": "mission"},
+  "固定零件": {"id": "fastening_parts", "type": "mission"},
+  "供能核心": {"id": "power_core", "type": "mission"},
+  "源石樣本": {"id": "originium_sample", "type": "mission"},
+  "供電線材": {"id": "power_cable", "type": "mission"},
+  "照明核心": {"id": "lighting_core", "type": "mission"},
   "小型生命藥水": {
     "id": "health potion (small)",
     "type": "consumable"

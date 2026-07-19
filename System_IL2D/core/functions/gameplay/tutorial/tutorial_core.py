@@ -63,6 +63,7 @@ class GameplayTutorialCore:
         if left > 0:
             return
         self._apply_finish_reset(game)
+        game._tutorial_return_story_pending = True
         game.start_blackout()
         self.active = False
 
@@ -196,7 +197,10 @@ class GameplayTutorialCore:
             ny = game.player.y + random.randint(-4, 4)
             if nx < 0 or ny < 0 or nx >= game.map.w or ny >= game.map.h:
                 continue
-            if not game.map.is_walkable(nx, ny):
+            if hasattr(game, "is_world_tile_walkable"):
+                if not game.is_world_tile_walkable(nx, ny):
+                    continue
+            elif not game.map.is_walkable(nx, ny):
                 continue
             if game.entity_at(nx, ny):
                 continue

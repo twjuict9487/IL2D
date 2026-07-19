@@ -96,11 +96,18 @@ def _settle_bj(g):
         g.blackjack_round_settled = True
 
 
-def handle_game_key(c, e, press_move_fn, set_always_on_top_fn, tile_size, viewport):
+def handle_game_key(
+    c, e, press_move_fn, set_always_on_top_fn, center_window_fn, tile_size, viewport
+):
     g = c["game"]
     k = e.key
     m = g.ui_mode
     if m == "death_menu":
+        if getattr(g, "chase_death_pending", False):
+            g.death_menu_selected = 0
+            if OK(k):
+                g.handle_death_menu_confirm()
+            return
         if g.death_no_save_notice:
             if OK(k) or k == P.K_ESCAPE:
                 g.request_quit = True
@@ -110,6 +117,35 @@ def handle_game_key(c, e, press_move_fn, set_always_on_top_fn, tile_size, viewpo
             g.death_menu_selected = min(1, g.death_menu_selected + 1)
         elif OK(k):
             g.handle_death_menu_confirm()
+        return
+    chase = getattr(g, "chase_controller", None)
+    if chase and chase.is_chase_map(g):
+        if chase.is_input_locked():
+            return
+        if chase.is_forced_run() and (k == P.K_ESCAPE or k in (P.K_a, P.K_d)):
+            return
+    if m == "story_title_card":
+        return
+    if m == "story_timeline":
+        rows = g.get_story_timeline_rows() if hasattr(g, "get_story_timeline_rows") else []
+        if U(k) and rows:
+            g.story_timeline_selected = max(
+                0, int(getattr(g, "story_timeline_selected", 0)) - 1
+            )
+            _scroll(g, "story_timeline_scroll", -1)
+        elif D(k) and rows:
+            g.story_timeline_selected = min(
+                len(rows) - 1, int(getattr(g, "story_timeline_selected", 0)) + 1
+            )
+            _scroll(g, "story_timeline_scroll", 1, max(0, len(rows) - 1))
+        elif OK(k):
+            if hasattr(g, "confirm_story_timeline_selection"):
+                g.confirm_story_timeline_selection()
+        elif k == P.K_ESCAPE:
+            if hasattr(g, "close_story_timeline"):
+                g.close_story_timeline()
+            else:
+                g.ui_mode = None
         return
     if m == "level_stat_choice":
         o = g.get_level_stat_options() if hasattr(g, "get_level_stat_options") else []
@@ -317,6 +353,8 @@ def handle_game_key(c, e, press_move_fn, set_always_on_top_fn, tile_size, viewpo
         w = tile_size * viewport
         h = tile_size * (viewport + 1)
         c["screen"] = P.display.set_mode((w, h), P.FULLSCREEN if c["fullscreen"] else 0)
+        if not c["fullscreen"]:
+            center_window_fn(c["screen"])
         set_always_on_top_fn()
     if k in MOV:
         press_move_fn(c, *MOV[k])

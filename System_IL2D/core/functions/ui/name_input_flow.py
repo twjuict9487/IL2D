@@ -28,6 +28,7 @@ def handle_name_input_key(
 
         game = Game()
         game.player_name = player_name
+        game.runtime_context = ctx
 
         try:
             pygame.mixer.init()
@@ -38,13 +39,13 @@ def handle_name_input_key(
         game.refresh_music()
         game.audio.play_sfx("confirm")
 
-        game.start_new_player_tutorial()
         ctx["game"] = game
         pygame.key.stop_text_input()
 
         if callable(start_lore_intro_fn):
             start_lore_intro_fn(ctx, game)
         else:
+            game.start_new_player_tutorial()
             ctx["state"] = "game"
 
 

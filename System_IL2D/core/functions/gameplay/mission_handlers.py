@@ -1,3 +1,4 @@
+import math
 import time
 
 from ..support.utils import BLOCKTYPE_FILE, MOBS_FILE, load_json, resolve_map_file
@@ -20,6 +21,7 @@ TYPE_ALIASES = {
 
 def start_runtime(game, mission):
     """Initialize runtime fields for every objective present in this mission."""
+    _ensure_mission_spawns(game, mission)
     if _mission_has_type(mission, "SA"):
         _start_sa(game, mission)
     if _mission_has_type(mission, "CD"):
@@ -37,6 +39,90 @@ def start_runtime(game, mission):
     if _mission_has_type(mission, "CM"):
         _start_cm(game, mission)
     return mission
+
+
+def ensure_active_mission_spawns(game, restore_missing=False):
+    """Restore data-defined mission waves after map changes or save loading."""
+    for mission in _active(game):
+        _ensure_mission_spawns(game, mission, restore_missing=restore_missing)
+
+
+def _find_mission_spawn_tile(game, position, radius=3):
+    try:
+        x, y = int(position[0]), int(position[1])
+    except Exception:
+        return None
+    candidates = [(x, y)]
+    for step in range(1, max(1, int(radius)) + 1):
+        for dx in range(-step, step + 1):
+            for dy in range(-step, step + 1):
+                if abs(dx) != step and abs(dy) != step:
+                    continue
+                candidates.append((x + dx, y + dy))
+    for cx, cy in candidates:
+        if game.can_spawn_entity_at_size(cx, cy):
+            return cx, cy
+    return None
+
+
+def _ensure_mission_spawns(game, mission, restore_missing=False):
+    waves = mission.get("enemy_spawns", []) or []
+    if not isinstance(waves, list) or not waves:
+        return 0
+    runtime = mission.setdefault("runtime", {})
+    mission_id = _clean(mission.get("id"))
+    spawned = 0
+    errors = []
+    for wave in waves:
+        if not isinstance(wave, dict):
+            continue
+        target_map = _clean(wave.get("map") or _ca_target_map(mission))
+        if target_map and not _same_map_name(_current_map_name(game), target_map):
+            continue
+        group = _clean(wave.get("group") or "default")
+        related_objectives = [
+            obj
+            for obj in mission.get("objectives", []) or []
+            if isinstance(obj, dict)
+            and _canon_type(obj.get("type")) == "CA"
+            and _clean(obj.get("spawn_group") or "default") == group
+        ]
+        if related_objectives and all(bool(obj.get("done")) for obj in related_objectives):
+            continue
+        existing = [
+            ent
+            for ent in getattr(game, "entities", []) or []
+            if getattr(ent, "hp", 0) > 0
+            and _clean(getattr(ent, "mission_owner_id", "")) == mission_id
+            and _clean(getattr(ent, "mission_spawn_group", "")) == group
+        ]
+        if existing:
+            continue
+        if runtime.get("mission_spawns_initialized") and not restore_missing:
+            continue
+        mob_id = _clean(wave.get("mob"))
+        for index, position in enumerate(wave.get("positions", []) or []):
+            tile = _find_mission_spawn_tile(game, position)
+            if tile is None:
+                errors.append(f"{group}:{index}")
+                continue
+            ent = game.create_hostile_entity(
+                mob_id,
+                tile[0],
+                tile[1],
+                extra_flags={
+                    "mission_owner_id": mission_id,
+                    "mission_spawn_group": group,
+                },
+            )
+            if ent is None:
+                errors.append(f"{group}:{mob_id}")
+                continue
+            game.entities.append(ent)
+            spawned += 1
+    runtime["mission_spawns_initialized"] = True
+    runtime["mission_spawn_errors"] = errors
+    return spawned
 
 def on_enemy_death(game, enemy_id):
     for mission in _active(game):
@@ -329,6 +415,38 @@ def _mission_area_rect(mission, typ=None):
         return None
 
 
+def _objective_area_rect(objective):
+    if not isinstance(objective, dict):
+        return None
+    area = objective.get("area", objective.get("target_area"))
+    if isinstance(area, dict):
+        corners = area.get("corners")
+        if isinstance(corners, list) and len(corners) >= 4:
+            points = [point for point in corners if isinstance(point, (list, tuple)) and len(point) >= 2]
+            if points:
+                try:
+                    xs = [int(point[0]) for point in points]
+                    ys = [int(point[1]) for point in points]
+                    return min(xs), min(ys), max(xs), max(ys)
+                except (TypeError, ValueError):
+                    return None
+        try:
+            return int(area["x1"]), int(area["y1"]), int(area["x2"]), int(area["y2"])
+        except (KeyError, TypeError, ValueError):
+            return None
+    if isinstance(area, (list, tuple)) and len(area) >= 4:
+        try:
+            return tuple(int(value) for value in area[:4])
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _objective_map_matches(game, objective):
+    map_name = _clean(objective.get("map") or objective.get("map_id") or objective.get("target_map"))
+    return not map_name or map_name == "*" or _same_map_name(map_name, _current_map_name(game))
+
+
 def _normalize_grid(raw_grid):
     grid = []
     for row in raw_grid or []:
@@ -484,16 +602,47 @@ def _matching_interaction_target(game, mission, allowed_kinds, typ=None):
     if not _mission_map_matches(game, mission, typ=typ):
         return None
     mission_target_id = _mission_target_id(mission, typ=typ)
+    mission_target_group = _clean(
+        _get_param_for_type(mission, typ, "target_group", default="")
+        if typ
+        else _get_param(mission, "target_group", default="")
+    )
     for target in _nearby_mission_targets(game):
         kind = _clean(target.get("kind")).lower()
         if allowed_kinds and kind not in allowed_kinds:
             continue
         target_id = _clean(target.get("target_id") or target.get("id"))
+        target_group = _clean(target.get("target_group") or target.get("group"))
+        if mission_target_group and target_group != mission_target_group:
+            continue
         if (
             mission_target_id
             and mission_target_id != "*"
             and target_id != mission_target_id
         ):
+            continue
+        return target
+    return None
+
+
+def _matching_objective_target(game, objective, allowed_kinds):
+    if not _objective_map_matches(game, objective):
+        return None
+    desired = _clean(objective.get("target_id") or objective.get("interaction_id"))
+    desired_group = _clean(objective.get("target_group") or objective.get("group"))
+    rect = _objective_area_rect(objective)
+    pos = _player_pos(game)
+    for target in _nearby_mission_targets(game):
+        kind = _clean(target.get("kind")).lower()
+        target_id = _clean(target.get("target_id") or target.get("id"))
+        target_group = _clean(target.get("target_group") or target.get("group"))
+        if allowed_kinds and kind not in allowed_kinds:
+            continue
+        if desired_group and target_group != desired_group:
+            continue
+        if desired and desired != "*" and target_id != desired:
+            continue
+        if rect and not (_target_in_rect(target, rect) or _rect_contains(rect, pos)):
             continue
         return target
     return None
@@ -615,15 +764,26 @@ def _sa_sync_objective(mission, text, progress, target, done=False):
         text=text,
         map=_get_param(mission, "map", "map_id", "target_map"),
     )
-    for obj in mission.get("objectives", []) or []:
-        if not isinstance(obj, dict):
-            continue
-        if _canon_type(obj.get("type")) != "SA":
-            continue
-        obj.pop("area", None)
-        obj.pop("target_area", None)
+
+
+def _structured_sa_objectives(mission):
+    return [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict)
+        and _canon_type(obj.get("type")) == "SA"
+        and _objective_area_rect(obj) is not None
+    ]
 
 def _start_sa(game, mission):
+    structured = _structured_sa_objectives(mission)
+    if structured:
+        for obj in structured:
+            required = max(0.1, float(obj.get("seconds", obj.get("duration", 2.0)) or 2.0))
+            obj["target"] = max(1, int(math.ceil(required)))
+            obj["progress"] = max(0, int(obj.get("progress", 0) or 0))
+            obj["done"] = bool(obj.get("done", False))
+        return mission
     runtime = mission.setdefault("runtime", {})
     started_at = runtime.get("search_started_at", runtime.get("sa_started_at"))
     done = bool(runtime.get("search_done", runtime.get("sa_done", False)))
@@ -658,6 +818,44 @@ def _start_sa(game, mission):
 
 
 def _sa_update(game, mission):
+    structured = _structured_sa_objectives(mission)
+    if structured:
+        now = time.time()
+        pos = _player_pos(game)
+        changed = False
+        for obj in structured:
+            if obj.get("done"):
+                continue
+            rect = _objective_area_rect(obj)
+            inside = _objective_map_matches(game, obj) and _rect_contains(rect, pos)
+            if not inside:
+                if obj.pop("entered_at", None) is not None or obj.get("progress"):
+                    obj["progress"] = 0
+                    changed = True
+                continue
+            started = obj.get("entered_at")
+            if started is None:
+                obj["entered_at"] = now
+                started = now
+                changed = True
+            required = max(0.1, float(obj.get("seconds", obj.get("duration", 2.0)) or 2.0))
+            elapsed = max(0.0, now - float(started))
+            progress = min(max(1, int(math.ceil(required))), int(elapsed))
+            if progress != int(obj.get("progress", 0) or 0):
+                obj["progress"] = progress
+                changed = True
+            if elapsed >= required:
+                obj["done"] = True
+                obj["progress"] = max(1, int(math.ceil(required)))
+                changed = True
+        if all(bool(obj.get("done")) for obj in structured):
+            if _all_non_return_objectives_done(mission):
+                _mark_done(game, mission)
+            elif hasattr(game, "_normalize_mission_state"):
+                game._normalize_mission_state()
+        elif changed and hasattr(game, "_normalize_mission_state"):
+            game._normalize_mission_state()
+        return
     runtime = mission.setdefault("runtime", {})
     if runtime.get("search_done", runtime.get("sa_done")):
         return
@@ -722,6 +920,20 @@ def _sa_update(game, mission):
 
 def _start_cd(game, mission):
     runtime = mission.setdefault("runtime", {})
+    objectives = [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict) and _canon_type(obj.get("type")) == "CD"
+    ]
+    if len(objectives) > 1:
+        for obj in objectives:
+            obj["target"] = max(1, int(obj.get("target", obj.get("amount", 1)) or 1))
+            obj["progress"] = max(0, int(obj.get("progress", 0) or 0))
+            obj["done"] = bool(obj.get("done", False))
+            obj.setdefault("collected_targets", [])
+        runtime["has_data"] = all(bool(obj.get("done")) for obj in objectives)
+        runtime["data_collected"] = runtime["has_data"]
+        return mission
     runtime.setdefault("has_data", bool(runtime.get("data_collected", False)))
     runtime.setdefault("data_collected", bool(runtime.get("has_data", False)))
     runtime.setdefault("data_progress", _objective_progress(mission, "CD", default=0))
@@ -736,6 +948,41 @@ def _start_cd(game, mission):
 
 def _cd_interact(game, mission):
     runtime = mission.setdefault("runtime", {})
+    objectives = [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict) and _canon_type(obj.get("type")) == "CD"
+    ]
+    if len(objectives) > 1:
+        for obj in objectives:
+            if obj.get("done"):
+                continue
+            target = _matching_objective_target(
+                game, obj, {"data", "collect_data", "terminal"}
+            )
+            if not target:
+                continue
+            key = _target_key(target)
+            seen = obj.setdefault("collected_targets", [])
+            if key and key in seen:
+                continue
+            if key:
+                seen.append(key)
+            target_amount = max(1, int(obj.get("target", obj.get("amount", 1)) or 1))
+            obj["target"] = target_amount
+            obj["progress"] = min(
+                target_amount, int(obj.get("progress", 0) or 0) + 1
+            )
+            obj["done"] = obj["progress"] >= target_amount
+            break
+        all_done = all(bool(obj.get("done")) for obj in objectives)
+        runtime["has_data"] = all_done
+        runtime["data_collected"] = all_done
+        if all_done and _all_non_return_objectives_done(mission):
+            _mark_done(game, mission)
+        elif hasattr(game, "_normalize_mission_state"):
+            game._normalize_mission_state()
+        return
     if runtime.get("has_data") or runtime.get("data_collected"):
         return
     if not _mission_map_matches(game, mission, typ="CD"):
@@ -872,6 +1119,18 @@ def _ud_interact(game, mission):
 
 def _start_ci(game, mission):
     runtime = mission.setdefault("runtime", {})
+    objectives = [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict) and _canon_type(obj.get("type")) == "CI"
+    ]
+    if len(objectives) > 1:
+        for obj in objectives:
+            obj["target"] = max(1, int(obj.get("target", obj.get("amount", 1)) or 1))
+            obj["progress"] = max(0, int(obj.get("progress", 0) or 0))
+            obj["done"] = bool(obj.get("done", False))
+        runtime["collected"] = all(bool(obj.get("done")) for obj in objectives)
+        return mission
     runtime.setdefault("collected", False)
     runtime.setdefault("collect_progress", _objective_progress(mission, "CI", default=0))
     _sync_objective(
@@ -885,6 +1144,52 @@ def _start_ci(game, mission):
 
 def _ci_item_gain(game, mission, item_name=None, amount=1, source=None):
     runtime = mission.setdefault("runtime", {})
+    objectives = [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict) and _canon_type(obj.get("type")) == "CI"
+    ]
+    if len(objectives) > 1:
+        try:
+            gained = max(0, int(amount or 0))
+        except Exception:
+            gained = 0
+        gained_item = _canonical_item_name(game, item_name)
+        if gained <= 0:
+            return
+        changed = False
+        for obj in objectives:
+            if obj.get("done"):
+                continue
+            target_item = _canonical_item_name(
+                game,
+                obj.get("item_id")
+                or obj.get("item_name")
+                or obj.get("target_id")
+                or "*",
+            )
+            if target_item not in ("", "*", "any") and gained_item != target_item:
+                continue
+            source_filter = obj.get("source_filter")
+            if source_filter not in (None, "") and _clean(source_filter) != _clean(source):
+                continue
+            target_amount = max(1, int(obj.get("target", obj.get("amount", 1)) or 1))
+            obj["target"] = target_amount
+            obj["progress"] = min(
+                target_amount, int(obj.get("progress", 0) or 0) + gained
+            )
+            obj["done"] = obj["progress"] >= target_amount
+            changed = True
+            break
+        if not changed:
+            return
+        all_done = all(bool(obj.get("done")) for obj in objectives)
+        runtime["collected"] = all_done
+        if all_done and _all_non_return_objectives_done(mission):
+            _mark_done(game, mission)
+        elif hasattr(game, "_normalize_mission_state"):
+            game._normalize_mission_state()
+        return
     if runtime.get("collected"):
         return
 
@@ -903,7 +1208,7 @@ def _ci_item_gain(game, mission, item_name=None, amount=1, source=None):
     if target_item not in ("", "*", "any") and gained_item != target_item:
         return
 
-    source_filter = _get_param(mission, "source_filter", "source")
+    source_filter = _get_param(mission, "source_filter")
     if source_filter not in (None, ""):
         if isinstance(source_filter, (list, tuple, set)):
             allowed = {_clean(v) for v in source_filter if _clean(v)}
@@ -948,7 +1253,9 @@ def _start_ke(game, mission):
 
 def _ke_enemy_death(game, mission, enemy_id):
     target_enemy = _clean(
-        _get_param(mission, "enemy_id", "target_id", "mob_id", "mob", default="*")
+        _get_param_for_type(
+            mission, "KE", "enemy_id", "target_id", "mob_id", "mob", default="*"
+        )
     )
     if target_enemy not in ("", "*", "any") and str(enemy_id) != target_enemy:
         return
@@ -991,7 +1298,9 @@ def _start_kee(game, mission):
 
 def _kee_enemy_death(game, mission, enemy_id):
     mission_enemy_id = _clean(
-        _get_param(mission, "enemy_id", "target_id", "mob_id", default="")
+        _get_param_for_type(
+            mission, "KEE", "enemy_id", "target_id", "mob_id", default=""
+        )
     )
     if (
         mission_enemy_id
@@ -1045,51 +1354,69 @@ def _start_ca(game, mission):
     runtime.setdefault("started", False)
     target_map_id = _ca_target_map(mission) or _clean(runtime.get("target_map_id"))
     runtime["target_map_id"] = target_map_id
-
-    _sync_objective(
-        mission,
-        "CA",
-        progress=1 if runtime.get("cleared") else 0,
-        target=1,
-        done=runtime.get("cleared", False),
-        target_map=target_map_id,
+    objectives = [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict) and _canon_type(obj.get("type")) == "CA"
+    ]
+    for obj in objectives:
+        obj["target"] = 1
+        obj.setdefault("progress", 1 if obj.get("done") else 0)
+        obj.setdefault("done", False)
+    runtime["cleared"] = bool(objectives) and all(
+        bool(obj.get("done")) for obj in objectives
     )
     return mission
 
+
+def _count_ca_hostiles(game, mission, objective):
+    group = _clean(objective.get("spawn_group"))
+    rect = _objective_area_rect(objective)
+    mission_id = _clean(mission.get("id"))
+    count = 0
+    for ent in getattr(game, "entities", []) or []:
+        if getattr(ent, "eid", None) == "player" or getattr(ent, "hp", 0) <= 0:
+            continue
+        mob_def = MOBS_DATA.get(str(getattr(ent, "eid", "")), {})
+        if not isinstance(mob_def, dict) or _clean(mob_def.get("ai_type")).lower() != "hostile":
+            continue
+        if group:
+            if _clean(getattr(ent, "mission_owner_id", "")) != mission_id:
+                continue
+            if _clean(getattr(ent, "mission_spawn_group", "")) != group:
+                continue
+        elif rect and not _rect_contains(rect, (getattr(ent, "x", -1), getattr(ent, "y", -1))):
+            continue
+        count += 1
+    return count
+
+
 def _ca_update(game, mission):
     runtime = mission.setdefault("runtime", {})
-
     if runtime.get("cleared"):
         return
-
-    target_map_id = _clean(runtime.get("target_map_id") or _ca_target_map(mission))
-    runtime["target_map_id"] = target_map_id
-
-    _sync_objective(
-        mission,
-        "CA",
-        progress=0,
-        target=1,
-        done=False,
-        target_map=target_map_id,
-    )
-
-    if not target_map_id or not _same_map_name(_current_map_name(game), target_map_id):
+    _ensure_mission_spawns(game, mission)
+    objectives = [
+        obj
+        for obj in mission.get("objectives", []) or []
+        if isinstance(obj, dict) and _canon_type(obj.get("type")) == "CA"
+    ]
+    if not objectives:
         return
-
     runtime["started"] = True
-    runtime["hostiles_remaining"] = _count_hostile_mobs(game)
-
-    if runtime["hostiles_remaining"] <= 0:
-        runtime["cleared"] = True
-        _sync_objective(
-            mission,
-            "CA",
-            progress=1,
-            target=1,
-            done=True,
-            target_map=target_map_id,
-        )
+    total_remaining = 0
+    for obj in objectives:
+        if obj.get("done") or not _objective_map_matches(game, obj):
+            continue
+        remaining = _count_ca_hostiles(game, mission, obj)
+        obj["hostiles_remaining"] = remaining
+        obj["target"] = 1
+        obj["progress"] = 0 if remaining else 1
+        obj["done"] = remaining <= 0
+        total_remaining += remaining
+    runtime["hostiles_remaining"] = total_remaining
+    runtime["cleared"] = all(bool(obj.get("done")) for obj in objectives)
+    if runtime["cleared"]:
         _mark_done(game, mission, "CA")
     elif hasattr(game, "_normalize_mission_state"):
         game._normalize_mission_state()

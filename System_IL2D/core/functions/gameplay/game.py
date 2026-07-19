@@ -36,6 +36,9 @@ try:
     from . import inventory_ops as game_inventory_ops
     from . import save_ops as game_save_ops
     from . import missions as game_missions
+    from . import campfires as game_campfires
+    from .chase_transition import ChaseTransitionController
+    from .story import StoryManager, load_story_book, normalize_story_state
     from .tutorial import GameplayTutorialCore
 except ImportError:
     import sys
@@ -87,6 +90,14 @@ except ImportError:
     )
     game_save_ops = importlib.import_module("core.functions.gameplay.save_ops")
     game_missions = importlib.import_module("core.functions.gameplay.missions")
+    game_campfires = importlib.import_module("core.functions.gameplay.campfires")
+    ChaseTransitionController = importlib.import_module(
+        "core.functions.gameplay.chase_transition"
+    ).ChaseTransitionController
+    _story_mod = importlib.import_module("core.functions.gameplay.story")
+    StoryManager = _story_mod.StoryManager
+    load_story_book = _story_mod.load_story_book
+    normalize_story_state = _story_mod.normalize_story_state
     GameplayTutorialCore = importlib.import_module(
         "core.functions.gameplay.tutorial"
     ).GameplayTutorialCore
@@ -108,6 +119,9 @@ class Game:
         self.lang = pdata.get("lang", "zh")
         self.player_name = pdata.get("name", "player")
         self.current_music = None
+        self.chase_controller = ChaseTransitionController()
+        self._chase_forced_step = False
+        self.chase_death_pending = False
         self.load_map("tutorial.json")
         self.player = Entity(
             "player",
@@ -184,6 +198,7 @@ class Game:
         self.leave_selected = 0
         self.request_quit = False
         self.request_main_menu = False
+        self.request_open_save_menu = False
         self.carmen_selected = 0
         self.death_menu_selected = 0
         self.death_no_save_notice = ""
@@ -231,6 +246,24 @@ class Game:
         self.mission_flags = {}
         self.mission_complete_count = 0
         self.mission_upload = None
+        self.story_book = {}
+        self.story_state = {}
+        self.story_manager = None
+        self.story_timeline_selected = 0
+        self.story_timeline_scroll = 0
+        self.story_graph_selected_id = "stage_1"
+        self.story_graph_expanded_stage = "stage_1"
+        self.story_graph_expanded_lines = {"line_1_1"}
+        self.story_graph_view = "graph"
+        self.story_graph_detail_scroll = 0
+        self.story_graph_pan_x = 0.0
+        self.story_graph_pan_y = 0.0
+        self.story_graph_pan_initialized = False
+        self.story_title_card = None
+        self.story_mission_card = None
+        self._loading_save = False
+        self._tutorial_return_story_pending = False
+        self.opening_showcase_completed = False
         self.spells = []
         self.unlocked_magics = []
         self.spell_last_cast = {}
@@ -301,6 +334,21 @@ class Game:
         self.explored_maps = set()
         self.world_map_nodes = {}
         self.world_map_edges = []
+        self.world_map_groups = []
+        self.world_map_canvas = {"width": 1320, "height": 760}
+        self.world_map_source = ""
+        self.world_map_load_error = ""
+        self.world_map_pan_x = 0.0
+        self.world_map_pan_y = 0.0
+        self.world_map_pan_initialized = False
+        self.activated_campfires = set()
+        self.campfire_registry = {}
+        self.world_map_reticle_x = 0.0
+        self.world_map_reticle_y = 0.0
+        self.world_map_reticle_state = "FREE"
+        self.world_map_reticle_target = None
+        self.world_map_reticle_blocked = None
+        self.world_map_reticle_release_until = 0.0
         self.tutorial_core = None
         self.lore_archive = {}
         self.lore_request = None
@@ -404,6 +452,14 @@ class Game:
             game_missions.validate_missions(emit=True)
         except Exception as exc:
             print(f"[missions] validation skipped: {exc}")
+        try:
+            self.story_book = load_story_book(mission_book=self.mission_book)
+            self.story_manager = StoryManager(self.story_book)
+            self._normalize_story_state()
+        except Exception as exc:
+            print(f"[story] load skipped: {exc}")
+            self.story_book = {}
+            self.story_manager = None
 
     def _normalize_mission_state(self):
         state = game_missions.normalize_state(
@@ -441,6 +497,667 @@ class Game:
         state["tracked"] = tracked
         if not getattr(self, "mission_board_giver", None):
             self.mission_board_giver = state.get("board_giver")
+
+    def _normalize_story_state(self):
+        self.story_state = normalize_story_state(
+            getattr(self, "story_state", None), getattr(self, "story_book", None)
+        )
+        self.story_title_card = self.story_state.get("title_card")
+        return self.story_state
+
+    def open_story_timeline(self):
+        self._normalize_story_state()
+        if not getattr(self, "story_manager", None):
+            return False
+        if not self.get_story_timeline_rows():
+            return False
+        self.story_timeline_selected = 0
+        self.story_timeline_scroll = 0
+        self.ui_mode = "story_timeline"
+        return True
+
+    def open_story_or_mission_board(self, giver_id, source="interaction"):
+        story_npcs = {"kaltsit", "ines", "closure", "priestess"}
+        if str(giver_id or "").strip().lower() in story_npcs:
+            if self.open_story_timeline():
+                return "story"
+        self.open_mission_board(giver_id, source=source)
+        return "mission_board"
+
+    def close_story_timeline(self):
+        if self.ui_mode == "story_timeline":
+            self.ui_mode = None
+
+    def get_story_stage_entries(self):
+        self._normalize_story_state()
+        manager = getattr(self, "story_manager", None)
+        entries = []
+        for stage in (getattr(self, "story_book", {}) or {}).get("stages", []) or []:
+            stage_id = stage.get("id")
+            status = manager.get_stage_status(self, stage_id) if manager else "locked"
+            lines = []
+            for line in stage.get("lines", []) or []:
+                missions = []
+                for mission in line.get("missions", []) or []:
+                    mid = mission.get("id")
+                    if mid in self.story_state.get("completed_story_missions", []):
+                        mstatus = "completed"
+                    elif mid == self.story_state.get("active_story_mission"):
+                        mstatus = "active"
+                    elif mid in self.story_state.get("unlocked_story_missions", []):
+                        mstatus = "available"
+                    else:
+                        mstatus = "locked"
+                    row = dict(mission)
+                    row["status"] = mstatus
+                    missions.append(row)
+                line_row = dict(line)
+                line_row["missions"] = missions
+                mission_statuses = [m.get("status") for m in missions]
+                if missions and all(status == "completed" for status in mission_statuses):
+                    line_row["status"] = "completed"
+                elif "active" in mission_statuses:
+                    line_row["status"] = "active"
+                elif "available" in mission_statuses:
+                    line_row["status"] = "available"
+                else:
+                    line_row["status"] = "locked"
+                lines.append(line_row)
+            stage_row = dict(stage)
+            stage_row["status"] = status
+            stage_row["lines"] = lines
+            entries.append(stage_row)
+        return entries
+
+    def get_story_timeline_rows(self):
+        rows = []
+        for stage in self.get_story_stage_entries():
+            rows.append({"kind": "stage", "id": stage.get("id"), "data": stage})
+            for line in stage.get("lines", []) or []:
+                rows.append({"kind": "line", "id": line.get("id"), "data": line})
+                for mission in line.get("missions", []) or []:
+                    rows.append(
+                        {
+                            "kind": "mission",
+                            "id": mission.get("id"),
+                            "data": mission,
+                            "stage_id": stage.get("id"),
+                        }
+                    )
+        return rows
+
+    def reset_story_graph(self):
+        self.story_graph_expanded_stage = "stage_1"
+        self.story_graph_expanded_lines = {"line_1_1"}
+        self.story_graph_selected_id = "stage_1"
+        graph = self.get_story_graph()
+        preferred = "stage_1"
+        if preferred not in graph.get("nodes_by_id", {}):
+            preferred = graph.get("nodes", [{}])[0].get("id", "") if graph.get("nodes") else ""
+        self.story_graph_selected_id = preferred
+        self.story_graph_view = "graph"
+        self.story_graph_detail_scroll = 0
+        self.story_graph_pan_initialized = False
+
+    def _build_all_expanded_story_graph_legacy(self):
+        stages = self.get_story_stage_entries()
+        nodes = []
+        nodes_by_id = {}
+        edges = []
+        section_width = 1500
+        stage_y = 80
+        line_start_y = 225
+        line_gap = 170
+        mission_start_offset = 170
+        mission_gap = 125
+
+        def add_node(node):
+            node = dict(node)
+            node.setdefault("neighbors", {})
+            nodes.append(node)
+            nodes_by_id[node["id"]] = node
+            return node
+
+        stage_nodes = []
+        stage_line_nodes = []
+        for stage_index, stage in enumerate(stages):
+            stage_x = 110 + stage_index * section_width
+            stage_node = add_node(
+                {
+                    "id": stage.get("id"),
+                    "kind": "stage",
+                    "data": stage,
+                    "status": stage.get("status", "locked"),
+                    "position": [stage_x, stage_y],
+                    "stage_id": stage.get("id"),
+                }
+            )
+            stage_nodes.append(stage_node)
+            line_nodes = []
+            for line_index, line in enumerate(stage.get("lines", []) or []):
+                line_y = line_start_y + line_index * line_gap
+                line_node = add_node(
+                    {
+                        "id": line.get("id"),
+                        "kind": "line",
+                        "data": line,
+                        "status": line.get("status", "locked"),
+                        "position": [stage_x, line_y],
+                        "stage_id": stage.get("id"),
+                        "role": line.get("role", "branch"),
+                    }
+                )
+                line_nodes.append(line_node)
+                edges.append(
+                    {
+                        "from": stage_node["id"],
+                        "to": line_node["id"],
+                        "type": "major" if line.get("role") == "major" else "branch",
+                    }
+                )
+                mission_nodes = []
+                for mission_index, mission in enumerate(line.get("missions", []) or []):
+                    mission_node = add_node(
+                        {
+                            "id": mission.get("id"),
+                            "kind": "mission",
+                            "data": mission,
+                            "status": mission.get("status", "locked"),
+                            "position": [
+                                stage_x + mission_start_offset + mission_index * mission_gap,
+                                line_y,
+                            ],
+                            "stage_id": stage.get("id"),
+                            "line_id": line.get("id"),
+                            "role": line.get("role", "branch"),
+                        }
+                    )
+                    mission_nodes.append(mission_node)
+                    edge_from = line_node["id"] if mission_index == 0 else mission_nodes[mission_index - 1]["id"]
+                    edges.append(
+                        {
+                            "from": edge_from,
+                            "to": mission_node["id"],
+                            "type": "major" if line.get("role") == "major" else "branch",
+                        }
+                    )
+                if mission_nodes:
+                    line_node["neighbors"]["right"] = mission_nodes[0]["id"]
+                    for mission_index, mission_node in enumerate(mission_nodes):
+                        mission_node["neighbors"]["left"] = (
+                            line_node["id"]
+                            if mission_index == 0
+                            else mission_nodes[mission_index - 1]["id"]
+                        )
+                        if mission_index + 1 < len(mission_nodes):
+                            mission_node["neighbors"]["right"] = mission_nodes[mission_index + 1]["id"]
+                line_node["_mission_nodes"] = mission_nodes
+            stage_line_nodes.append(line_nodes)
+
+        for stage_index, stage_node in enumerate(stage_nodes):
+            if stage_index > 0:
+                stage_node["neighbors"]["left"] = stage_nodes[stage_index - 1]["id"]
+            if stage_index + 1 < len(stage_nodes):
+                stage_node["neighbors"]["right"] = stage_nodes[stage_index + 1]["id"]
+                edges.append(
+                    {
+                        "from": stage_node["id"],
+                        "to": stage_nodes[stage_index + 1]["id"],
+                        "type": "stage",
+                    }
+                )
+            line_nodes = stage_line_nodes[stage_index]
+            if line_nodes:
+                stage_node["neighbors"]["down"] = line_nodes[0]["id"]
+            for line_index, line_node in enumerate(line_nodes):
+                line_node["neighbors"]["up"] = (
+                    stage_node["id"] if line_index == 0 else line_nodes[line_index - 1]["id"]
+                )
+                if line_index + 1 < len(line_nodes):
+                    line_node["neighbors"]["down"] = line_nodes[line_index + 1]["id"]
+                mission_nodes = line_node.get("_mission_nodes", [])
+                previous_missions = (
+                    line_nodes[line_index - 1].get("_mission_nodes", [])
+                    if line_index > 0
+                    else []
+                )
+                next_missions = (
+                    line_nodes[line_index + 1].get("_mission_nodes", [])
+                    if line_index + 1 < len(line_nodes)
+                    else []
+                )
+                for mission_index, mission_node in enumerate(mission_nodes):
+                    if previous_missions:
+                        mission_node["neighbors"]["up"] = previous_missions[
+                            min(mission_index, len(previous_missions) - 1)
+                        ]["id"]
+                    else:
+                        mission_node["neighbors"]["up"] = stage_node["id"]
+                    if next_missions:
+                        mission_node["neighbors"]["down"] = next_missions[
+                            min(mission_index, len(next_missions) - 1)
+                        ]["id"]
+                if mission_nodes and stage_index + 1 < len(stage_nodes):
+                    mission_nodes[-1]["neighbors"].setdefault(
+                        "right", stage_nodes[stage_index + 1]["id"]
+                    )
+
+        # The temporary mission lists are retained only until vertical neighbors are linked.
+        for line_nodes in stage_line_nodes:
+            for line_node in line_nodes:
+                line_node.pop("_mission_nodes", None)
+        max_lines = max((len(v) for v in stage_line_nodes), default=1)
+        return {
+            "nodes": nodes,
+            "nodes_by_id": nodes_by_id,
+            "edges": edges,
+            "canvas": {
+                "width": max(800, len(stages) * section_width),
+                "height": max(560, line_start_y + max_lines * line_gap + 80),
+            },
+        }
+
+    def get_story_graph(self):
+        stages = self.get_story_stage_entries()
+        stage_by_id = {str(stage.get("id")): stage for stage in stages}
+        top_entries = [stage for stage in stages if str(stage.get("id")) != "stage_5"]
+        state = getattr(self, "story_state", {}) or {}
+        flags = state.get("stage_flags", {}) if isinstance(state, dict) else {}
+        stage_4_completed = "stage_4" in state.get("completed_stages", [])
+        chase_completed = bool(flags.get("great_chase_completed", False))
+        chase_active = bool(flags.get("great_chase_active", False))
+        chase_status = (
+            "completed"
+            if chase_completed
+            else "active"
+            if chase_active
+            else "available"
+            if stage_4_completed
+            else "locked"
+        )
+        top_entries.append(
+            {
+                "id": "great_chase",
+                "number": "",
+                "title": "生死奔襲",
+                "status": chase_status,
+                "lines": [],
+                "virtual": True,
+            }
+        )
+        stage_5_entry = dict(
+            stage_by_id.get("stage_5")
+            or {
+                "id": "stage_5",
+                "number": "5",
+                "title": "Linear and Hopeful",
+                "lines": [],
+                "virtual": True,
+            }
+        )
+        stage_5_entry["status"] = (
+            stage_5_entry.get("status", "available") if chase_completed else "locked"
+        )
+        top_entries.append(stage_5_entry)
+
+        nodes = []
+        nodes_by_id = {}
+        edges = []
+        top_gap = 255
+        top_y = 80
+        line_start_y = 245
+        line_gap = 155
+        mission_offset = 155
+        mission_gap = 120
+
+        def add_node(node):
+            row = dict(node)
+            row.setdefault("neighbors", {})
+            nodes.append(row)
+            nodes_by_id[row["id"]] = row
+            return row
+
+        top_nodes = []
+        for index, entry in enumerate(top_entries):
+            kind = "transition" if entry.get("id") == "great_chase" else "stage"
+            node = add_node(
+                {
+                    "id": entry.get("id"),
+                    "kind": kind,
+                    "data": entry,
+                    "status": entry.get("status", "locked"),
+                    "position": [120 + index * top_gap, top_y],
+                    "stage_id": entry.get("id") if kind == "stage" else None,
+                }
+            )
+            top_nodes.append(node)
+            if index > 0:
+                top_nodes[index - 1]["neighbors"]["right"] = node["id"]
+                node["neighbors"]["left"] = top_nodes[index - 1]["id"]
+                edges.append(
+                    {"from": top_nodes[index - 1]["id"], "to": node["id"], "type": "stage"}
+                )
+
+        expanded_stage_id = str(getattr(self, "story_graph_expanded_stage", "") or "")
+        expanded_stage = stage_by_id.get(expanded_stage_id)
+        line_nodes = []
+        if expanded_stage:
+            stage_node = nodes_by_id.get(expanded_stage_id)
+            stage_x = 120
+            lines = expanded_stage.get("lines", []) or []
+            expanded_lines = set(getattr(self, "story_graph_expanded_lines", set()) or set())
+            for line_index, line in enumerate(lines):
+                line_y = line_start_y + line_index * line_gap
+                line_id = str(line.get("id"))
+                line_node = add_node(
+                    {
+                        "id": line_id,
+                        "kind": "line",
+                        "data": line,
+                        "status": line.get("status", "locked"),
+                        "position": [stage_x, line_y],
+                        "stage_id": expanded_stage_id,
+                        "role": line.get("role", "branch"),
+                        "expanded": line_id in expanded_lines,
+                    }
+                )
+                line_nodes.append(line_node)
+                edges.append(
+                    {
+                        "from": expanded_stage_id,
+                        "to": line_id,
+                        "type": "major" if line.get("role") == "major" else "branch",
+                    }
+                )
+                mission_nodes = []
+                if line_id in expanded_lines:
+                    for mission_index, mission in enumerate(line.get("missions", []) or []):
+                        mission_node = add_node(
+                            {
+                                "id": mission.get("id"),
+                                "kind": "mission",
+                                "data": mission,
+                                "status": mission.get("status", "locked"),
+                                "position": [
+                                    stage_x + mission_offset + mission_index * mission_gap,
+                                    line_y,
+                                ],
+                                "stage_id": expanded_stage_id,
+                                "line_id": line_id,
+                                "role": line.get("role", "branch"),
+                            }
+                        )
+                        mission_nodes.append(mission_node)
+                        source_id = line_id if mission_index == 0 else mission_nodes[mission_index - 1]["id"]
+                        edges.append(
+                            {
+                                "from": source_id,
+                                "to": mission_node["id"],
+                                "type": "major" if line.get("role") == "major" else "branch",
+                            }
+                        )
+                    if mission_nodes:
+                        line_node["neighbors"]["right"] = mission_nodes[0]["id"]
+                        for mission_index, mission_node in enumerate(mission_nodes):
+                            mission_node["neighbors"]["left"] = (
+                                line_id if mission_index == 0 else mission_nodes[mission_index - 1]["id"]
+                            )
+                            if mission_index + 1 < len(mission_nodes):
+                                mission_node["neighbors"]["right"] = mission_nodes[mission_index + 1]["id"]
+                line_node["_mission_nodes"] = mission_nodes
+
+            if stage_node and line_nodes:
+                stage_node["neighbors"]["down"] = line_nodes[0]["id"]
+            for line_index, line_node in enumerate(line_nodes):
+                line_node["neighbors"]["up"] = (
+                    expanded_stage_id if line_index == 0 else line_nodes[line_index - 1]["id"]
+                )
+                if line_index + 1 < len(line_nodes):
+                    line_node["neighbors"]["down"] = line_nodes[line_index + 1]["id"]
+                missions = line_node.get("_mission_nodes", [])
+                previous = line_nodes[line_index - 1].get("_mission_nodes", []) if line_index > 0 else []
+                following = line_nodes[line_index + 1].get("_mission_nodes", []) if line_index + 1 < len(line_nodes) else []
+                for mission_index, mission_node in enumerate(missions):
+                    mission_node["neighbors"]["up"] = (
+                        previous[min(mission_index, len(previous) - 1)]["id"]
+                        if previous
+                        else expanded_stage_id
+                    )
+                    if following:
+                        mission_node["neighbors"]["down"] = following[
+                            min(mission_index, len(following) - 1)
+                        ]["id"]
+                line_node.pop("_mission_nodes", None)
+
+        top_width = 240 + max(0, len(top_nodes) - 1) * top_gap
+        internal_width = top_width
+        if expanded_stage:
+            max_missions = max(
+                (len(line.get("missions", []) or []) for line in expanded_stage.get("lines", []) or []),
+                default=0,
+            )
+            stage_x = 120
+            internal_width = max(internal_width, stage_x + mission_offset + max_missions * mission_gap + 100)
+        return {
+            "nodes": nodes,
+            "nodes_by_id": nodes_by_id,
+            "edges": edges,
+            "canvas": {
+                "width": max(1500, internal_width),
+                "height": max(560, line_start_y + max(1, len(line_nodes)) * line_gap + 80),
+            },
+        }
+
+    def _select_story_graph_stage(self, stage_id, expand=True):
+        stage_id = str(stage_id or "")
+        if stage_id not in {str(stage.get("id")) for stage in self.get_story_stage_entries()}:
+            return False
+        self.story_graph_selected_id = stage_id
+        if expand:
+            self.story_graph_expanded_stage = stage_id
+            stage = next(
+                (row for row in self.get_story_stage_entries() if str(row.get("id")) == stage_id),
+                {},
+            )
+            major = next(
+                (line for line in stage.get("lines", []) or [] if line.get("role") == "major"),
+                None,
+            )
+            self.story_graph_expanded_lines = {major.get("id")} if major else set()
+        self.story_graph_pan_initialized = False
+        return True
+
+    def move_story_graph_selection(self, direction):
+        graph = self.get_story_graph()
+        nodes = graph.get("nodes_by_id", {})
+        selected = nodes.get(getattr(self, "story_graph_selected_id", ""))
+        if not selected:
+            self.reset_story_graph()
+            return False
+        target_id = selected.get("neighbors", {}).get(str(direction))
+        if not target_id or target_id not in nodes:
+            return False
+        self.story_graph_selected_id = target_id
+        target = nodes[target_id]
+        if target.get("kind") == "stage" and target_id in {
+            str(stage.get("id")) for stage in self.get_story_stage_entries()
+        }:
+            self._select_story_graph_stage(target_id, expand=True)
+        self.story_graph_pan_initialized = False
+        return True
+
+    def get_selected_story_graph_node(self):
+        graph = self.get_story_graph()
+        nodes = graph.get("nodes_by_id", {})
+        selected = nodes.get(getattr(self, "story_graph_selected_id", ""))
+        if selected:
+            return selected
+        return graph.get("nodes", [None])[0] if graph.get("nodes") else None
+
+    def open_story_graph_detail(self):
+        if not self.get_selected_story_graph_node():
+            return False
+        self.story_graph_view = "detail"
+        self.story_graph_detail_scroll = 0
+        return True
+
+    def activate_story_graph_node(self):
+        node = self.get_selected_story_graph_node()
+        if not node:
+            return False
+        kind = node.get("kind")
+        node_id = str(node.get("id") or "")
+        if kind == "stage" and node_id in {
+            str(stage.get("id")) for stage in self.get_story_stage_entries()
+        }:
+            if getattr(self, "story_graph_expanded_stage", None) == node_id:
+                self.story_graph_expanded_stage = None
+                self.story_graph_expanded_lines = set()
+            else:
+                self._select_story_graph_stage(node_id, expand=True)
+            self.story_graph_pan_initialized = False
+            return True
+        if kind == "line":
+            expanded = set(getattr(self, "story_graph_expanded_lines", set()) or set())
+            if node_id in expanded:
+                expanded.remove(node_id)
+            else:
+                expanded.add(node_id)
+            self.story_graph_expanded_lines = expanded
+            self.story_graph_pan_initialized = False
+            return True
+        return self.open_story_graph_detail()
+
+    def back_story_graph(self):
+        if getattr(self, "story_graph_view", "graph") == "detail":
+            self.story_graph_view = "graph"
+            self.story_graph_detail_scroll = 0
+            return True
+        node = self.get_selected_story_graph_node()
+        if node and node.get("kind") in {"line", "mission"}:
+            stage_id = str(node.get("stage_id") or "stage_1")
+            self.story_graph_selected_id = stage_id
+            self.story_graph_pan_initialized = False
+            return True
+        if getattr(self, "story_graph_expanded_stage", None):
+            self.story_graph_expanded_stage = None
+            self.story_graph_expanded_lines = set()
+            self.story_graph_pan_initialized = False
+            return True
+        return False
+
+    def confirm_story_timeline_selection(self):
+        rows = self.get_story_timeline_rows()
+        if not rows:
+            return False
+        idx = max(0, min(len(rows) - 1, int(getattr(self, "story_timeline_selected", 0))))
+        row = rows[idx]
+        if row.get("kind") == "mission":
+            mission = row.get("data", {})
+            if mission.get("status") in {"available", "active"}:
+                return self.start_story_mission(row.get("id"))
+            self.push_message("Story mission is locked")
+            return False
+        if row.get("kind") == "stage":
+            stage = row.get("data", {})
+            if stage.get("status") in {"available", "active"}:
+                return self.start_story_stage(row.get("id"))
+            self.push_message("Story stage is locked")
+            return False
+        self.push_message("Select an available story mission")
+        return False
+
+    def start_story_stage(self, stage_id):
+        if not self.story_manager:
+            self.push_message("Story system is not loaded")
+            return False
+        return self.story_manager.start_stage(self, stage_id)
+
+    def start_story_mission(self, story_mission_id):
+        if not self.story_manager:
+            self.push_message("Story system is not loaded")
+            return False
+        return self.story_manager.start_story_mission(self, story_mission_id)
+
+    def advance_story_scene(self):
+        if self.story_manager:
+            return self.story_manager.advance_scene(self)
+        return False
+
+    def on_story_mission_completed(self, mission_id):
+        if self.story_manager:
+            return self.story_manager.on_mission_completed(self, mission_id)
+        return False
+
+    def get_ready_story_runtime_for_npc(self, npc_id):
+        if self.story_manager:
+            return self.story_manager.ready_runtime_for_npc(self, npc_id)
+        return None
+
+    def start_pending_story_dialogue_for_npc(self, npc_id):
+        if self.story_manager:
+            return self.story_manager.start_pending_dialogue_for_npc(self, npc_id)
+        return False
+
+    def get_unstarted_story_mission_for_npc(self, npc_id):
+        if self.story_manager:
+            return self.story_manager.next_unstarted_story_mission_for_npc(self, npc_id)
+        return None
+
+    def start_story_after_tutorial(self):
+        if not self.story_manager:
+            return False
+        return self.story_manager.start_story_after_tutorial(self)
+
+    def get_dev_story_skip_options(self):
+        if not self.story_manager:
+            return []
+        return self.story_manager.get_dev_skip_options()
+
+    def dev_skip_story_to(self, story_mission_id):
+        if not self.story_manager:
+            return False
+        return self.story_manager.dev_skip_to(self, story_mission_id)
+
+    def dev_skip_to_stage_5_transition(self):
+        if not self.story_manager:
+            return False
+        return self.story_manager.dev_skip_to_stage_5_transition(self)
+
+    def complete_great_chase(self):
+        if not self.story_manager:
+            return False
+        return self.story_manager.complete_great_chase(self)
+
+    def update_story_title_card(self):
+        card = getattr(self, "story_title_card", None)
+        if not isinstance(card, dict):
+            return False
+        now = time.time()
+        elapsed = now - float(card.get("started_at", now) or now)
+        total = float(card.get("hold_seconds", 1.5) or 1.5) + float(
+            card.get("fade_seconds", 1.0) or 1.0
+        )
+        if elapsed < total:
+            return True
+        if isinstance(getattr(self, "story_state", None), dict):
+            self.story_state["title_card"] = None
+        self.story_title_card = None
+        if self.ui_mode == "story_title_card":
+            self.ui_mode = None
+        self.advance_story_scene()
+        return False
+
+    def show_story_mission_card(self, title, number=None):
+        label = "任務進行中"
+        if number:
+            label = f"{label} {number}"
+        self.story_mission_card = {
+            "label": label,
+            "title": str(title or "Story Mission"),
+            "created": time.time(),
+            "duration": 2.4,
+        }
 
     def _mission_state_active(self):
         self._normalize_mission_state()
@@ -534,6 +1251,9 @@ class Game:
         ok = game_missions.complete_mission(self, mission_id)
         if ok and runtime:
             self.on_mission_completed(runtime)
+            context = runtime.get("source_context", {}) if isinstance(runtime, dict) else {}
+            if isinstance(context, dict) and context.get("source") == "story":
+                self.on_story_mission_completed(mission_id)
             self._normalize_mission_state()
         return ok
 
@@ -907,6 +1627,7 @@ class Game:
         if mapname == "rogue":
             self.enter_rogue_layer(new_entry=True)
             return
+        was_chase_map = self.chase_controller.is_chase_map(self)
         map_path = resolve_map_file(mapname)
         self.map = GameMap(map_path)
         # Prevent hostile entities from leaking across map transitions.
@@ -928,12 +1649,24 @@ class Game:
             self.ensure_monst3r_entity()
             self.ensure_wisadel_entity()
         self.set_objectives_for_map()
+        try:
+            from . import mission_handlers
+
+            mission_handlers.ensure_active_mission_spawns(self, restore_missing=True)
+        except Exception as exc:
+            print(f"[mission spawns] map restore failed: {exc}")
         self.show_enter_banner(mapname)
         if self.map.name == "rouge_options.json":
             self.rogue_rest_intro_done = False
             self.open_rogue_rest_intro()
         self.mark_map_explored(self.map.name)
-        self.refresh_music()
+        if self.chase_controller.is_chase_map(self):
+            self.chase_controller.enter_map(self)
+            self.current_music = self.chase_controller.config.get("music")
+        else:
+            if was_chase_map:
+                self.chase_controller.leave_map(self)
+            self.refresh_music()
 
     def refresh_music(self):
         requested_music = resolve_current_music(self)
@@ -1053,7 +1786,10 @@ class Game:
         if not candidates and fallback is not None:
             candidates.append(tuple(fallback))
         for tx, ty in candidates:
-            if self.map.is_walkable(tx, ty) and self.entity_at(tx, ty) is None:
+            occupant = self.entity_at(tx, ty)
+            if self.is_world_tile_walkable(tx, ty) and (
+                occupant is None or occupant.eid == "player"
+            ):
                 return [tx, ty]
         for tx, ty in candidates:
             for step in range(1, max(1, int(radius)) + 1):
@@ -1064,7 +1800,10 @@ class Game:
                             continue
                         points.append((tx + dx, ty + dy))
                 for cx, cy in points:
-                    if self.map.is_walkable(cx, cy) and self.entity_at(cx, cy) is None:
+                    occupant = self.entity_at(cx, cy)
+                    if self.is_world_tile_walkable(cx, cy) and (
+                        occupant is None or occupant.eid == "player"
+                    ):
                         return [cx, cy]
         if fallback is not None:
             return list(fallback)
@@ -1168,6 +1907,60 @@ class Game:
         return layouts.get(requested_name, {})
 
     def _build_world_map_graph(self):
+        world_map_path = os.path.join(os.path.dirname(CONFIG_FILE), "world_map.json")
+        if os.path.isfile(world_map_path):
+            try:
+                data = load_json(world_map_path)
+                raw_nodes = data.get("nodes", []) if isinstance(data, dict) else []
+                nodes = {}
+                for row in raw_nodes:
+                    if not isinstance(row, dict):
+                        continue
+                    node_id = str(row.get("id", "") or "").strip()
+                    position = row.get("position")
+                    if not node_id or not isinstance(position, list) or len(position) < 2:
+                        continue
+                    node = dict(row)
+                    node["position"] = [float(position[0]), float(position[1])]
+                    nodes[node_id] = node
+                edges = []
+                for row in data.get("edges", []) or []:
+                    if not isinstance(row, dict):
+                        continue
+                    source = str(row.get("from", "") or "").strip()
+                    target = str(row.get("to", "") or "").strip()
+                    if source in nodes and target in nodes:
+                        edge = dict(row)
+                        edge["from"] = source
+                        edge["to"] = target
+                        edges.append(edge)
+                if not nodes:
+                    raise ValueError("world_map.json contains no valid nodes")
+                canvas = data.get("canvas", {}) or {}
+                self.world_map_nodes = nodes
+                self.world_map_edges = edges
+                self.world_map_groups = [
+                    dict(row)
+                    for row in data.get("groups", []) or []
+                    if isinstance(row, dict)
+                ]
+                self.world_map_canvas = {
+                    "width": max(320, int(canvas.get("width", 1320) or 1320)),
+                    "height": max(240, int(canvas.get("height", 760) or 760)),
+                }
+                self.world_map_source = world_map_path
+                self.world_map_load_error = ""
+                print(
+                    f"[world map] loaded {world_map_path} "
+                    f"({len(nodes)} nodes, {len(edges)} edges)"
+                )
+                game_campfires.rebuild_registry(self)
+                return
+            except Exception as exc:
+                self.world_map_load_error = str(exc)
+                print(f"[world map] structured map load failed: {exc}")
+
+        # Compatibility fallback for installations that do not yet have world_map.json.
         nodes = {}
         edges = set()
         try:
@@ -1208,6 +2001,41 @@ class Game:
             pass
         self.world_map_nodes = nodes
         self.world_map_edges = sorted(list(edges))
+        self.world_map_groups = []
+        self.world_map_source = "portal_fallback"
+        game_campfires.rebuild_registry(self)
+
+    def reload_world_map(self):
+        self._build_world_map_graph()
+        self.world_map_pan_initialized = False
+        return self.world_map_source != "portal_fallback"
+
+    def reset_world_map_reticle(self):
+        return game_campfires.reset_reticle(self)
+
+    def move_world_map_reticle(self, dx, dy):
+        return game_campfires.move_reticle(self, dx, dy)
+
+    def update_world_map_reticle(self, dt):
+        return game_campfires.update_reticle(self, dt)
+
+    def release_world_map_reticle(self):
+        return game_campfires.release_reticle(self)
+
+    def get_visible_campfire_markers(self):
+        return game_campfires.visible_markers(self)
+
+    def fast_travel_to_campfire(self, campfire_id):
+        return game_campfires.fast_travel(self, campfire_id)
+
+    def try_activate_nearby_campfire(self):
+        return game_campfires.activate_nearby(self)
+
+    def is_campfire_tile(self, x, y):
+        return game_campfires.blocks_tile(self, x, y)
+
+    def is_world_tile_walkable(self, x, y):
+        return self.map.is_walkable(x, y) and not self.is_campfire_tile(x, y)
 
     def place_npcs_for_map(self):
         layout = self._npc_layout_for_map()
@@ -1522,7 +2350,7 @@ class Game:
             return False
         for cy in range(y, y + height):
             for cx in range(x, x + width):
-                if not self.map.is_walkable(cx, cy):
+                if not self.is_world_tile_walkable(cx, cy):
                     return False
                 target = self.entity_at(cx, cy)
                 if target is not None and target is not ignore_ent:
@@ -1586,6 +2414,12 @@ class Game:
         return self.ui_mode is not None
 
     def request_player_move(self, dx, dy):
+        transformed = self.chase_controller.transform_player_move(
+            self, dx, dy, forced=bool(getattr(self, "_chase_forced_step", False))
+        )
+        if transformed is None:
+            return False
+        dx, dy = transformed
         if self.transition_active:
             return False
         if hasattr(self, "death_timer") and self.death_timer is not None:
@@ -1597,11 +2431,11 @@ class Game:
         # Prevent corner-cutting through diagonal stone gaps:
         # diagonal move is blocked if either orthogonal side is not walkable.
         if dx != 0 and dy != 0:
-            if (not self.map.is_walkable(self.player.x + dx, self.player.y)) or (
-                not self.map.is_walkable(self.player.x, self.player.y + dy)
+            if (not self.is_world_tile_walkable(self.player.x + dx, self.player.y)) or (
+                not self.is_world_tile_walkable(self.player.x, self.player.y + dy)
             ):
                 return False
-        if not self.map.is_walkable(nx, ny):
+        if not self.is_world_tile_walkable(nx, ny):
             return False
         target = self.entity_at(nx, ny)
         if target and target.eid != "player" and target.hp > 0:
@@ -1687,6 +2521,10 @@ class Game:
                 message_key = p.get("message_key", "")
                 message_text = p.get("message", "")
                 locked = bool(p.get("locked", False))
+                required_flag = str(p.get("requires_story_flag", "") or "").strip()
+                if required_flag:
+                    flags = getattr(self, "story_state", {}).get("stage_flags", {})
+                    locked = locked or not bool(flags.get(required_flag))
                 if locked or (not target_map and (message_key or message_text)):
                     msg = (
                         tr(self.lang, message_key)
@@ -2162,9 +3000,7 @@ class Game:
                 return
 
             if hasattr(self, "audio"):
-                for _ in range(10):
-                    self.audio.play_sfx("player_death")
-                    time.sleep(0.1)
+                self.audio.play_sfx("player_death")
             if self.map.name == "rogue":
                 rate = self.rogue_cfg.get("death_penalty_rate", 0.2)
                 self.money = int(self.money * (1 - rate))
@@ -2183,6 +3019,13 @@ class Game:
             return
         if self.death_no_save_notice:
             self.request_quit = True
+            return
+        if self.chase_death_pending:
+            if self.chase_controller.retry_from_checkpoint(self):
+                self.chase_death_pending = False
+                self.ui_mode = None
+                return
+            self.death_no_save_notice = tr(self.lang, "chase.checkpoint_missing")
             return
         if self.death_menu_selected == 0:
             self.money = int(self.money * 0.5)
@@ -2227,21 +3070,29 @@ class Game:
                 self.black_alpha = 255
                 self.load_map("map_1.json")
                 self.player.x, self.player.y = self.map.spawn
+                self.teleport_team_to_player()
                 self.blackout = 2
         elif self.blackout == 2:
             self.black_alpha -= 20
             if self.black_alpha <= 0:
                 self.black_alpha = 0
                 self.blackout = 0
+                if getattr(self, "_tutorial_return_story_pending", False):
+                    self._tutorial_return_story_pending = False
+                    self.start_story_after_tutorial()
         if player_tick:
             self.cleanup_messages()
 
     def update_time(self, dt):
         self.tutorial_update(dt)
-        if self._tick_mission_upload():
-            return
+        self.update_story_title_card()
         if self.transition_active:
             self.update_transition(dt)
+            return
+        if self.chase_controller.is_chase_map(self):
+            self.chase_controller.update(self, dt)
+            return
+        if self._tick_mission_upload():
             return
         if self.is_ui_blocking():
             return
@@ -2301,7 +3152,7 @@ class Game:
         ]
         for tx, ty in candidates:
             blocker = self.entity_at(tx, ty)
-            if self.map.is_walkable(tx, ty) and (
+            if self.is_world_tile_walkable(tx, ty) and (
                 blocker is None or blocker.eid == ignore_eid
             ):
                 return tx, ty
@@ -2401,7 +3252,7 @@ class Game:
             path = self.find_path((wis.x, wis.y), (tx, ty))
             if path and len(path) > 1:
                 nx, ny = path[1]
-                if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
+                if self.is_world_tile_walkable(nx, ny) and self.entity_at(nx, ny) is None:
                     wis.x, wis.y = nx, ny
                     self.wisadel_anim_state = "move"
             return
@@ -2416,7 +3267,7 @@ class Game:
         path = self.find_path((wis.x, wis.y), (target.x, target.y))
         if path and len(path) > 1:
             nx, ny = path[1]
-            if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
+            if self.is_world_tile_walkable(nx, ny) and self.entity_at(nx, ny) is None:
                 wis.x, wis.y = nx, ny
                 self.wisadel_anim_state = "move"
 
@@ -2454,7 +3305,7 @@ class Game:
             path = self.find_path((mon.x, mon.y), (tx, ty))
             if path and len(path) > 1:
                 nx, ny = path[1]
-                if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
+                if self.is_world_tile_walkable(nx, ny) and self.entity_at(nx, ny) is None:
                     mon.x, mon.y = nx, ny
                     self.monst3r_anim_state = "move"
             return
@@ -2469,7 +3320,7 @@ class Game:
         path = self.find_path((mon.x, mon.y), (target.x, target.y))
         if path and len(path) > 1:
             nx, ny = path[1]
-            if self.map.is_walkable(nx, ny) and self.entity_at(nx, ny) is None:
+            if self.is_world_tile_walkable(nx, ny) and self.entity_at(nx, ny) is None:
                 mon.x, mon.y = nx, ny
                 self.monst3r_anim_state = "move"
 
@@ -2614,7 +3465,35 @@ class Game:
             ]
 
     def get_objective_lines(self):
-        return list(self.objectives)
+        lines = list(self.objectives)
+        pending = self.get_pending_story_objective_line()
+        if pending:
+            lines.append(pending)
+        return lines
+
+    def get_pending_story_objective_line(self):
+        state = getattr(self, "story_state", {}) or {}
+        pending = state.get("pending_dialogue") if isinstance(state, dict) else None
+        if isinstance(pending, dict):
+            speaker = str(pending.get("speaker", "") or "").strip()
+            fallback_names = {
+                "kaltsit": "凱爾希",
+                "ines": "伊內絲",
+                "closure": "可露希爾",
+                "priestess": "Priestess",
+            }
+            key = speaker.lower()
+            name = self._giver_display_name(
+                speaker, fallback=fallback_names.get(key, speaker or "NPC")
+            )
+            return f"與 {name} 交談"
+        flags = state.get("stage_flags", {}) if isinstance(state, dict) else {}
+        if flags.get("great_chase_active") and not flags.get("great_chase_completed"):
+            if not flags.get("great_chase_guidance_complete"):
+                return tr(self.lang, "chase.objective_talk_kaltsit")
+            if not self.chase_controller.is_chase_map(self):
+                return tr(self.lang, "chase.objective_enter_bsr")
+        return ""
 
     def get_trackable_missions(self):
         missions = []
@@ -2744,6 +3623,9 @@ class Game:
         self.set_tracked_selected_mission()
 
     def get_tracking_summary_lines(self):
+        pending = self.get_pending_story_objective_line()
+        if pending:
+            return [pending]
         missions = self.get_trackable_missions()
         tracked = getattr(self, "tracked_mission", None)
         if missions and not any(m.get("id") == tracked for m in missions):
@@ -3030,6 +3912,7 @@ class Game:
             px, py = self.player.x, self.player.y
             dist = abs(ent.x - px) + abs(ent.y - py)
             if dist <= 1:
+                self._play_mob_action_anim(ent, "attack", fallback_seconds=0.5)
                 enemy_damage, reflect = self.compute_player_damage(ent, self.player)
                 self.player.hp -= enemy_damage
                 if reflect > 0 and ent.hp > 0:
@@ -3050,6 +3933,7 @@ class Game:
         if not ent.aggro_active:
             return
         if dist <= attack_range:
+            self._play_mob_action_anim(ent, "attack", fallback_seconds=0.5)
             enemy_damage, reflect = self.compute_player_damage(ent, self.player)
             self.player.hp -= enemy_damage
             if reflect > 0 and ent.hp > 0:
@@ -3136,13 +4020,17 @@ class Game:
                 return path
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 nx, ny = x + dx, y + dy
-                if self.map.is_walkable(nx, ny) and (nx, ny) not in visited:
+                if self.is_world_tile_walkable(nx, ny) and (nx, ny) not in visited:
                     if not self.entity_at(nx, ny) or (nx, ny) == goal:
                         queue.append(((nx, ny), path + [(nx, ny)]))
                         visited.add((nx, ny))
         return None
 
     def player_interact(self):
+        if self.chase_controller.try_interact(self):
+            return True
+        if self.chase_controller.is_chase_map(self) and self.chase_controller.is_input_locked():
+            return False
         return game_npc_ops.player_interact(self)
 
     def confirm_interact_choice(self):
@@ -3406,6 +4294,15 @@ class Game:
         elif ent_id == "monst3r":
             self.monst3r_anim_state = state
             self.monst3r_anim_until = end_time
+
+    def _play_mob_action_anim(self, ent, state, fallback_seconds=0.5):
+        if ent is None:
+            return
+        mob = mobs_data.get(getattr(ent, "eid", ""), {})
+        if not isinstance(mob, dict) or not mob.get(f"anim_{state}"):
+            return
+        ent.anim_state = str(state or "move")
+        ent.anim_until = time.time() + float(fallback_seconds or 0.5)
 
     def cast_spell_by_name(self, name):
         out = game_inventory_ops.cast_spell_by_name(self, name)

@@ -1,0 +1,135 @@
+{
+  "region": "Stage 5 - Causeway Extension",
+  "music_override": "[Arknights OST] boss act1vhalfidle.mp3",
+  "world_hidden": false,
+  "grid": [
+    "12 12 12 12 12 12 12 12 12 12 12 12 12 12",
+    "12 10 10 10 10 10 10 10 10 10 10 10 10 12",
+    "12 10 10 10 10 10 10 10 28 28 06 10 10 12",
+    "12 10 20 28 28 10 10 10 10 10 10 10 10 12",
+    "12 10 10 10 10 20 10 10 10 10 10 20 10 12",
+    "12 10 10 10 32 10 10 10 10 10 32 10 10 12",
+    "12 34 34 34 34 34 34 34 34 34 34 34 34 12",
+    "31 17 17 18 17 17 18 17 17 18 17 17 18 31",
+    "12 34 34 34 34 34 34 34 34 34 34 34 34 12",
+    "12 10 10 10 10 10 10 32 10 10 10 10 10 12",
+    "12 10 20 10 10 10 10 10 10 10 20 10 10 12",
+    "12 10 10 06 10 10 28 28 10 10 10 10 10 12",
+    "12 10 10 10 10 10 10 10 10 10 10 10 10 12",
+    "12 12 12 12 12 12 12 12 12 12 12 12 12 12"
+  ],
+  "spawn": [
+    1,
+    7
+  ],
+  "mob_limit": 0,
+  "mob_spawn_rank": 0,
+  "portals": [
+    {
+      "x": 0,
+      "y": 7,
+      "visible": true,
+      "locked": true,
+      "message": "追逐路線已經封鎖。",
+      "portal_id": "map4_west_tgc_gate",
+      "entry_direction": "right"
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "target_map": "map_5.json",
+      "target_spawn": [
+        1,
+        15
+      ],
+      "visible": true,
+      "portal_id": "map4_east_map5_gate",
+      "target_portal_id": "map5_west_map4_gate",
+      "exit_direction": "right",
+      "entry_direction": "left"
+    }
+  ],
+  "npc_layout": {
+    "kaltsit": [
+      3,
+      7
+    ],
+    "priestess": [
+      5,
+      7
+    ]
+  },
+  "mission_targets": [
+    {
+      "x": 2,
+      "y": 5,
+      "kind": "arrival",
+      "target_id": "stage5_arrival"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "kind": "repair",
+      "target_id": "map4_repair_01"
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "kind": "repair",
+      "target_id": "map4_repair_02"
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "kind": "repair",
+      "target_id": "map4_repair_03"
+    },
+    {
+      "x": 3,
+      "y": 11,
+      "kind": "resource",
+      "target_id": "map4_scrap_01"
+    },
+    {
+      "x": 10,
+      "y": 2,
+      "kind": "resource",
+      "target_id": "map4_scrap_02"
+    }
+  ],
+  "resource_nodes": [
+    {
+      "id": "map4_scrap_01",
+      "x": 3,
+      "y": 11,
+      "resource": "basic_scrap"
+    },
+    {
+      "id": "map4_scrap_02",
+      "x": 10,
+      "y": 2,
+      "resource": "basic_scrap"
+    }
+  ],
+  "special_map": {
+    "id": "stage5_map4",
+    "type": "stage5_area",
+    "stage": 5,
+    "role": "entrance_and_road_extension",
+    "logical_size": [
+      14,
+      14
+    ]
+  },
+  "campfires": [
+    {
+      "id": "campfire_stage_5",
+      "x": 2,
+      "y": 5,
+      "arrival": [
+        2,
+        6
+      ]
+    }
+  ]
+}

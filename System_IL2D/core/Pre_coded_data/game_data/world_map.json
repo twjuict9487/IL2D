@@ -1,0 +1,613 @@
+{
+  "version": 2,
+  "concept": "physical_world_map",
+  "canvas": {
+    "width": 2320,
+    "height": 920
+  },
+  "groups": [
+    {
+      "id": "west_debris",
+      "label_en": "West Debris",
+      "label_zh": "西部殘骸",
+      "rect": [
+        20,
+        340,
+        160,
+        190
+      ]
+    },
+    {
+      "id": "main_story_route",
+      "label_en": "Main Story Route",
+      "label_zh": "主線區域",
+      "rect": [
+        210,
+        340,
+        570,
+        190
+      ]
+    },
+    {
+      "id": "ritc",
+      "label_en": "RITC and Facilities",
+      "label_zh": "RITC 與艦內設施",
+      "rect": [
+        20,
+        10,
+        600,
+        280
+      ]
+    },
+    {
+      "id": "farmland",
+      "label_en": "Farmland",
+      "label_zh": "農地區域",
+      "rect": [
+        420,
+        630,
+        160,
+        190
+      ]
+    },
+    {
+      "id": "east_debris",
+      "label_en": "East Debris",
+      "label_zh": "東部殘骸",
+      "rect": [
+        820,
+        10,
+        930,
+        860
+      ],
+      "level": "region"
+    },
+    {
+      "id": "stage_5_route",
+      "label_en": "Stage 5 Route",
+      "label_zh": "Stage 5 通道與聚落",
+      "rect": [
+        1780,
+        340,
+        500,
+        190
+      ]
+    },
+    {
+      "id": "northern_debris",
+      "parent": "east_debris",
+      "label_en": "Northern Debris",
+      "label_zh": "北部殘骸",
+      "rect": [
+        840,
+        50,
+        540,
+        240
+      ],
+      "level": "subregion"
+    },
+    {
+      "id": "eastern_debris",
+      "parent": "east_debris",
+      "label_en": "Eastern Debris",
+      "label_zh": "東側殘骸",
+      "rect": [
+        1450,
+        210,
+        260,
+        580
+      ],
+      "level": "subregion"
+    },
+    {
+      "id": "southern_debris",
+      "parent": "east_debris",
+      "label_en": "Southern Debris",
+      "label_zh": "南部殘骸",
+      "rect": [
+        840,
+        610,
+        540,
+        240
+      ],
+      "level": "subregion"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "tutorial.json",
+      "map": "tutorial.json",
+      "group": "west_debris",
+      "type": "area",
+      "label_en": "West Area",
+      "label_zh": "西部區域",
+      "position": [
+        100,
+        435
+      ]
+    },
+    {
+      "id": "map_1.json",
+      "map": "map_1.json",
+      "group": "main_story_route",
+      "type": "area",
+      "label_en": "Map 1",
+      "label_zh": "Map 1",
+      "position": [
+        300,
+        435
+      ]
+    },
+    {
+      "id": "map_2.json",
+      "map": "map_2.json",
+      "group": "main_story_route",
+      "type": "junction",
+      "label_en": "Map 2",
+      "label_zh": "Map 2",
+      "position": [
+        500,
+        435
+      ]
+    },
+    {
+      "id": "map_3.json",
+      "map": "map_3.json",
+      "group": "main_story_route",
+      "type": "area",
+      "label_en": "Map 3",
+      "label_zh": "Map 3",
+      "position": [
+        700,
+        435
+      ]
+    },
+    {
+      "id": "abandoned_relay_station.json",
+      "map": "abandoned_relay_station.json",
+      "group": "east_debris",
+      "type": "junction",
+      "label_en": "AR",
+      "label_zh": "AR 中繼站",
+      "position": [
+        1100,
+        435
+      ]
+    },
+    {
+      "id": "burnt_supply_route.json",
+      "map": "burnt_supply_route.json",
+      "group": "eastern_debris",
+      "type": "junction",
+      "label_en": "BSR",
+      "label_zh": "BSR 補給線",
+      "position": [
+        1580,
+        435
+      ]
+    },
+    {
+      "id": "ritc.json",
+      "map": "ritc.json",
+      "group": "ritc",
+      "type": "hub",
+      "label_en": "RITC",
+      "label_zh": "RITC",
+      "position": [
+        500,
+        190
+      ]
+    },
+    {
+      "id": "rogue",
+      "map": "rogue",
+      "group": "ritc",
+      "type": "route",
+      "label_en": "Rogue",
+      "label_zh": "Rogue",
+      "position": [
+        300,
+        190
+      ]
+    },
+    {
+      "id": "rouge_options.json",
+      "map": "rouge_options.json",
+      "group": "ritc",
+      "type": "interior",
+      "label_en": "Rogue Rest",
+      "label_zh": "Rogue 休整點",
+      "position": [
+        100,
+        190
+      ]
+    },
+    {
+      "id": "ritc_training_area.json",
+      "map": "ritc_training_area.json",
+      "group": "ritc",
+      "type": "interior",
+      "label_en": "Training",
+      "label_zh": "訓練區",
+      "position": [
+        280,
+        65
+      ]
+    },
+    {
+      "id": "ritc_shopping_area.json",
+      "map": "ritc_shopping_area.json",
+      "group": "ritc",
+      "type": "interior",
+      "label_en": "Shopping",
+      "label_zh": "商業區",
+      "position": [
+        400,
+        65
+      ]
+    },
+    {
+      "id": "ritc_mission_house.json",
+      "map": "ritc_mission_house.json",
+      "group": "ritc",
+      "type": "interior",
+      "label_en": "Mission House",
+      "label_zh": "任務中心",
+      "position": [
+        520,
+        65
+      ]
+    },
+    {
+      "id": "ritc_dormitory.json",
+      "map": "ritc_dormitory.json",
+      "group": "ritc",
+      "type": "interior",
+      "label_en": "Dormitory",
+      "label_zh": "宿舍區",
+      "position": [
+        340,
+        125
+      ]
+    },
+    {
+      "id": "ritc_medical_area.json",
+      "map": "ritc_medical_area.json",
+      "group": "ritc",
+      "type": "interior",
+      "label_en": "Medical",
+      "label_zh": "醫療區",
+      "position": [
+        460,
+        125
+      ]
+    },
+    {
+      "id": "farm_01.json",
+      "map": "farm_01.json",
+      "group": "farmland",
+      "type": "area",
+      "label_en": "Farmland",
+      "label_zh": "農地",
+      "position": [
+        500,
+        720
+      ]
+    },
+    {
+      "id": "broken_residential_block.json",
+      "map": "broken_residential_block.json",
+      "group": "northern_debris",
+      "type": "junction",
+      "label_en": "BRB",
+      "label_zh": "BRB 住宅區",
+      "position": [
+        1100,
+        190
+      ]
+    },
+    {
+      "id": "old_checkpoint_ruins.json",
+      "map": "old_checkpoint_ruins.json",
+      "group": "northern_debris",
+      "type": "area",
+      "label_en": "OCR",
+      "label_zh": "OCR 關卡遺跡",
+      "position": [
+        900,
+        190
+      ]
+    },
+    {
+      "id": "collapsed_service_tunnel.json",
+      "map": "collapsed_service_tunnel.json",
+      "group": "northern_debris",
+      "type": "area",
+      "label_en": "CST",
+      "label_zh": "CST 維修隧道",
+      "position": [
+        1300,
+        190
+      ]
+    },
+    {
+      "id": "contaminated_drainage_zone.json",
+      "map": "contaminated_drainage_zone.json",
+      "group": "eastern_debris",
+      "type": "area",
+      "label_en": "CDZ",
+      "label_zh": "CDZ 排水區",
+      "position": [
+        1580,
+        285
+      ]
+    },
+    {
+      "id": "infected_market_street.json",
+      "map": "infected_market_street.json",
+      "group": "eastern_debris",
+      "type": "area",
+      "label_en": "IMS",
+      "label_zh": "IMS 市場街",
+      "position": [
+        1580,
+        665
+      ]
+    },
+    {
+      "id": "silent_catastrophe_crater.json",
+      "map": "silent_catastrophe_crater.json",
+      "group": "southern_debris",
+      "type": "junction",
+      "label_en": "SCC",
+      "label_zh": "SCC 天災坑",
+      "position": [
+        1100,
+        745
+      ]
+    },
+    {
+      "id": "rusted_industrial_yard.json",
+      "map": "rusted_industrial_yard.json",
+      "group": "southern_debris",
+      "type": "area",
+      "label_en": "RIY",
+      "label_zh": "RIY 工業場",
+      "position": [
+        900,
+        745
+      ]
+    },
+    {
+      "id": "sealed_research_outpost.json",
+      "map": "sealed_research_outpost.json",
+      "group": "southern_debris",
+      "type": "area",
+      "label_en": "SRO",
+      "label_zh": "SRO 研究站",
+      "position": [
+        1300,
+        745
+      ]
+    },
+    {
+      "id": "the_great_chase_01.json",
+      "map": "the_great_chase_01.json",
+      "group": "stage_5_route",
+      "type": "checkpoint",
+      "label_en": "Chase Passage",
+      "label_zh": "追逐通道",
+      "position": [
+        1900,
+        435
+      ]
+    },
+    {
+      "id": "map_4.json",
+      "map": "map_4.json",
+      "group": "stage_5_route",
+      "type": "story",
+      "label_en": "Causeway Extension",
+      "label_zh": "延伸道路",
+      "position": [
+        2160,
+        435
+      ]
+    },
+    {
+      "id": "map_5.json",
+      "map": "map_5.json",
+      "group": "stage_5_route",
+      "type": "story",
+      "label_en": "Open Grounds",
+      "label_zh": "開闊空地",
+      "position": [
+        2400,
+        435
+      ]
+    },
+    {
+      "id": "map_6.json",
+      "map": "map_6.json",
+      "group": "stage_5_route",
+      "type": "story",
+      "label_en": "Eastern Recovery Zone",
+      "label_zh": "東部回收區",
+      "position": [
+        2640,
+        435
+      ]
+    },
+    {
+      "id": "new_ritc.json",
+      "map": "new_ritc.json",
+      "group": "stage_5_route",
+      "type": "story",
+      "label_en": "New RITC",
+      "label_zh": "New RITC",
+      "position": [
+        2400,
+        255
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "tutorial.json",
+      "to": "map_1.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "map_1.json",
+      "to": "map_2.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "map_2.json",
+      "to": "map_3.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "map_3.json",
+      "to": "abandoned_relay_station.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "abandoned_relay_station.json",
+      "to": "burnt_supply_route.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "map_2.json",
+      "to": "ritc.json",
+      "type": "route",
+      "direction": "north"
+    },
+    {
+      "from": "map_2.json",
+      "to": "farm_01.json",
+      "type": "route",
+      "direction": "south"
+    },
+    {
+      "from": "ritc.json",
+      "to": "rogue",
+      "type": "route",
+      "direction": "west"
+    },
+    {
+      "from": "rogue",
+      "to": "rouge_options.json",
+      "type": "interior",
+      "direction": "west"
+    },
+    {
+      "from": "ritc.json",
+      "to": "ritc_training_area.json",
+      "type": "interior"
+    },
+    {
+      "from": "ritc.json",
+      "to": "ritc_shopping_area.json",
+      "type": "interior"
+    },
+    {
+      "from": "ritc.json",
+      "to": "ritc_mission_house.json",
+      "type": "interior"
+    },
+    {
+      "from": "ritc.json",
+      "to": "ritc_dormitory.json",
+      "type": "interior"
+    },
+    {
+      "from": "ritc.json",
+      "to": "ritc_medical_area.json",
+      "type": "interior"
+    },
+    {
+      "from": "abandoned_relay_station.json",
+      "to": "broken_residential_block.json",
+      "type": "route",
+      "direction": "north"
+    },
+    {
+      "from": "abandoned_relay_station.json",
+      "to": "silent_catastrophe_crater.json",
+      "type": "route",
+      "direction": "south"
+    },
+    {
+      "from": "broken_residential_block.json",
+      "to": "old_checkpoint_ruins.json",
+      "type": "route",
+      "direction": "west"
+    },
+    {
+      "from": "broken_residential_block.json",
+      "to": "collapsed_service_tunnel.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "burnt_supply_route.json",
+      "to": "contaminated_drainage_zone.json",
+      "type": "route",
+      "direction": "north"
+    },
+    {
+      "from": "burnt_supply_route.json",
+      "to": "infected_market_street.json",
+      "type": "route",
+      "direction": "south"
+    },
+    {
+      "from": "silent_catastrophe_crater.json",
+      "to": "rusted_industrial_yard.json",
+      "type": "route",
+      "direction": "west"
+    },
+    {
+      "from": "silent_catastrophe_crater.json",
+      "to": "sealed_research_outpost.json",
+      "type": "route",
+      "direction": "east"
+    },
+    {
+      "from": "burnt_supply_route.json",
+      "to": "the_great_chase_01.json",
+      "type": "story",
+      "direction": "east"
+    },
+    {
+      "from": "the_great_chase_01.json",
+      "to": "map_4.json",
+      "type": "story",
+      "direction": "east"
+    },
+    {
+      "from": "map_4.json",
+      "to": "map_5.json",
+      "type": "story",
+      "direction": "east"
+    },
+    {
+      "from": "map_5.json",
+      "to": "map_6.json",
+      "type": "story",
+      "direction": "east"
+    },
+    {
+      "from": "map_5.json",
+      "to": "new_ritc.json",
+      "type": "story",
+      "direction": "north"
+    }
+  ]
+}

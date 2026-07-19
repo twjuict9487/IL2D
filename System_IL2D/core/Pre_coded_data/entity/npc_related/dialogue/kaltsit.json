@@ -42,6 +42,11 @@
       "text": "Legacy Mission",
       "text_zh": "舊式任務",
       "next": "legacy_mission"
+    },
+    {
+      "text": "Eastern Passage",
+      "text_zh": "東側通道",
+      "next": "great_chase_guidance"
     }
   ]
 }

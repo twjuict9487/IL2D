@@ -160,7 +160,7 @@
       "02",
       "01",
       "01",
-      "02"
+      "03"
     ],
     [
       "02",
@@ -289,6 +289,14 @@
       "02"
     ]
   ],
+  "campfires": [
+    {
+      "id": "campfire_bsr",
+      "x": 9,
+      "y": 8,
+      "arrival": [9, 9]
+    }
+  ],
   "spawn": [
     3,
     8
@@ -336,6 +344,18 @@
       "target_portal_id": "market_to_burnt",
       "exit_direction": "down",
       "entry_direction": "up"
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "target_map": "the_great_chase_01.json",
+      "target_spawn": [1, 5],
+      "visible": true,
+      "portal_id": "burnt_to_stage_5_chase",
+      "exit_direction": "right",
+      "entry_direction": "left",
+      "requires_story_flag": "great_chase_guidance_complete",
+      "message_key": "chase.passage_locked"
     }
   ],
   "survey_areas": [],

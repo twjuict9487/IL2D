@@ -1,0 +1,103 @@
+{
+    "transitions": {
+        "fade_to_black": 1.0,
+        "character_reveal": 2.2,
+        "reveal_hold": 0.8,
+        "scene_fade_out": 0.8,
+        "scene_fade_in": 1.0
+    },
+    "defaults": {
+        "narrator_speed": 13.5,
+        "dialogue_speed": 12.0,
+        "thought_speed": 11.25,
+        "heavy_speed": 10.125,
+        "pre_delay": 0.15,
+        "post_delay": 0.55,
+        "speaker_transition": 0.5,
+        "finish_fade": 0.6
+    },
+    "actors": [
+        {
+            "id": "kaltsit",
+            "name_zh": "凱爾希",
+            "name_en": "Kal'tsit",
+            "image": "1536px-Kal'tsit_nobg.png",
+            "x": 0.18,
+            "scale": 0.9
+        },
+        {
+            "id": "priestess",
+            "name_zh": "Priestess",
+            "name_en": "Priestess",
+            "image": "priestess_nobg.png",
+            "x": 0.5,
+            "scale": 0.94
+        },
+        {
+            "id": "doctor",
+            "name_zh": "博士",
+            "name_en": "Doctor",
+            "image": "Doctor_nobg.png",
+            "x": 0.82,
+            "scale": 0.9
+        }
+    ],
+    "initial_scene": "scene1",
+    "scenes": {
+        "scene1": {
+            "actors": [
+                "kaltsit",
+                "priestess",
+                "doctor"
+            ]
+        }
+    },
+    "lines": [
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「舊結構的效率更高。\n你沒有必要修改它。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「舊結構只允許一個結果。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「那是經過驗證的正確結果。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「複製，只會讓所有人回到同一個終點。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「延伸，才會產生新的方向。」"
+        },
+        {
+            "speaker": "kaltsit",
+            "style": "dialogue",
+            "text": "「使用一項技術，\n不代表必須服從創造它的人。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "heavy",
+            "text": "「你正在使用我們的成果，\n建造一個不再需要我的地方。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「不是不需要妳。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「是不再由任何一個人決定全部。」",
+            "post_delay": 0.9
+        }
+    ]
+}

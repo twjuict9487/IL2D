@@ -40,21 +40,36 @@ except ImportError:
 TILE_SIZE = 60
 VIEWPORT = 12
 FPS = 120
+ESC_MENU_OPTIONS = [
+    "item",
+    "hotbar",
+    "equipments",
+    "team",
+    "tutorial",
+    "map",
+    "objective",
+    "story",
+    "skill_tree",
+    "save",
+    "leave",
+]
 MAX_ANIM_FRAMES = 48
 _IMAGE_CACHE = {}
 _ANIM_CACHE = {}
 _SPELL_ATLAS_CACHE = {}
 _TILESET_CACHE = {}
+_REPORTED_BAD_TILE_ROTATIONS = set()
+_CAMPFIRE_ASSET_MISSING_REPORTED = False
 _DIALOG_NPC_FALLBACK_IMAGE = {
     "dev": "noFilter_nobg.png",
     "priestess": "priestess_nobg.png",
     "carmen": "carmen_nobg.png",
     "closure": "Closure_nobg.png",
-    "kaltsit": "憭游?_?臬?撣?png",
-    "ines": "憭游?_隡\uf4c0?銝?png",
-    "monst3r": "憭游?_Mon3tr.png",
-    "wisadel": "憭游?_蝏港??游?.png",
-    "shu": "憭游?_暺?png",
+    "kaltsit": "头像_凯尔希.png",
+    "ines": "头像_伊内丝.png",
+    "monst3r": "头像_Mon3tr.png",
+    "wisadel": "头像_维什戴尔.png",
+    "shu": "头像_黍.png",
 }
 
 
@@ -64,6 +79,30 @@ def _a(bt_meta, default=0.9):
     except Exception:
         scale = float(default)
     return max(0.1, min(1.0, scale))
+
+
+def _tile_rotation(bt_meta):
+    if not isinstance(bt_meta, dict):
+        return 0
+    raw = bt_meta.get("rotation", 0)
+    if isinstance(raw, bool):
+        rotation = None
+    elif isinstance(raw, int):
+        rotation = raw
+    elif isinstance(raw, str) and raw.strip() in {"0", "90", "180", "270"}:
+        rotation = int(raw.strip())
+    else:
+        rotation = None
+    if rotation in (0, 90, 180, 270):
+        return rotation
+    marker = (bt_meta.get("tileset_json"), bt_meta.get("tileset_ref"), raw)
+    if marker not in _REPORTED_BAD_TILE_ROTATIONS:
+        _REPORTED_BAD_TILE_ROTATIONS.add(marker)
+        print(
+            "[tileset] WARN: invalid tile rotation "
+            f"{raw!r} for {marker[0]!r}/{marker[1]!r}; using 0"
+        )
+    return 0
 
 
 ensure_primed_from_file(__file__)
@@ -101,10 +140,13 @@ def _b(filename, size=None):
     return None
 
 
-def _c(tileset_json_name, ref_name, size=None):
+def _c(tileset_json_name, ref_name, size=None, rotation=0):
     if not tileset_json_name or not ref_name:
         return None
-    cache_key = (tileset_json_name, ref_name, size)
+    rotation = _tile_rotation(
+        {"tileset_json": tileset_json_name, "tileset_ref": ref_name, "rotation": rotation}
+    )
+    cache_key = (tileset_json_name, ref_name, rotation, size)
     if cache_key in _TILESET_CACHE:
         return _TILESET_CACHE[cache_key]
     for meta_path in resolve_atlas_candidates(tileset_json_name):
@@ -180,6 +222,10 @@ def _c(tileset_json_name, ref_name, size=None):
         try:
             atlas = pygame.image.load(atlas_path).convert_alpha()
             sub = atlas.subsurface(pygame.Rect(*target)).copy()
+            if rotation:
+                # pygame uses counter-clockwise positive degrees; JSON defines
+                # positive rotation as clockwise, so invert the sign here.
+                sub = pygame.transform.rotate(sub, -rotation)
             if size:
                 sub = pygame.transform.smoothscale(sub, (int(size[0]), int(size[1])))
             _TILESET_CACHE[cache_key] = sub
@@ -403,6 +449,12 @@ def _i(game, ent):
         return getattr(game, "monst3r_anim_state", "move")
     if ent.eid == "wisadel":
         return getattr(game, "wisadel_anim_state", "move")
+    state = str(getattr(ent, "anim_state", "move") or "move")
+    until = float(getattr(ent, "anim_until", 0.0) or 0.0)
+    if state != "move" and time.time() <= until:
+        return state
+    ent.anim_state = "move"
+    ent.anim_until = 0.0
     return "move"
 
 
@@ -679,6 +731,8 @@ def _y(game, label):
         return False
     if label == "objective":
         return mode == "objective"
+    if label == "story":
+        return mode == "story"
     if label == "map":
         return mode == "map"
     if label == "skill_tree":
@@ -688,6 +742,10 @@ def _y(game, label):
     if label == "leave":
         return mode == "leave_confirm"
     return False
+
+
+def _esc_label(game, opt):
+    return tr(game.lang, f"esc.{opt}")
 
 
 def draw_main_menu(screen, selected, lang="zh"):
@@ -769,6 +827,40 @@ def draw_dev_menu(screen, ctx):
     font2 = _q(18)
     title = font.render(tr(lang, "dev.title"), True, (255, 255, 255))
     screen.blit(title, (panel.x + 16, panel.y + 12))
+    if ctx.get("dev_menu_target") == "story_skip":
+        options = ctx["game"].get_dev_story_skip_options()
+        if not options:
+            empty = font2.render(tr(lang, "dev.story_skip_empty"), True, (220, 160, 145))
+            screen.blit(empty, (panel.x + 24, panel.y + 64))
+            return
+        selected = int(ctx.get("dev_story_selected", 0) or 0) % len(options)
+        per_page = 9
+        page = selected // per_page
+        start = page * per_page
+        end = min(len(options), start + per_page)
+        subtitle = font2.render(
+            tr(lang, "dev.story_skip_title", page=page + 1, pages=(len(options) + 8) // 9),
+            True,
+            (205, 225, 238),
+        )
+        screen.blit(subtitle, (panel.x + 24, panel.y + 54))
+        y = panel.y + 92
+        for index in range(start, end):
+            row = options[index]
+            active = index == selected
+            rect = pygame.Rect(panel.x + 20, y - 3, panel.width - 40, font2.get_height() + 8)
+            if active:
+                pygame.draw.rect(screen, (54, 67, 73), rect, border_radius=5)
+                pygame.draw.rect(screen, (235, 213, 116), rect, 2, border_radius=5)
+            label = f"{row.get('number')}  {row.get('title', '')}"
+            surf = font2.render(label, True, (255, 241, 170) if active else (205, 210, 215))
+            screen.blit(surf, (rect.x + 10, y))
+            y += font2.get_height() + 11
+        hint_font = _q(13)
+        hint_text = _t(hint_font, tr(lang, "dev.story_skip_hint"), panel.width - 48)
+        hint = hint_font.render(hint_text, True, (170, 190, 205))
+        screen.blit(hint, (panel.centerx - hint.get_width() // 2, panel.bottom - 34))
+        return
     opts = [
         "pre_dev_set",
         "max_hp",
@@ -776,6 +868,9 @@ def draw_dev_menu(screen, ctx):
         "add_money",
         "add_skipper",
         "get_dev_set",
+        "skip_story_mission",
+        "skip_to_stage_5",
+        "replay_opening",
         "exit",
     ]
     labels = {
@@ -785,6 +880,9 @@ def draw_dev_menu(screen, ctx):
         "add_money": tr(lang, "dev.add_money"),
         "add_skipper": tr(lang, "dev.add_skipper"),
         "get_dev_set": tr(lang, "dev.get_dev_set"),
+        "skip_story_mission": tr(lang, "dev.skip_story_mission"),
+        "skip_to_stage_5": tr(lang, "dev.skip_to_stage_5"),
+        "replay_opening": tr(lang, "dev.replay_opening"),
         "exit": tr(lang, "dev.exit"),
     }
     y = panel.y + 60
@@ -852,18 +950,7 @@ def draw_settings_menu(screen, selected, sub_mode, lang_selected, lang="zh"):
 def draw_esc_menu(screen, selected, game=None):
     font = _q(18, bold=True)
     font2 = _q(16, bold=True)
-    opts = [
-        "item",
-        "hotbar",
-        "equipments",
-        "team",
-        "tutorial",
-        "map",
-        "objective",
-        "skill_tree",
-        "save",
-        "leave",
-    ]
+    opts = ESC_MENU_OPTIONS
     screen.fill((14, 26, 48))
     menu_w = screen.get_width() // 4
     menu_h = screen.get_height()
@@ -881,7 +968,7 @@ def draw_esc_menu(screen, selected, game=None):
             if is_entered
             else (255, 255, 0) if is_selected else (245, 245, 245)
         )
-        label = _t(font, tr(game.lang, f"esc.{opt}"), menu_w - 34)
+        label = _t(font, _esc_label(game, opt), menu_w - 34)
         item_rect = pygame.Rect(x + 12, y + 20 + i * item_h, menu_w - 24, item_h)
         if is_selected:
             if is_entered:
@@ -907,7 +994,7 @@ def draw_esc_menu(screen, selected, game=None):
     pygame.draw.rect(screen, (6, 28, 48), header_rect)
     pygame.draw.rect(screen, (200, 240, 255), header_rect, 2)
     title = opts[selected]
-    title_surf = font.render(tr(game.lang, f"esc.{title}"), True, (255, 255, 255))
+    title_surf = font.render(_esc_label(game, title), True, (255, 255, 255))
     screen.blit(title_surf, (header_rect.x + 12, header_rect.y + 10))
     content_rect = pygame.Rect(
         panel.x + 8,
@@ -970,6 +1057,7 @@ def draw_esc_menu(screen, selected, game=None):
         "team_equip_category",
         "map",
         "objective",
+        "story",
         "skill_tree",
         "leave_confirm",
         "level_skipper",
@@ -977,7 +1065,7 @@ def draw_esc_menu(screen, selected, game=None):
         draw_menu_detail(screen, content_rect, game)
     else:
         label = opts[selected]
-        if label in ("item", "hotbar", "equipments", "map", "objective"):
+        if label in ("item", "hotbar", "equipments", "map", "objective", "story"):
             _z(screen, content_rect, game, label)
         else:
             draw_menu_preview(screen, content_rect, game, selected)
@@ -999,18 +1087,7 @@ def _z(screen, panel, game, label):
 
 def draw_menu_preview(screen, panel, game, selected):
     font = _q(16)
-    opts = [
-        "item",
-        "hotbar",
-        "equipments",
-        "team",
-        "tutorial",
-        "map",
-        "objective",
-        "skill_tree",
-        "save",
-        "leave",
-    ]
+    opts = ESC_MENU_OPTIONS
     label = opts[selected]
     lines = []
     if label == "item":
@@ -1065,6 +1142,14 @@ def draw_menu_preview(screen, panel, game, selected):
     elif label == "objective":
         lines.append(tr(game.lang, "preview.objectives"))
         lines.extend(game.objectives[:4])
+    elif label == "story":
+        lines.append(tr(game.lang, "preview.story"))
+        rows = game.get_story_timeline_rows() if hasattr(game, "get_story_timeline_rows") else []
+        lines.append(
+            tr(game.lang, "preview.story_nodes", count=len(rows))
+            if rows
+            else tr(game.lang, "preview.story_empty")
+        )
     elif label == "skill_tree":
         lines.append(tr(game.lang, "preview.skill_tree"))
         lines.append(f"{tr(game.lang,'label.sp')} {game.player_skill_points}")
@@ -1108,6 +1193,9 @@ def draw_menu_detail(screen, panel, game):
     screen.blit(body, (panel.x + 12, panel.y + 40))
     if game.ui_mode == "map":
         _aa(screen, panel, game, font)
+        return
+    if game.ui_mode == "story":
+        _draw_story_timeline_detail(screen, panel, game, font)
         return
     if game.ui_mode == "item":
         categories = (
@@ -2451,6 +2539,343 @@ def draw_tutorial_panel(game, screen):
 
 
 def _aa(screen, panel, game, font):
+    nodes = dict(getattr(game, "world_map_nodes", {}) or {})
+    structured = bool(nodes) and all(
+        isinstance(meta, dict) and isinstance(meta.get("position"), list)
+        for meta in nodes.values()
+    )
+    if not structured:
+        _draw_world_map_legacy(screen, panel, game, font)
+        return
+
+    lang = "zh" if str(getattr(game, "lang", "en")).lower().startswith("zh") else "en"
+    title_font = _q(18, bold=True)
+    node_font = _q(13, bold=True)
+    status_font = _q(11)
+    group_font = _q(13, bold=True)
+    title = tr(game.lang, "map.title")
+    _r(
+        screen,
+        title_font,
+        title,
+        (235, 245, 255),
+        (0, 0, 0),
+        (panel.x + 16, panel.y + 10),
+        thickness=2,
+    )
+    source = str(getattr(game, "world_map_source", "") or "")
+    using_fallback = source == "portal_fallback"
+    source_text = tr(
+        game.lang,
+        "map.source.fallback" if using_fallback else "map.source.structured",
+        count=len(nodes),
+    )
+    source_font = _q(11, bold=True)
+    source_surf = source_font.render(
+        source_text,
+        True,
+        (240, 155, 135) if using_fallback else (135, 205, 165),
+    )
+    screen.blit(source_surf, (panel.right - source_surf.get_width() - 16, panel.y + 15))
+
+    map_rect = pygame.Rect(
+        panel.x + 12,
+        panel.y + 40,
+        panel.width - 24,
+        panel.height - 76,
+    )
+    pygame.draw.rect(screen, (5, 17, 29), map_rect)
+    pygame.draw.rect(screen, (125, 165, 190), map_rect, 1)
+
+    canvas = getattr(game, "world_map_canvas", {}) or {}
+    canvas_w = max(map_rect.width, int(canvas.get("width", map_rect.width) or map_rect.width))
+    canvas_h = max(map_rect.height, int(canvas.get("height", map_rect.height) or map_rect.height))
+    current_map = str(getattr(getattr(game, "map", None), "name", "") or "")
+    current_id = current_map if current_map in nodes else "rogue" if current_map == "rogue" else current_map
+
+    if not bool(getattr(game, "world_map_pan_initialized", False)):
+        if hasattr(game, "reset_world_map_reticle"):
+            game.reset_world_map_reticle()
+        else:
+            current_meta = nodes.get(current_id, {})
+            position = current_meta.get("position", [canvas_w / 2, canvas_h / 2])
+            game.world_map_reticle_x = float(position[0])
+            game.world_map_reticle_y = float(position[1])
+            game.world_map_pan_initialized = True
+
+    max_pan_x = max(0.0, float(canvas_w - map_rect.width))
+    max_pan_y = max(0.0, float(canvas_h - map_rect.height))
+    reticle_world_x = float(getattr(game, "world_map_reticle_x", canvas_w / 2))
+    reticle_world_y = float(getattr(game, "world_map_reticle_y", canvas_h / 2))
+    pan_x = max(0.0, min(max_pan_x, reticle_world_x - map_rect.width / 2))
+    pan_y = max(0.0, min(max_pan_y, reticle_world_y - map_rect.height / 2))
+    game.world_map_pan_x = pan_x
+    game.world_map_pan_y = pan_y
+
+    def to_screen(position):
+        return (
+            int(map_rect.x + float(position[0]) - pan_x),
+            int(map_rect.y + float(position[1]) - pan_y),
+        )
+
+    def node_label(meta):
+        key = "label_zh" if lang == "zh" else "label_en"
+        return str(meta.get(key) or meta.get("label_en") or meta.get("id") or "")
+
+    explored = set(getattr(game, "explored_maps", set()) or set())
+    if current_id:
+        explored.add(current_id)
+    old_clip = screen.get_clip()
+    screen.set_clip(map_rect)
+
+    # A quiet grid makes panning readable without competing with route lines.
+    grid_step = 80
+    start_x = int(pan_x // grid_step) * grid_step
+    start_y = int(pan_y // grid_step) * grid_step
+    for wx in range(start_x, int(pan_x + map_rect.width) + grid_step, grid_step):
+        sx = int(map_rect.x + wx - pan_x)
+        pygame.draw.line(screen, (12, 31, 45), (sx, map_rect.y), (sx, map_rect.bottom), 1)
+    for wy in range(start_y, int(pan_y + map_rect.height) + grid_step, grid_step):
+        sy = int(map_rect.y + wy - pan_y)
+        pygame.draw.line(screen, (12, 31, 45), (map_rect.x, sy), (map_rect.right, sy), 1)
+
+    groups = [
+        group
+        for group in (getattr(game, "world_map_groups", []) or [])
+        if isinstance(group, dict)
+    ]
+    groups_by_id = {str(group.get("id")): group for group in groups}
+
+    def group_depth(group):
+        depth = 0
+        parent_id = str(group.get("parent", "") or "")
+        visited = set()
+        while parent_id and parent_id in groups_by_id and parent_id not in visited:
+            visited.add(parent_id)
+            depth += 1
+            parent_id = str(groups_by_id[parent_id].get("parent", "") or "")
+        return depth
+
+    # Parent regions must be painted before their nested geographic sections.
+    for group in sorted(groups, key=group_depth):
+        rect_data = group.get("rect") if isinstance(group, dict) else None
+        if not isinstance(rect_data, list) or len(rect_data) < 4:
+            continue
+        gx, gy = to_screen(rect_data[:2])
+        group_rect = pygame.Rect(gx, gy, int(rect_data[2]), int(rect_data[3]))
+        if not group_rect.colliderect(map_rect):
+            continue
+        nested = bool(group.get("parent"))
+        is_region = str(group.get("level", "") or "") == "region"
+        group_surface = pygame.Surface(group_rect.size, pygame.SRCALPHA)
+        group_surface.fill((18, 43, 59, 24) if is_region else (24, 52, 70, 42))
+        screen.blit(group_surface, group_rect.topleft)
+        border_color = (82, 126, 148) if nested else (62, 94, 112)
+        pygame.draw.rect(
+            screen,
+            border_color,
+            group_rect,
+            2 if is_region else 1,
+            border_radius=8,
+        )
+        key = "label_zh" if lang == "zh" else "label_en"
+        label = str(group.get(key) or group.get("label_en") or group.get("id") or "")
+        label_surface = group_font.render(label, True, (135, 175, 195) if nested else (115, 150, 170))
+        depth = group_depth(group)
+        visible_group = group_rect.clip(map_rect)
+        label_x = max(group_rect.x + 6, visible_group.x + 6)
+        label_y = max(group_rect.y + 4, map_rect.y + 4 + depth * 24)
+        label_y = min(label_y, visible_group.bottom - label_surface.get_height() - 4)
+        label_rect = pygame.Rect(
+            label_x,
+            label_y,
+            label_surface.get_width() + 8,
+            label_surface.get_height() + 4,
+        )
+        pygame.draw.rect(screen, (5, 17, 29), label_rect, border_radius=3)
+        _r(
+            screen,
+            group_font,
+            label,
+            (135, 175, 195) if nested else (115, 150, 170),
+            (0, 0, 0),
+            (label_rect.x + 4, label_rect.y + 2),
+            thickness=1,
+        )
+
+    centers = {
+        node_id: to_screen(meta.get("position", [0, 0]))
+        for node_id, meta in nodes.items()
+    }
+    for edge in getattr(game, "world_map_edges", []) or []:
+        if isinstance(edge, dict):
+            source = edge.get("from")
+            target = edge.get("to")
+            edge_type = str(edge.get("type", "route") or "route")
+        elif isinstance(edge, (list, tuple)) and len(edge) >= 2:
+            source, target = edge[0], edge[1]
+            edge_type = "route"
+        else:
+            continue
+        if source not in centers or target not in centers:
+            continue
+        source_meta = nodes.get(source, {})
+        target_meta = nodes.get(target, {})
+        source_known = source in explored or source_meta.get("map") in explored
+        target_known = target in explored or target_meta.get("map") in explored
+        if source_known and target_known:
+            edge_color = (115, 170, 196) if edge_type != "story" else (205, 176, 100)
+        else:
+            edge_color = (55, 66, 75)
+        pygame.draw.line(screen, edge_color, centers[source], centers[target], 3)
+
+    type_sizes = {
+        "hub": (130, 48),
+        "interior": (112, 40),
+        "story": (112, 46),
+        "checkpoint": (112, 44),
+        "junction": (124, 46),
+    }
+    for node_id, meta in nodes.items():
+        center = centers[node_id]
+        size = type_sizes.get(str(meta.get("type", "area")), (124, 44))
+        rect = pygame.Rect(0, 0, size[0], size[1])
+        rect.center = center
+        if not rect.colliderect(map_rect.inflate(30, 30)):
+            continue
+        node_map = str(meta.get("map") or node_id)
+        known = node_id in explored or node_map in explored
+        is_current = node_id == current_id or node_map == current_map
+        if is_current:
+            fill, border = (28, 91, 132), (225, 246, 255)
+        elif known:
+            fill, border = (24, 58, 79), (135, 187, 214)
+        else:
+            fill, border = (43, 48, 53), (82, 88, 94)
+        pygame.draw.rect(screen, fill, rect, border_radius=5)
+        pygame.draw.rect(screen, border, rect, 2, border_radius=5)
+        label = _t(node_font, node_label(meta), rect.width - 10)
+        label_color = (245, 250, 255) if known or is_current else (180, 184, 188)
+        label_surf = node_font.render(label, True, label_color)
+        screen.blit(label_surf, (rect.centerx - label_surf.get_width() // 2, rect.y + 5))
+        if is_current:
+            status = tr(game.lang, "map.current")
+        elif known:
+            status = tr(game.lang, "map.explored")
+        else:
+            status = tr(game.lang, "map.locked")
+        status_surf = status_font.render(status, True, border)
+        screen.blit(status_surf, (rect.centerx - status_surf.get_width() // 2, rect.bottom - 15))
+
+    campfire_markers = (
+        game.get_visible_campfire_markers()
+        if hasattr(game, "get_visible_campfire_markers")
+        else []
+    )
+    game.world_map_campfire_hitboxes = {}
+    marker_image = _b("campfire_nobg.png", (30, 30))
+    for marker in campfire_markers:
+        marker_id = str(marker.get("id", "") or "")
+        marker_center = to_screen(marker.get("world_position", [0, 0]))
+        marker_rect = pygame.Rect(0, 0, 32, 32)
+        marker_rect.center = marker_center
+        if not marker_rect.colliderect(map_rect):
+            continue
+        lit = marker.get("state") == "activated_lit"
+        if lit:
+            pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() / 260.0)
+            pygame.draw.circle(
+                screen,
+                (225, 139, 53),
+                marker_center,
+                int(18 + pulse * 3),
+                2,
+            )
+        if marker_image is not None:
+            image = marker_image.copy()
+            if not lit:
+                image.fill((58, 64, 70, 170), special_flags=pygame.BLEND_RGBA_MULT)
+            screen.blit(image, marker_rect.topleft)
+        else:
+            pygame.draw.circle(
+                screen,
+                (240, 145, 55) if lit else (68, 75, 80),
+                marker_center,
+                10,
+            )
+        game.world_map_campfire_hitboxes[marker_id] = marker_rect.copy()
+
+    state = str(getattr(game, "world_map_reticle_state", "FREE") or "FREE")
+    reticle_center = to_screen([reticle_world_x, reticle_world_y])
+    reticle_size = 30 if state == "SNAPPED" else 38 if state == "ATTRACTING" else 46
+    reticle_rect = pygame.Rect(0, 0, reticle_size, reticle_size)
+    reticle_rect.center = reticle_center
+    reticle_rect.clamp_ip(map_rect)
+    guide_color = (236, 205, 112) if state == "SNAPPED" else (130, 190, 215)
+    guide_lines = [
+        ((map_rect.left, reticle_rect.centery), (reticle_rect.left, reticle_rect.centery)),
+        ((reticle_rect.right, reticle_rect.centery), (map_rect.right, reticle_rect.centery)),
+        ((reticle_rect.centerx, map_rect.top), (reticle_rect.centerx, reticle_rect.top)),
+        ((reticle_rect.centerx, reticle_rect.bottom), (reticle_rect.centerx, map_rect.bottom)),
+    ]
+    game.world_map_reticle_screen_rect = reticle_rect.copy()
+    game.world_map_guide_lines = list(guide_lines)
+    for start, end in guide_lines:
+        pygame.draw.line(screen, guide_color, start, end, 1)
+    pygame.draw.rect(
+        screen,
+        guide_color,
+        reticle_rect,
+        3 if state == "SNAPPED" else 2,
+        border_radius=4,
+    )
+    corner = max(5, reticle_size // 4)
+    for x1, y1, x2, y2 in (
+        (reticle_rect.left, reticle_rect.top, reticle_rect.left + corner, reticle_rect.top),
+        (reticle_rect.left, reticle_rect.top, reticle_rect.left, reticle_rect.top + corner),
+        (reticle_rect.right, reticle_rect.top, reticle_rect.right - corner, reticle_rect.top),
+        (reticle_rect.right, reticle_rect.top, reticle_rect.right, reticle_rect.top + corner),
+        (reticle_rect.left, reticle_rect.bottom, reticle_rect.left + corner, reticle_rect.bottom),
+        (reticle_rect.left, reticle_rect.bottom, reticle_rect.left, reticle_rect.bottom - corner),
+        (reticle_rect.right, reticle_rect.bottom, reticle_rect.right - corner, reticle_rect.bottom),
+        (reticle_rect.right, reticle_rect.bottom, reticle_rect.right, reticle_rect.bottom - corner),
+    ):
+        pygame.draw.line(screen, (245, 235, 175), (x1, y1), (x2, y2), 2)
+
+    if state == "SNAPPED":
+        marker_id = str(getattr(game, "world_map_reticle_target", "") or "")
+        marker = next((row for row in campfire_markers if row.get("id") == marker_id), None)
+        if marker:
+            key = "label_zh" if lang == "zh" else "label_en"
+            destination = str(marker.get(key) or marker.get("label_en") or marker.get("map"))
+            prompt_w, prompt_h = 230, 68
+            prompt_x = max(
+                map_rect.left + 6,
+                min(map_rect.right - prompt_w - 6, reticle_rect.centerx - prompt_w // 2),
+            )
+            prompt_y = reticle_rect.bottom + 10
+            if prompt_y + prompt_h > map_rect.bottom - 6:
+                prompt_y = reticle_rect.top - prompt_h - 10
+            prompt_rect = pygame.Rect(prompt_x, prompt_y, prompt_w, prompt_h)
+            pygame.draw.rect(screen, (7, 18, 27), prompt_rect, border_radius=6)
+            pygame.draw.rect(screen, (222, 191, 104), prompt_rect, 2, border_radius=6)
+            name_surf = node_font.render(destination, True, (245, 238, 205))
+            screen.blit(name_surf, (prompt_rect.centerx - name_surf.get_width() // 2, prompt_rect.y + 8))
+            action = status_font.render(
+                tr(game.lang, "campfire.map_prompt"), True, (205, 225, 235)
+            )
+            screen.blit(action, (prompt_rect.centerx - action.get_width() // 2, prompt_rect.y + 38))
+
+    screen.set_clip(old_clip)
+    hint = tr(game.lang, "map.controls")
+    hint_surf = status_font.render(hint, True, (170, 195, 210))
+    screen.blit(
+        hint_surf,
+        (panel.centerx - hint_surf.get_width() // 2, panel.bottom - 25),
+    )
+
+
+def _draw_world_map_legacy(screen, panel, game, font):
     nodes_all = dict(getattr(game, "world_map_nodes", {}) or {})
     edges_all = list(getattr(game, "world_map_edges", []) or [])
     nodes = dict(nodes_all)
@@ -2990,10 +3415,13 @@ def draw_death_menu(game, screen):
             thickness=2,
         )
         return
-    options = ["revive, but lose 50% of your robux", "return to last save slot"]
+    if getattr(game, "chase_death_pending", False):
+        options = [tr(game.lang, "chase.return_to_campfire")]
+    else:
+        options = ["revive, but lose 50% of your robux", "return to last save slot"]
     row_h = 36
     y = panel.y + 96
-    selected = max(0, min(1, int(getattr(game, "death_menu_selected", 0))))
+    selected = max(0, min(len(options) - 1, int(getattr(game, "death_menu_selected", 0))))
     for i, text in enumerate(options):
         rect = pygame.Rect(panel.x + 24, y + i * (row_h + 10), panel.width - 48, row_h)
         _s(screen, rect, selected=i == selected)
@@ -3080,24 +3508,237 @@ def draw_level_stat_choice(game, screen):
     )
 
 
+def _draw_world_campfires(game, screen, cam_px, cam_py, tile_w, tile_h):
+    global _CAMPFIRE_ASSET_MISSING_REPORTED
+
+    definitions = list(getattr(getattr(game, "map", None), "campfires", []) or [])
+    if not definitions:
+        return
+    activated = set(getattr(game, "activated_campfires", set()) or set())
+    now = pygame.time.get_ticks() / 1000.0
+    base_size = max(28, int(min(tile_w, tile_h) * 0.86))
+    base_image = _b("campfire_nobg.png", (base_size, base_size))
+    if base_image is None and not _CAMPFIRE_ASSET_MISSING_REPORTED:
+        print("[campfire] asset missing: campfire_nobg.png; using placeholder")
+        _CAMPFIRE_ASSET_MISSING_REPORTED = True
+    prompt_font = _q(12, bold=True)
+    for definition in definitions:
+        x = int(definition.get("x", -1))
+        y = int(definition.get("y", -1))
+        draw_x = int(x * tile_w - cam_px + (tile_w - base_size) / 2)
+        draw_y = int(y * tile_h - cam_py + (tile_h - base_size) / 2)
+        lit = str(definition.get("id", "")) in activated
+        if lit:
+            pulse = 0.5 + 0.5 * math.sin(now * 5.5 + x * 0.7)
+            glow_size = int(base_size * (1.35 + pulse * 0.18))
+            glow = pygame.Surface((glow_size, glow_size), pygame.SRCALPHA)
+            pygame.draw.circle(
+                glow,
+                (255, 150, 45, int(48 + pulse * 34)),
+                (glow_size // 2, glow_size // 2),
+                glow_size // 2,
+            )
+            screen.blit(
+                glow,
+                (
+                    draw_x + base_size // 2 - glow_size // 2,
+                    draw_y + base_size // 2 - glow_size // 2,
+                ),
+            )
+            draw_y -= int(round(pulse * 2.0))
+        if base_image is not None:
+            image = base_image.copy()
+            if not lit:
+                image.fill((62, 66, 72, 185), special_flags=pygame.BLEND_RGBA_MULT)
+            screen.blit(image, (draw_x, draw_y))
+        else:
+            color = (245, 145, 45) if lit else (75, 82, 88)
+            pygame.draw.polygon(
+                screen,
+                color,
+                [
+                    (draw_x + base_size // 2, draw_y + 4),
+                    (draw_x + base_size - 7, draw_y + base_size - 6),
+                    (draw_x + 7, draw_y + base_size - 6),
+                ],
+            )
+        distance = abs(int(game.player.x) - x) + abs(int(game.player.y) - y)
+        if distance <= 1 and not lit:
+            prompt = prompt_font.render("E", True, (255, 240, 165))
+            prompt_bg = pygame.Rect(0, 0, prompt.get_width() + 10, prompt.get_height() + 4)
+            prompt_bg.center = (draw_x + base_size // 2, draw_y - 6)
+            pygame.draw.rect(screen, (7, 14, 20), prompt_bg, border_radius=4)
+            pygame.draw.rect(screen, (230, 190, 95), prompt_bg, 1, border_radius=4)
+            screen.blit(prompt, (prompt_bg.centerx - prompt.get_width() // 2, prompt_bg.y + 2))
+
+
+def _draw_chase_transition(game, screen, cam_px, cam_py, tile_w, tile_h):
+    chase = game.chase_controller
+    state = chase.state
+    config = chase.config
+    phase = state.get("phase")
+    campfire = config.get("campfire", [7, 5])
+    camp_size = int(tile_w * 2.2)
+    camp_img = _b("campfire_nobg.png", (camp_size, camp_size))
+    camp_x = int(float(campfire[0]) * tile_w - cam_px - (camp_size - tile_w) / 2)
+    camp_y = int(float(campfire[1]) * tile_h - cam_py - (camp_size - tile_h) / 2)
+    if camp_img:
+        screen.blit(camp_img, (camp_x, camp_y))
+    else:
+        pygame.draw.circle(
+            screen,
+            (240, 135, 55),
+            (camp_x + camp_size // 2, camp_y + camp_size // 2),
+            max(8, camp_size // 5),
+        )
+    distance = abs(int(game.player.x) - int(campfire[0])) + abs(
+        int(game.player.y) - int(campfire[1])
+    )
+    if distance <= 1 and not state.get("forced_run_active"):
+        font = _q(16, bold=True)
+        label = font.render(tr(game.lang, "chase.campfire_prompt"), True, (255, 235, 170))
+        screen.blit(label, (camp_x + camp_size // 2 - label.get_width() // 2, camp_y - 8))
+
+    if state.get("monster_released"):
+        monster_size = max(1, int(round(tile_h * 11)))
+        monster_img = _b("头像_敌人_女妖河谷的拂哀菈_nobg.png", (monster_size, monster_size))
+        monster_x = int(float(state.get("monster_x", 0.0)) * tile_w - cam_px - monster_size)
+        monster_y = int(-cam_py)
+        if monster_img:
+            screen.blit(monster_img, (monster_x, monster_y))
+        else:
+            pygame.draw.rect(
+                screen,
+                (18, 18, 22),
+                (monster_x, monster_y, monster_size, monster_size),
+            )
+
+    warning_timer = float(state.get("warning_timer", 0.0) or 0.0)
+    if warning_timer > 0 and int(warning_timer / 0.2) % 2 == 0:
+        title_font = _q(46, bold=True)
+        hint_font = _q(24, bold=True)
+        title = tr(game.lang, "chase.escape_warning")
+        hint = tr(game.lang, "chase.escape_hint")
+        title_pos = (
+            screen.get_width() // 2 - title_font.size(title)[0] // 2,
+            screen.get_height() // 2 - 58,
+        )
+        hint_pos = (
+            screen.get_width() // 2 - hint_font.size(hint)[0] // 2,
+            screen.get_height() // 2 + 4,
+        )
+        _r(screen, title_font, title, (220, 35, 35), (255, 255, 255), title_pos, 3)
+        _r(screen, hint_font, hint, (220, 35, 35), (255, 255, 255), hint_pos, 2)
+
+    if phase in {"PNG_SCENE", "MUSIC_OUTRO"}:
+        scene = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        if phase == "PNG_SCENE":
+            alpha = 255
+        else:
+            outro = config.get("outro_segment", [153.0, 169.2])
+            duration = max(0.1, float(outro[1]) - float(outro[0]))
+            alpha = int(210 + 45 * min(1.0, float(state.get("scene_timer", 0.0)) / duration))
+        scene.fill((0, 0, 0, alpha))
+        screen.blit(scene, (0, 0))
+    _draw_chase_progress(game, screen)
+
+
+def _draw_chase_progress(game, screen):
+    progress = game.chase_controller.get_spatial_progress(game)
+    if not progress or not progress.get("visible", False):
+        return
+    alpha = max(0, min(255, int(255 * float(progress.get("alpha", 1.0)))))
+    panel_w = min(720, max(420, int(screen.get_width() * 0.56)))
+    panel_h = 64
+    panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+    panel.fill((5, 12, 19, int(205 * alpha / 255)))
+    bar = pygame.Rect(54, 15, panel_w - 108, 12)
+    flashing = bool(progress.get("danger")) and (pygame.time.get_ticks() // 180) % 2 == 0
+    border_color = (245, 55, 55) if flashing else (150, 195, 220)
+    pygame.draw.rect(panel, (20, 34, 44, alpha), bar, border_radius=5)
+    pygame.draw.rect(panel, (*border_color, alpha), bar, 2, border_radius=5)
+    inner = bar.inflate(-4, -4)
+    fill_w = int(inner.width * float(progress.get("player_progress", 0.0)))
+    if fill_w > 0:
+        pygame.draw.rect(
+            panel, (45, 125, 190, int(150 * alpha / 255)),
+            (inner.x, inner.y, fill_w, inner.height), border_radius=3,
+        )
+
+    def marker_x(value):
+        return bar.x + int(bar.width * max(0.0, min(1.0, float(value))))
+
+    player_x = marker_x(progress.get("player_progress", 0.0))
+    player_color = (245, 55, 55) if flashing else (65, 165, 255)
+    pygame.draw.polygon(
+        panel,
+        (*player_color, alpha),
+        [(player_x, 7), (player_x - 6, 14), (player_x + 6, 14)],
+    )
+    if progress.get("monster_visible"):
+        monster_x = marker_x(progress.get("monster_progress", 0.0))
+        pygame.draw.polygon(
+            panel,
+            (235, 55, 55, alpha),
+            [(monster_x, 29), (monster_x - 6, 22), (monster_x + 6, 22)],
+        )
+
+    font = _q(15, bold=True)
+    small = _q(13, bold=True)
+    start = small.render("起點", True, (190, 215, 230))
+    end = small.render("終點", True, (190, 215, 230))
+    detail = font.render(
+        f"進度 {float(progress.get('completion_percent', 0.0)):.1f}%　"
+        f"距離終點 {int(progress.get('remaining_tiles', 0))} 格",
+        True,
+        (225, 238, 245),
+    )
+    start.set_alpha(alpha)
+    end.set_alpha(alpha)
+    detail.set_alpha(alpha)
+    panel.blit(start, (8, 10))
+    panel.blit(end, (panel_w - end.get_width() - 8, 10))
+    panel.blit(detail, ((panel_w - detail.get_width()) // 2, 37))
+    screen.blit(panel, ((screen.get_width() - panel_w) // 2, 12))
+
+
 def draw(game, screen):
     screen.fill((0, 0, 0))
-    map_view_h = VIEWPORT
-    map_view_w = VIEWPORT
-    tile_h = TILE_SIZE
-    tile_w = TILE_SIZE
+    chase = getattr(game, "chase_controller", None)
+    chase_wide = bool(
+        chase
+        and chase.is_chase_map(game)
+    )
+    if chase_wide:
+        map_view_w = 33
+        map_view_h = 11
+        tile_w = screen.get_width() / map_view_w
+        tile_h = tile_w
+    else:
+        map_view_w = VIEWPORT
+        map_view_h = VIEWPORT
+        tile_w = TILE_SIZE
+        tile_h = TILE_SIZE
     view_w_px = map_view_w * tile_w
     view_h_px = map_view_h * tile_h
+    draw_tile_w = max(1, int(math.ceil(tile_w)))
+    draw_tile_h = max(1, int(math.ceil(tile_h)))
     if hasattr(game, "get_player_draw_pos"):
         px, py = game.get_player_draw_pos()
     else:
         px, py = (game.player.x, game.player.y)
-    cam_px = px * tile_w + tile_w / 2 - view_w_px / 2
+    if chase_wide:
+        cam_px = px * tile_w + tile_w / 2 - view_w_px * (2 / 3)
+    else:
+        cam_px = px * tile_w + tile_w / 2 - view_w_px / 2
     cam_py = py * tile_h + tile_h / 2 - view_h_px / 2
     max_cam_px = max(0, game.map.w * tile_w - view_w_px)
     max_cam_py = max(0, game.map.h * tile_h - view_h_px)
     cam_px = clamp(cam_px, 0, max_cam_px)
     cam_py = clamp(cam_py, 0, max_cam_py)
+    if chase_wide and game.map.h <= map_view_h:
+        world_area_h = max(0, screen.get_height() - TILE_SIZE)
+        cam_py = -max(0.0, (world_area_h - game.map.h * tile_h) / 2)
     left = int(cam_px // tile_w)
     top = int(cam_py // tile_h)
     offset_x = -(cam_px - left * tile_w)
@@ -3137,6 +3778,7 @@ def draw(game, screen):
     mission_target_map = {}
     show_data_targets = False
     show_terminal_targets = False
+    active_item_targets = set()
     mission_area_targets = []
     if hasattr(game, "get_active_missions"):
         for mission in game.get_active_missions():
@@ -3150,6 +3792,10 @@ def draw(game, screen):
                     show_data_targets = True
                 elif typ in {"UD", "UPLOAD_DATA"}:
                     show_terminal_targets = True
+                elif typ in {"CI", "COLLECT_ITEM"}:
+                    item_id = str(obj.get("item_id") or obj.get("target_id") or "").strip()
+                    if item_id:
+                        active_item_targets.add(item_id)
                 area = obj.get("area")
                 obj_map = str(obj.get("map") or obj.get("target_map") or "").strip()
                 current_map = str(getattr(game.map, "name", "") or "").strip()
@@ -3191,14 +3837,21 @@ def draw(game, screen):
                 color = _m(bt)
                 tile_x = x * tile_w + offset_x
                 tile_y = y * tile_h + offset_y
-                pygame.draw.rect(screen, color, (tile_x, tile_y, tile_w, tile_h))
+                tile_draw_x = int(round(tile_x))
+                tile_draw_y = int(round(tile_y))
+                pygame.draw.rect(
+                    screen,
+                    color,
+                    pygame.Rect(tile_draw_x, tile_draw_y, draw_tile_w, draw_tile_h),
+                )
                 if bt == "04":
                     t = pygame.time.get_ticks() / 1000.0
                     alpha = int(120 + 80 * (0.5 + 0.5 * math.sin(t * 2.0)))
-                    overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
+                    overlay = pygame.Surface((draw_tile_w, draw_tile_h), pygame.SRCALPHA)
                     overlay.fill((255, 230, 120, alpha))
-                    screen.blit(overlay, (tile_x, tile_y))
-                bt_img = blocktypes.get(bt, {}).get("image")
+                    screen.blit(overlay, (tile_draw_x, tile_draw_y))
+                bt_meta = blocktypes.get(bt, {})
+                bt_img = bt_meta.get("image")
                 if bt_img:
                     draw_scale = _a(blocktypes.get(bt, {}))
                     size = (
@@ -3207,11 +3860,10 @@ def draw(game, screen):
                     )
                     img = _b(bt_img, size)
                     if img:
-                        ox = tile_x + (tile_w - size[0]) // 2
-                        oy = tile_y + (tile_h - size[1]) // 2
+                        ox = int(round(tile_x + (tile_w - size[0]) / 2))
+                        oy = int(round(tile_y + (tile_h - size[1]) / 2))
                         screen.blit(img, (ox, oy))
                 else:
-                    bt_meta = blocktypes.get(bt, {})
                     tileset_json_name = bt_meta.get("tileset_json")
                     tileset_ref = bt_meta.get("tileset_ref")
                     if tileset_json_name and tileset_ref:
@@ -3220,15 +3872,20 @@ def draw(game, screen):
                             max(1, int(tile_w * draw_scale)),
                             max(1, int(tile_h * draw_scale)),
                         )
-                        img = _c(tileset_json_name, tileset_ref, size)
+                        img = _c(
+                            tileset_json_name,
+                            tileset_ref,
+                            size,
+                            _tile_rotation(bt_meta),
+                        )
                         if img:
-                            ox = tile_x + (tile_w - size[0]) // 2
-                            oy = tile_y + (tile_h - size[1]) // 2
+                            ox = int(round(tile_x + (tile_w - size[0]) / 2))
+                            oy = int(round(tile_y + (tile_h - size[1]) / 2))
                             screen.blit(img, (ox, oy))
                 if (mx, my) in portal_set:
-                    overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
+                    overlay = pygame.Surface((draw_tile_w, draw_tile_h), pygame.SRCALPHA)
                     overlay.fill((180, 60, 220, 160))
-                    screen.blit(overlay, (tile_x, tile_y))
+                    screen.blit(overlay, (tile_draw_x, tile_draw_y))
                 area_typ = None
                 for x1, y1, x2, y2, typ in mission_area_targets:
                     if min(x1, x2) <= mx <= max(x1, x2) and min(y1, y2) <= my <= max(y1, y2):
@@ -3242,9 +3899,9 @@ def draw(game, screen):
                     if area_typ in {"UD", "UPLOAD_DATA"}:
                         outline = (210, 255, 235)
                         fill = (180, 255, 220, alpha)
-                    overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
+                    overlay = pygame.Surface((draw_tile_w, draw_tile_h), pygame.SRCALPHA)
                     overlay.fill(fill)
-                    screen.blit(overlay, (tile_x, tile_y))
+                    screen.blit(overlay, (tile_draw_x, tile_draw_y))
                     edge_left = edge_right = edge_top = edge_bottom = False
                     for x1, y1, x2, y2, typ in mission_area_targets:
                         if typ != area_typ:
@@ -3261,22 +3918,22 @@ def draw(game, screen):
                         edge_bottom = my == bottom_bound
                         break
                     if edge_left:
-                        pygame.draw.line(screen, outline, (tile_x + 1, tile_y + 1), (tile_x + 1, tile_y + tile_h - 2), 3)
+                        pygame.draw.line(screen, outline, (tile_draw_x + 1, tile_draw_y + 1), (tile_draw_x + 1, tile_draw_y + draw_tile_h - 2), 3)
                     if edge_right:
-                        pygame.draw.line(screen, outline, (tile_x + tile_w - 2, tile_y + 1), (tile_x + tile_w - 2, tile_y + tile_h - 2), 3)
+                        pygame.draw.line(screen, outline, (tile_draw_x + draw_tile_w - 2, tile_draw_y + 1), (tile_draw_x + draw_tile_w - 2, tile_draw_y + draw_tile_h - 2), 3)
                     if edge_top:
-                        pygame.draw.line(screen, outline, (tile_x + 1, tile_y + 1), (tile_x + tile_w - 2, tile_y + 1), 3)
+                        pygame.draw.line(screen, outline, (tile_draw_x + 1, tile_draw_y + 1), (tile_draw_x + draw_tile_w - 2, tile_draw_y + 1), 3)
                     if edge_bottom:
-                        pygame.draw.line(screen, outline, (tile_x + 1, tile_y + tile_h - 2), (tile_x + tile_w - 2, tile_y + tile_h - 2), 3)
+                        pygame.draw.line(screen, outline, (tile_draw_x + 1, tile_draw_y + draw_tile_h - 2), (tile_draw_x + draw_tile_w - 2, tile_draw_y + draw_tile_h - 2), 3)
                     if (edge_left or edge_right) and (edge_top or edge_bottom):
                         pygame.draw.circle(
                             screen,
                             outline,
                             (
-                                tile_x + (2 if edge_left else tile_w - 3),
-                                tile_y + (2 if edge_top else tile_h - 3),
+                                tile_draw_x + (2 if edge_left else draw_tile_w - 3),
+                                tile_draw_y + (2 if edge_top else draw_tile_h - 3),
                             ),
-                            max(2, tile_w // 8),
+                            max(2, int(draw_tile_w // 8)),
                         )
                 target = mission_target_map.get((mx, my))
                 if target:
@@ -3285,22 +3942,31 @@ def draw(game, screen):
                         kind == "data"
                         and show_data_targets
                         or (kind == "terminal" and show_terminal_targets)
+                        or (
+                            kind in {"item", "collect_item"}
+                            and str(target.get("item_id") or target.get("target_id") or "")
+                            in active_item_targets
+                        )
                     )
                     if show_target:
                         pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() / 350.0)
                         alpha = int(80 + 70 * pulse)
-                        tint = (
-                            (255, 235, 120, alpha)
-                            if kind == "data"
-                            else (180, 255, 220, alpha)
-                        )
-                        overlay = pygame.Surface((tile_w, tile_h), pygame.SRCALPHA)
+                        if kind == "data":
+                            tint = (255, 235, 120, alpha)
+                            edge = (255, 245, 170)
+                        elif kind in {"item", "collect_item"}:
+                            tint = (125, 210, 255, alpha)
+                            edge = (165, 225, 255)
+                        else:
+                            tint = (180, 255, 220, alpha)
+                            edge = (210, 255, 235)
+                        overlay = pygame.Surface((draw_tile_w, draw_tile_h), pygame.SRCALPHA)
                         overlay.fill(tint)
-                        screen.blit(overlay, (tile_x, tile_y))
+                        screen.blit(overlay, (tile_draw_x, tile_draw_y))
                         pygame.draw.rect(
                             screen,
-                            (255, 245, 170) if kind == "data" else (210, 255, 235),
-                            (tile_x + 1, tile_y + 1, tile_w - 2, tile_h - 2),
+                            edge,
+                            pygame.Rect(tile_draw_x + 1, tile_draw_y + 1, max(1, draw_tile_w - 2), max(1, draw_tile_h - 2)),
                             2,
                         )
     for x1, y1, x2, y2, typ in mission_area_targets:
@@ -3324,6 +3990,7 @@ def draw(game, screen):
             max(1, int(rect_bottom - rect_top)),
         )
         pygame.draw.rect(screen, outline, rect, 4)
+    _draw_world_campfires(game, screen, cam_px, cam_py, tile_w, tile_h)
     view_rect = pygame.Rect(cam_px, cam_py, view_w_px, view_h_px)
     for ent in game.entities:
         ent_size = getattr(ent, "size", 1)
@@ -3386,8 +4053,14 @@ def draw(game, screen):
                 cx = base_x - col * (star_size + gap) + star_size // 2
                 cy = base_y - row * (star_size + gap) + star_size // 2
                 _o(screen, cx, cy, star_size // 2, (248, 222, 90), (255, 245, 180))
+    if chase and chase.is_chase_map(game):
+        _draw_chase_transition(game, screen, cam_px, cam_py, tile_w, tile_h)
     _h(game, screen, cam_px, cam_py, tile_w, tile_h)
-    minimap_rect = _p(game, screen, cam_px, cam_py, view_w_px, view_h_px, mission_area_targets)
+    minimap_rect = None
+    if not (chase and chase.is_chase_map(game)):
+        minimap_rect = _p(
+            game, screen, cam_px, cam_py, view_w_px, view_h_px, mission_area_targets
+        )
     tracking_lines = (
         game.get_tracking_summary_lines()
         if hasattr(game, "get_tracking_summary_lines")
@@ -3478,6 +4151,9 @@ def draw(game, screen):
     draw_blackjack_bet(game, screen)
     draw_dialog(game, screen)
     draw_mission_board(game, screen)
+    draw_story_timeline(game, screen)
+    draw_story_title_card(game, screen)
+    draw_story_mission_card(game, screen)
     draw_blackjack(game, screen)
     draw_shop(game, screen)
     draw_interact_picker(game, screen)
@@ -4170,6 +4846,616 @@ def draw_mission_board(game, screen):
         (panel.x + 18, panel.bottom - 28),
         thickness=2,
     )
+
+
+def _story_status_tag(status):
+    if status == "completed":
+        return "DONE"
+    if status == "active":
+        return "NOW"
+    if status == "available":
+        return "OPEN"
+    if status == "locked":
+        return "LOCK"
+    return str(status or "----").upper()[:4]
+
+
+def _story_status_color(status):
+    return {
+        "locked": (135, 140, 145),
+        "available": (245, 220, 135),
+        "active": (120, 210, 245),
+        "completed": (130, 225, 165),
+    }.get(status, (220, 220, 220))
+
+
+def _story_graph_label(node):
+    data = node.get("data", {}) or {}
+    kind = node.get("kind")
+    if kind == "stage":
+        return f"Stage {data.get('number', '')}".strip()
+    if kind == "transition":
+        return "Great Chase"
+    if kind == "line":
+        marker = "[-]" if node.get("expanded") else "[+]"
+        return f"{marker} {data.get('number') or data.get('title') or node.get('id')}"
+    return str(data.get("number") or data.get("title") or node.get("id") or "")
+
+
+def _story_graph_detail_lines(game, node):
+    data = node.get("data", {}) or {}
+    kind = node.get("kind")
+    lines = []
+
+    def section(title, values):
+        values = values if isinstance(values, list) else [values]
+        clean = [str(value) for value in values if str(value or "").strip()]
+        if not clean:
+            return
+        if lines:
+            lines.append("")
+        lines.append(f"# {title}")
+        lines.extend(clean)
+
+    if kind == "stage":
+        section(tr(game.lang, "story.detail.stage"), [data.get("title")])
+        section(tr(game.lang, "story.detail.status"), [_story_status_tag(node.get("status"))])
+        line_names = [
+            f"{line.get('number', '')}  {line.get('title', '')}".strip()
+            for line in data.get("lines", []) or []
+        ]
+        section(tr(game.lang, "story.detail.lines"), line_names)
+        return lines
+    if kind == "line":
+        role_key = "story.detail.main" if data.get("role") == "major" else "story.detail.branch"
+        section(tr(game.lang, role_key), [data.get("title")])
+        section(tr(game.lang, "story.detail.status"), [_story_status_tag(node.get("status"))])
+        mission_names = [
+            f"{mission.get('number', '')}  {mission.get('title', '')}".strip()
+            for mission in data.get("missions", []) or []
+        ]
+        section(tr(game.lang, "story.detail.missions"), mission_names)
+        return lines
+
+    section(
+        tr(game.lang, "story.detail.mission"),
+        [f"{data.get('number', '')}  {data.get('title', '')}".strip()],
+    )
+    section(tr(game.lang, "story.detail.status"), [_story_status_tag(node.get("status"))])
+    for scene in data.get("scenes", []) or []:
+        if not isinstance(scene, dict):
+            continue
+        scene_type = scene.get("type")
+        if scene_type == "dialogue":
+            source = str(scene.get("source_field", "") or "")
+            if source == "accept_lines":
+                heading = tr(game.lang, "story.detail.intro")
+            elif source == "return_lines":
+                heading = tr(game.lang, "story.detail.outro")
+            else:
+                heading = tr(game.lang, "story.detail.dialogue")
+            section(heading, scene.get("lines", []) or [])
+            continue
+        if scene_type != "mission":
+            continue
+        runtime_id = str(scene.get("runtime_id") or scene.get("mission_id") or "")
+        runtime = (
+            (getattr(game, "mission_book", {}) or {})
+            .get("missions_by_id", {})
+            .get(runtime_id, {})
+        )
+        if not isinstance(runtime, dict):
+            section(tr(game.lang, "story.detail.runtime_missing"), [runtime_id])
+            continue
+        description = runtime.get("description_lines") or runtime.get("description") or runtime.get("briefing") or []
+        section(tr(game.lang, "mission.board.briefing"), description)
+        objectives = []
+        for objective in runtime.get("objectives", []) or []:
+            if isinstance(objective, dict):
+                text = objective.get("text") or objective.get("description")
+                if not text:
+                    text = str(objective.get("type") or "objective")
+                objectives.append(text)
+            else:
+                objectives.append(objective)
+        if not objectives:
+            objectives = runtime.get("objective_lines", []) or []
+        section(tr(game.lang, "mission.board.list"), objectives)
+        rewards = []
+        for reward in runtime.get("rewards", []) or []:
+            if isinstance(reward, dict):
+                text = reward.get("text")
+                if not text:
+                    text = f"{reward.get('type', 'reward')} {reward.get('amount', '')}".strip()
+                rewards.append(text)
+            else:
+                rewards.append(reward)
+        if not rewards:
+            rewards = runtime.get("reward_lines", []) or []
+        section(tr(game.lang, "mission.board.rewards"), rewards)
+    return lines
+
+
+def _draw_story_graph_detail(screen, panel, game, node):
+    title_font = _q(21, bold=True)
+    body_font = _q(15)
+    small_font = _q(12)
+    _r(
+        screen,
+        title_font,
+        _t(title_font, _story_graph_label(node), panel.width - 40),
+        (245, 248, 250),
+        (0, 0, 0),
+        (panel.x + 20, panel.y + 16),
+        thickness=2,
+    )
+    status = str(node.get("status", "locked"))
+    status_text = _story_status_tag(status)
+    status_surf = small_font.render(status_text, True, _story_status_color(status))
+    screen.blit(status_surf, (panel.right - status_surf.get_width() - 20, panel.y + 20))
+    body_rect = pygame.Rect(panel.x + 16, panel.y + 52, panel.width - 32, panel.height - 92)
+    pygame.draw.rect(screen, (6, 20, 34), body_rect, border_radius=5)
+    pygame.draw.rect(screen, (105, 140, 162), body_rect, 1, border_radius=5)
+    wrapped = []
+    for line in _story_graph_detail_lines(game, node):
+        if not line:
+            wrapped.append("")
+        elif line.startswith("# "):
+            wrapped.append(line)
+        else:
+            wrapped.extend(_ab(body_font, line, body_rect.width - 24))
+    line_h = body_font.get_height() + 5
+    max_rows = max(1, (body_rect.height - 18) // line_h)
+    max_scroll = max(0, len(wrapped) - max_rows)
+    scroll = max(0, min(max_scroll, int(getattr(game, "story_graph_detail_scroll", 0))))
+    game.story_graph_detail_scroll = scroll
+    y = body_rect.y + 10
+    for line in wrapped[scroll : scroll + max_rows]:
+        if not line:
+            y += line_h // 2
+            continue
+        heading = line.startswith("# ")
+        text = line[2:] if heading else line
+        color = (190, 222, 240) if heading else (232, 237, 241)
+        _r(screen, body_font, text, color, (0, 0, 0), (body_rect.x + 12, y), thickness=1)
+        y += line_h
+    if scroll > 0:
+        _r(screen, small_font, "▲", (180, 205, 220), (0, 0, 0), (body_rect.right - 20, body_rect.y + 4))
+    if scroll < max_scroll:
+        _r(screen, small_font, "▼", (180, 205, 220), (0, 0, 0), (body_rect.right - 20, body_rect.bottom - 20))
+    hint = tr(game.lang, "story.detail.controls")
+    hint_surf = small_font.render(hint, True, (170, 195, 210))
+    screen.blit(hint_surf, (panel.centerx - hint_surf.get_width() // 2, panel.bottom - 27))
+
+
+def _draw_story_timeline_detail(screen, panel, game, font):
+    graph = game.get_story_graph() if hasattr(game, "get_story_graph") else {}
+    nodes = graph.get("nodes", [])
+    nodes_by_id = graph.get("nodes_by_id", {})
+    if not nodes:
+        _r(screen, font, tr(game.lang, "preview.story_empty"), (230, 210, 170), (0, 0, 0), (panel.x + 24, panel.y + 54))
+        return
+    selected_id = str(getattr(game, "story_graph_selected_id", "") or "")
+    if selected_id not in nodes_by_id:
+        selected_id = "stage_1" if "stage_1" in nodes_by_id else nodes[0]["id"]
+        game.story_graph_selected_id = selected_id
+        game.story_graph_pan_initialized = False
+    selected_node = nodes_by_id[selected_id]
+    if getattr(game, "story_graph_view", "graph") == "detail":
+        _draw_story_graph_detail(screen, panel, game, selected_node)
+        return
+
+    title_font = _q(18, bold=True)
+    node_font = _q(13, bold=True)
+    small_font = _q(11)
+    _r(screen, title_font, tr(game.lang, "preview.story").upper(), (245, 245, 245), (0, 0, 0), (panel.x + 16, panel.y + 10), thickness=2)
+    graph_rect = pygame.Rect(panel.x + 12, panel.y + 40, panel.width - 24, panel.height - 76)
+    pygame.draw.rect(screen, (5, 17, 29), graph_rect)
+    pygame.draw.rect(screen, (125, 165, 190), graph_rect, 1)
+    top_nodes = [node for node in nodes if node.get("kind") in {"stage", "transition"}]
+    top_height = 104
+    top_rect = pygame.Rect(graph_rect.x, graph_rect.y, graph_rect.width, top_height)
+    internal_rect = pygame.Rect(
+        graph_rect.x,
+        graph_rect.y + top_height,
+        graph_rect.width,
+        graph_rect.height - top_height,
+    )
+    pygame.draw.line(
+        screen,
+        (70, 102, 122),
+        (graph_rect.x, internal_rect.y),
+        (graph_rect.right, internal_rect.y),
+        1,
+    )
+    canvas = graph.get("canvas", {}) or {}
+    canvas_w = max(internal_rect.width, int(canvas.get("width", internal_rect.width)))
+    canvas_h = max(internal_rect.height, int(canvas.get("height", internal_rect.height)) - 180)
+    selected_pos = selected_node.get("position", [0, 0])
+    if not bool(getattr(game, "story_graph_pan_initialized", False)):
+        if selected_node.get("kind") in {"stage", "transition"}:
+            game.story_graph_pan_x = 0.0
+            game.story_graph_pan_y = 0.0
+        else:
+            game.story_graph_pan_x = float(selected_pos[0]) - internal_rect.width / 2
+            game.story_graph_pan_y = float(selected_pos[1] - 180) - internal_rect.height / 2
+        game.story_graph_pan_initialized = True
+    pan_x = max(0.0, min(float(canvas_w - internal_rect.width), float(getattr(game, "story_graph_pan_x", 0.0))))
+    pan_y = max(0.0, min(float(canvas_h - internal_rect.height), float(getattr(game, "story_graph_pan_y", 0.0))))
+    game.story_graph_pan_x = pan_x
+    game.story_graph_pan_y = pan_y
+
+    top_centers = {}
+    top_cell_w = graph_rect.width / max(1, len(top_nodes))
+    for index, node in enumerate(top_nodes):
+        top_centers[node["id"]] = (
+            int(graph_rect.x + top_cell_w * (index + 0.5)),
+            graph_rect.y + 48,
+        )
+
+    def point(node):
+        if node["id"] in top_centers:
+            return top_centers[node["id"]]
+        position = node.get("position", [0, 0])
+        return (
+            int(internal_rect.x + position[0] - pan_x),
+            int(internal_rect.y + position[1] - 180 - pan_y),
+        )
+
+    centers = {node["id"]: point(node) for node in nodes}
+    old_clip = screen.get_clip()
+    screen.set_clip(graph_rect)
+    for edge in graph.get("edges", []) or []:
+        source = centers.get(edge.get("from"))
+        target = centers.get(edge.get("to"))
+        if not source or not target:
+            continue
+        edge_type = edge.get("type", "major")
+        color = (120, 155, 175)
+        if edge_type == "stage":
+            color = (205, 185, 115)
+        elif edge_type == "branch":
+            color = (115, 130, 145)
+            points = []
+            steps = max(2, int(abs(target[0] - source[0]) / 12))
+            for index in range(steps + 1):
+                ratio = index / steps
+                x = source[0] + (target[0] - source[0]) * ratio
+                y = source[1] + (target[1] - source[1]) * ratio + math.sin(ratio * math.pi * steps) * 3
+                points.append((int(x), int(y)))
+            pygame.draw.lines(screen, color, False, points, 2)
+            continue
+        pygame.draw.line(screen, color, source, target, 3)
+
+    sizes = {
+        "stage": (max(58, int(top_cell_w) - 8), 48),
+        "transition": (max(66, int(top_cell_w) - 5), 48),
+        "line": (106, 44),
+        "mission": (102, 38),
+    }
+    game.story_graph_hitboxes = []
+    for node in nodes:
+        rect = pygame.Rect(0, 0, *sizes.get(node.get("kind"), (102, 38)))
+        rect.center = centers[node["id"]]
+        if not rect.colliderect(graph_rect.inflate(20, 20)):
+            continue
+        if rect.colliderect(graph_rect):
+            game.story_graph_hitboxes.append((node["id"], rect.copy()))
+        status = str(node.get("status", "locked"))
+        color = _story_status_color(status)
+        selected = node["id"] == selected_id
+        fill = (27, 62, 82) if status != "locked" else (43, 47, 51)
+        if selected:
+            fill = (76, 67, 31)
+        pygame.draw.rect(screen, fill, rect, border_radius=5)
+        pygame.draw.rect(screen, (255, 235, 135) if selected else color, rect, 3 if selected else 2, border_radius=5)
+        draw_font = _q(9, bold=True) if node.get("kind") in {"stage", "transition"} else node_font
+        label = _t(draw_font, _story_graph_label(node), rect.width - 6)
+        label_surf = draw_font.render(label, True, (245, 245, 245) if status != "locked" else (175, 178, 181))
+        screen.blit(label_surf, (rect.centerx - label_surf.get_width() // 2, rect.y + 4))
+        tag = _story_status_tag(status)
+        tag_surf = small_font.render(tag, True, color)
+        screen.blit(tag_surf, (rect.centerx - tag_surf.get_width() // 2, rect.bottom - 14))
+    screen.set_clip(old_clip)
+    hint = tr(game.lang, "story.graph.controls")
+    hint_surf = small_font.render(hint, True, (170, 195, 210))
+    screen.blit(hint_surf, (panel.centerx - hint_surf.get_width() // 2, panel.bottom - 26))
+
+
+def _draw_story_timeline_list_legacy(screen, panel, game, font):
+    small_font = _q(13)
+    title_font = _q(18, bold=True)
+    stages = (
+        game.get_story_stage_entries()
+        if hasattr(game, "get_story_stage_entries")
+        else []
+    )
+    rows = (
+        game.get_story_timeline_rows()
+        if hasattr(game, "get_story_timeline_rows")
+        else []
+    )
+    selected = (
+        max(
+            0,
+            min(
+                len(rows) - 1,
+                int(getattr(game, "story_timeline_selected", 0) or 0),
+            ),
+        )
+        if rows
+        else 0
+    )
+    selected_id = str(rows[selected].get("id") or "") if rows else ""
+    if rows:
+        game.story_timeline_selected = selected
+    _r(
+        screen,
+        title_font,
+        tr(game.lang, "preview.story").upper(),
+        (245, 245, 245),
+        (0, 0, 0),
+        (panel.x + 20, panel.y + 12),
+        thickness=2,
+    )
+    if not stages:
+        _r(
+            screen,
+            font,
+            tr(game.lang, "preview.story_empty"),
+            (230, 210, 170),
+            (0, 0, 0),
+            (panel.x + 24, panel.y + 54),
+        )
+        return
+    stage_parts = []
+    for stage in stages:
+        stage_parts.append(
+            f"[{_story_status_tag(stage.get('status', ''))} "
+            f"Stage {stage.get('number', '')}: {stage.get('title', '')}]"
+        )
+    _r(
+        screen,
+        font,
+        _t(font, " --- ".join(stage_parts), panel.width - 42),
+        (220, 235, 245),
+        (0, 0, 0),
+        (panel.x + 20, panel.y + 46),
+        thickness=2,
+    )
+    display_lines = []
+    display_ids = []
+    for stage in stages:
+        stage_lines = stage.get("lines", []) or []
+        for line_i, line in enumerate(stage_lines):
+            branch = "`--" if line_i == len(stage_lines) - 1 else "|--"
+            display_lines.append(
+                f"{branch} [{_story_status_tag(line.get('status', ''))} "
+                f"{line.get('number', '')}: {line.get('title', '')}]"
+            )
+            display_ids.append(str(line.get("id") or ""))
+            missions = line.get("missions", []) or []
+            if missions:
+                display_lines.append(
+                    "    `-- "
+                    + " -- ".join(
+                        f"[{_story_status_tag(m.get('status', ''))} {m.get('number', '')}]"
+                        for m in missions
+                    )
+                )
+                display_ids.append("|".join(str(m.get("id") or "") for m in missions))
+    max_lines = max(1, (panel.height - 122) // (font.get_height() + 8))
+    selected_line = 0
+    if selected_id:
+        for i, row_id in enumerate(display_ids):
+            if selected_id in str(row_id).split("|"):
+                selected_line = i
+                break
+    scroll = max(
+        0,
+        min(
+            int(getattr(game, "story_timeline_scroll", 0) or 0),
+            max(0, len(display_lines) - max_lines),
+        ),
+    )
+    if selected_line < scroll:
+        scroll = selected_line
+    elif selected_line >= scroll + max_lines:
+        scroll = selected_line - max_lines + 1
+    game.story_timeline_scroll = scroll
+    row_by_id = {str(row.get("id") or ""): row for row in rows}
+    y = panel.y + 84
+    for i, text in enumerate(display_lines[scroll : scroll + max_lines], start=scroll):
+        row_id = display_ids[i] if i < len(display_ids) else ""
+        is_selected = bool(row_id and selected_id in str(row_id).split("|"))
+        rect = pygame.Rect(panel.x + 16, y - 3, panel.width - 32, font.get_height() + 6)
+        if is_selected:
+            pygame.draw.rect(screen, (54, 75, 88), rect, border_radius=4)
+            pygame.draw.rect(screen, (160, 220, 245), rect, 1, border_radius=4)
+        row = row_by_id.get(selected_id if is_selected else str(row_id).split("|")[0], {})
+        status = (row.get("data") or {}).get("status", "")
+        _r(
+            screen,
+            font,
+            _t(font, text, panel.width - 44),
+            _story_status_color(status),
+            (0, 0, 0),
+            (panel.x + 24, y),
+            thickness=2,
+        )
+        y += font.get_height() + 8
+    _r(
+        screen,
+        small_font,
+        "Up/Down switch branch   Enter select   ESC back",
+        (180, 205, 225),
+        (0, 0, 0),
+        (panel.x + 20, panel.bottom - 28),
+        thickness=2,
+    )
+
+
+def draw_story_timeline(game, screen):
+    if getattr(game, "ui_mode", None) != "story_timeline":
+        return
+    rows = (
+        game.get_story_timeline_rows()
+        if hasattr(game, "get_story_timeline_rows")
+        else []
+    )
+    w, h = screen.get_size()
+    panel = pygame.Rect(max(20, w // 12), max(20, h // 10), w - max(40, w // 6), h - max(40, h // 5))
+    overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 150))
+    screen.blit(overlay, (0, 0))
+    pygame.draw.rect(screen, (18, 24, 30), panel, border_radius=6)
+    pygame.draw.rect(screen, (190, 210, 220), panel, 2, border_radius=6)
+    title_font = _q(24, bold=True)
+    body_font = _q(16)
+    small_font = _q(13)
+    _r(screen, title_font, tr(game.lang, "preview.story"), (245, 245, 245), (0, 0, 0), (panel.x + 20, panel.y + 16))
+    if not rows:
+        _r(screen, body_font, tr(game.lang, "preview.story_empty"), (230, 210, 170), (0, 0, 0), (panel.x + 24, panel.y + 62))
+        return
+    selected = max(
+        0,
+        min(len(rows) - 1, int(getattr(game, "story_timeline_selected", 0) or 0)),
+    )
+    game.story_timeline_selected = selected
+    max_rows = max(1, (panel.h - 90) // 34)
+    scroll = max(
+        0,
+        min(
+            int(getattr(game, "story_timeline_scroll", 0) or 0),
+            max(0, len(rows) - max_rows),
+        ),
+    )
+    if selected < scroll:
+        scroll = selected
+    elif selected >= scroll + max_rows:
+        scroll = selected - max_rows + 1
+    game.story_timeline_scroll = scroll
+    status_color = {
+        "locked": (135, 140, 145),
+        "available": (245, 220, 135),
+        "active": (120, 210, 245),
+        "completed": (130, 225, 165),
+    }
+    y = panel.y + 62
+    for idx, row in enumerate(rows[scroll : scroll + max_rows], start=scroll):
+        data = row.get("data", {})
+        kind = row.get("kind")
+        status = data.get("status", "")
+        rect = pygame.Rect(panel.x + 20, y, panel.w - 40, 28)
+        if idx == selected:
+            pygame.draw.rect(screen, (54, 75, 88), rect, border_radius=4)
+        if kind == "stage":
+            indent = 0
+            label = f"Stage {data.get('number', '')} {data.get('title', '')}"
+            pygame.draw.line(
+                screen,
+                (120, 140, 150),
+                (rect.x + 8, rect.y + 28),
+                (rect.x + 8, rect.y + 34),
+                2,
+            )
+        elif kind == "line":
+            indent = 24
+            label = (
+                f"{data.get('number', '')} {data.get('role', 'line')} - "
+                f"{data.get('title', '')}"
+            )
+        else:
+            indent = 50
+            label = f"{data.get('number', '')} {data.get('title', '')}"
+        color = status_color.get(status, (220, 220, 220))
+        pygame.draw.circle(screen, color, (rect.x + 10 + indent, rect.y + 14), 6)
+        _r(
+            screen,
+            body_font,
+            _t(body_font, label, rect.w - indent - 130),
+            (238, 238, 238),
+            (0, 0, 0),
+            (rect.x + 24 + indent, rect.y + 4),
+        )
+        _r(
+            screen,
+            small_font,
+            status or "-",
+            color,
+            (0, 0, 0),
+            (rect.right - 98, rect.y + 6),
+        )
+        y += 34
+
+
+def draw_story_title_card(game, screen):
+    card = getattr(game, "story_title_card", None)
+    if getattr(game, "ui_mode", None) != "story_title_card" or not isinstance(card, dict):
+        return
+    now = time.time()
+    elapsed = now - float(card.get("started_at", now) or now)
+    hold = float(card.get("hold_seconds", 1.5) or 1.5)
+    fade = max(0.001, float(card.get("fade_seconds", 1.0) or 1.0))
+    if elapsed <= 0.4:
+        alpha = int(220 * min(1.0, elapsed / 0.4))
+    elif elapsed <= hold:
+        alpha = 220
+    else:
+        alpha = int(220 * max(0.0, 1.0 - ((elapsed - hold) / fade)))
+    overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, max(0, min(220, alpha))))
+    screen.blit(overlay, (0, 0))
+    label_font = _q(30, bold=True)
+    title_font = _q(22, bold=True)
+    label = str(card.get("label", "Stage") or "Stage")
+    title = str(card.get("title", "") or "")
+    cx = screen.get_width() // 2
+    cy = screen.get_height() // 2
+    label_surf = label_font.render(label, True, (245, 245, 245))
+    title_surf = title_font.render(title, True, (220, 235, 240))
+    label_surf.set_alpha(max(0, min(255, alpha + 25)))
+    title_surf.set_alpha(max(0, min(255, alpha + 25)))
+    screen.blit(label_surf, (cx - label_surf.get_width() // 2, cy - 44))
+    screen.blit(title_surf, (cx - title_surf.get_width() // 2, cy + 4))
+
+
+def draw_story_mission_card(game, screen):
+    card = getattr(game, "story_mission_card", None)
+    if not isinstance(card, dict):
+        return
+    now = time.time()
+    age = now - float(card.get("created", now) or now)
+    duration = float(card.get("duration", 2.4) or 2.4)
+    if age > duration:
+        game.story_mission_card = None
+        return
+    fade = 0.35
+    if age < fade:
+        alpha = int(230 * (age / fade))
+    elif age > duration - fade:
+        alpha = int(230 * max(0.0, (duration - age) / fade))
+    else:
+        alpha = 230
+    w, h = screen.get_size()
+    card_w = min(max(360, w // 2), w - 80)
+    card_h = 96
+    x = w // 2 - card_w // 2
+    y = h // 2 - card_h // 2 - max(30, h // 10)
+    box = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+    box.fill((12, 24, 34, max(0, min(230, alpha))))
+    pygame.draw.rect(box, (210, 230, 235, max(0, min(255, alpha))), box.get_rect(), 2, border_radius=6)
+    screen.blit(box, (x, y))
+    label_font = _q(18, bold=True)
+    title_font = _q(22, bold=True)
+    label = str(card.get("label", "任務進行中") or "任務進行中")
+    title = str(card.get("title", "") or "")
+    label_surf = label_font.render(_t(label_font, label, card_w - 40), True, (245, 230, 170))
+    title_surf = title_font.render(_t(title_font, title, card_w - 40), True, (245, 248, 250))
+    label_surf.set_alpha(max(0, min(255, alpha + 25)))
+    title_surf.set_alpha(max(0, min(255, alpha + 25)))
+    screen.blit(label_surf, (x + 22, y + 18))
+    screen.blit(title_surf, (x + 22, y + 48))
 
 
 def _dialog_layout(screen):

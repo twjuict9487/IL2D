@@ -77,7 +77,7 @@ SHOP_FILE = _resolve_json_prefer("shop")
 SPELLS_FILE = _resolve_json_prefer("spells")
 MAGICS_FILE = _resolve_json_prefer("magics")
 OBJECTIVES_FILE = _resolve_json_prefer("objectives")
-MISSIONS_FILE = _resolve_json_prefer_many("Loremissions", "loremissions", "missions")
+MISSIONS_FILE = _resolve_json_prefer_many("missions", "Loremissions", "loremissions")
 MISSION_TYPES_FILE = _resolve_json_prefer_many(
     "Mission Type", "mission type", "mission_types", "MTS"
 )
@@ -116,6 +116,11 @@ def _iter_mod_dialog_dirs():
 
 
 def resolve_map_file(map_name):
+    legacy_aliases = {
+        "new_rite.json": "new_ritc.json",
+        "new_ritc_progrssion.json": "new_ritc_progression.json",
+    }
+    map_name = legacy_aliases.get(str(map_name or "").lower(), map_name)
     candidates = resolve_map_candidates(map_name)
     if candidates:
         return candidates[0]

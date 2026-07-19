@@ -26,6 +26,9 @@ class AudioManager:
         self.bgm_playing = False
         self.current_bgm_ref = None
         self.current_bgm_resolved = None
+        self.bgm_segment_start = 0.0
+        self.bgm_segment_end = None
+        self.bgm_segment_loop = False
         ensure_primed_from_file(__file__)
 
         if not self.sfx_index_path:
@@ -95,10 +98,69 @@ class AudioManager:
             self.bgm_playing = True
             self.current_bgm_ref = self.bgm_path
             self.current_bgm_resolved = resolved
+            self.bgm_segment_start = 0.0
+            self.bgm_segment_end = None
+            self.bgm_segment_loop = False
             return True
         except Exception as exc:
             print(f"[audio] bgm play failed: {exc}")
             return False
+
+    def play_bgm_segment(self, bgm_path, start=0.0, end=None, loop=False, fade_ms=0):
+        resolved = self._resolve_audio_path(bgm_path)
+        if not resolved:
+            print(f"[audio] bgm file not found: {bgm_path}")
+            return False
+        try:
+            start = max(0.0, float(start or 0.0))
+            end = float(end) if end is not None else None
+            if end is not None and end <= start:
+                raise ValueError("segment end must be after start")
+            pygame.mixer.music.load(resolved)
+            pygame.mixer.music.set_volume(self.bgm_volume)
+            pygame.mixer.music.play(
+                0,
+                start=start,
+                fade_ms=max(0, int(fade_ms or 0)),
+            )
+            self.bgm_path = bgm_path
+            self.bgm_playing = True
+            self.current_bgm_ref = bgm_path
+            self.current_bgm_resolved = resolved
+            self.bgm_segment_start = start
+            self.bgm_segment_end = end
+            self.bgm_segment_loop = bool(loop)
+            return True
+        except Exception as exc:
+            print(f"[audio] bgm segment play failed: {exc}")
+            return False
+
+    def get_bgm_position(self):
+        if not self.bgm_playing:
+            return None
+        try:
+            elapsed_ms = pygame.mixer.music.get_pos()
+            if elapsed_ms < 0:
+                return None
+            return self.bgm_segment_start + elapsed_ms / 1000.0
+        except Exception:
+            return None
+
+    def update_bgm_segment(self):
+        if not self.bgm_playing or self.bgm_segment_end is None:
+            return False
+        position = self.get_bgm_position()
+        if position is None or position < self.bgm_segment_end:
+            return False
+        if self.bgm_segment_loop:
+            return self.play_bgm_segment(
+                self.current_bgm_ref,
+                self.bgm_segment_start,
+                self.bgm_segment_end,
+                loop=True,
+            )
+        self.stop_bgm()
+        return True
 
     def switch_bgm(self, bgm_path=None, fadeout_ms=350, fadein_ms=350):
         target_ref = bgm_path if bgm_path else self.bgm_path
@@ -130,6 +192,9 @@ class AudioManager:
             self.bgm_playing = False
             self.current_bgm_ref = None
             self.current_bgm_resolved = None
+            self.bgm_segment_start = 0.0
+            self.bgm_segment_end = None
+            self.bgm_segment_loop = False
             return True
         except Exception as exc:
             print(f"[audio] bgm stop failed: {exc}")

@@ -22,12 +22,21 @@ def on_update(ctx, _dt):
 
     try:
         nodes = getattr(game, "world_map_nodes", {})
-        if isinstance(nodes, dict):
+        structured = bool(nodes) and all(
+            isinstance(meta, dict) and isinstance(meta.get("position"), list)
+            for meta in nodes.values()
+        )
+        if isinstance(nodes, dict) and not structured:
             nodes.setdefault("farm_01.json", {"w": 16, "h": 16})
             game.world_map_nodes = nodes
-        edges = set(tuple(e) for e in (getattr(game, "world_map_edges", []) or []))
-        edges.add(tuple(sorted(("map_2.json", "farm_01.json"))))
-        game.world_map_edges = sorted(list(edges))
+        if not structured:
+            edges = set(
+                tuple(edge)
+                for edge in (getattr(game, "world_map_edges", []) or [])
+                if isinstance(edge, (list, tuple)) and len(edge) >= 2
+            )
+            edges.add(tuple(sorted(("map_2.json", "farm_01.json"))))
+            game.world_map_edges = sorted(list(edges))
     except Exception:
         pass
 

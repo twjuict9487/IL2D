@@ -4,6 +4,7 @@ from ..world.map import npc_data
 from ..support.i18n import tr
 from ..support.utils import SAVE_DIR, load_json
 from . import missions as game_missions
+from .story import normalize_story_state
 
 
 def open_save(game):
@@ -16,6 +17,15 @@ def save_game(game):
         game._normalize_mission_state()
     slot = game.save_selected + 1
     save_path = os.path.join(SAVE_DIR, f"slot_{slot}.json")
+    chase_controller = getattr(game, "chase_controller", None)
+    chase_payload = chase_controller.serialize() if chase_controller else {}
+    if (
+        chase_controller
+        and chase_controller.is_chase_map(game)
+        and chase_controller.state.get("save_context")
+    ):
+        chase_payload["checkpoint_authorized"] = True
+        chase_payload["checkpoint_slot"] = slot
     payload = {
         "map": game.map.name,
         "player": {
@@ -40,6 +50,10 @@ def save_game(game):
         "tracked_mission": getattr(game, "tracked_mission", None),
         "objective_selected": int(getattr(game, "objective_selected", 0)),
         "mission_state": getattr(game, "mission_state", {}),
+        "story_state": getattr(game, "story_state", {}),
+        "opening_showcase_completed": bool(
+            getattr(game, "opening_showcase_completed", False)
+        ),
         "mission_complete_count": int(
             getattr(
                 game, "mission_complete_count", getattr(game, "kaltsit_completed", 0)
@@ -68,15 +82,30 @@ def save_game(game):
         "team_equipment": getattr(game, "team_equipment", {}),
         "level_stat_pending": int(getattr(game, "level_stat_pending", 0)),
         "explored_maps": sorted(list(getattr(game, "explored_maps", set()))),
+        "activated_campfires": sorted(
+            list(getattr(game, "activated_campfires", set()))
+        ),
+        "chase_checkpoint": chase_payload,
     }
-    with open(save_path, "w", encoding="utf-8") as f:
-        import json
+    try:
+        with open(save_path, "w", encoding="utf-8") as f:
+            import json
 
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        print(f"[save] slot {slot} failed: {exc}")
+        game.last_saved = False
+        if chase_controller:
+            chase_controller.on_save_result(game, slot, False)
+        game.push_message(tr(game.lang, "msg.save_failed", reason=str(exc)))
+        return False
     game.last_saved = True
     game.last_save_slot = slot
     game.push_message(tr(game.lang, "msg.saved_slot", slot=slot))
     game.tutorial_notify("game_saved", slot=slot)
+    if chase_controller:
+        chase_controller.on_save_result(game, slot, True)
+    return True
 
 
 def load_save(game, slot):
@@ -84,12 +113,17 @@ def load_save(game, slot):
     if not os.path.isfile(save_path):
         return False
     data = load_json(save_path)
+    game._loading_save = True
     map_name = data.get("map", "map_1.json")
     game.load_map(map_name)
     pdata = data.get("player", {})
     game.player.x = pdata.get("x", game.player.x)
     game.player.y = pdata.get("y", game.player.y)
     game.player_name = pdata.get("name", game.player_name)
+    # Legacy saves predate the showcase and must never replay it on load.
+    game.opening_showcase_completed = bool(
+        data.get("opening_showcase_completed", True)
+    )
     game.player.max_hp = pdata.get("max_hp", game.player.max_hp)
     game.player.hp = pdata.get("hp", game.player.hp)
     game.player.max_mp = pdata.get("max_mp", game.player.max_mp)
@@ -251,11 +285,36 @@ def load_save(game, slot):
         game.explored_maps = set(
             [str(v) for v in loaded_explored if isinstance(v, str)]
         )
+    loaded_campfires = data.get("activated_campfires", [])
+    game.activated_campfires = set(
+        str(value).strip()
+        for value in loaded_campfires
+        if isinstance(value, str) and str(value).strip()
+    ) if isinstance(loaded_campfires, list) else set()
     if hasattr(game, "mark_map_explored"):
         game.mark_map_explored(game.map.name)
     game.level_stat_selected = 0
     if hasattr(game, "_normalize_mission_state"):
         game._normalize_mission_state()
+    try:
+        game_missions.reconcile_world_key_interactions(game)
+    except Exception as exc:
+        print(f"[mission restore] key interaction reconcile failed: {exc}")
+    loaded_story_state = data.get("story_state", None)
+    game.story_state = normalize_story_state(
+        loaded_story_state if isinstance(loaded_story_state, dict) else {},
+        getattr(game, "story_book", None),
+    )
+    game.story_title_card = game.story_state.get("title_card")
+    if isinstance(game.story_title_card, dict):
+        game.story_title_card["started_at"] = __import__("time").time()
+        game.story_state["title_card"] = game.story_title_card
+    story_manager = getattr(game, "story_manager", None)
+    if story_manager:
+        story_manager.reconcile_runtime_completion(game)
+    chase_controller = getattr(game, "chase_controller", None)
+    if chase_controller:
+        chase_controller.restore(game, data.get("chase_checkpoint", {}))
     # Loading an existing save should not auto-open startup NPC dialog.
     game.ui_mode = None
     game.dialog_data = None
@@ -264,11 +323,20 @@ def load_save(game, slot):
     game.teleport_team_to_player()
     game.ensure_monst3r_entity()
     game.ensure_wisadel_entity()
+    try:
+        from . import mission_handlers
+
+        mission_handlers.ensure_active_mission_spawns(game, restore_missing=True)
+    except Exception as exc:
+        print(f"[mission spawns] save restore failed: {exc}")
     game.recalculate_stats()
+    if isinstance(getattr(game, "story_title_card", None), dict):
+        game.ui_mode = "story_title_card"
     if game.level_stat_pending > 0:
         game.ui_mode = "level_stat_choice"
     game.last_saved = True
     game.last_save_slot = slot
+    game._loading_save = False
     return True
 
 

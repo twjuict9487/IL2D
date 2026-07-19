@@ -1,0 +1,109 @@
+{
+  "transitions": {
+    "fade_to_black": 0.2,
+    "character_reveal": 0.5,
+    "reveal_hold": 0.6,
+    "scene_fade_out": 0.4,
+    "scene_fade_in": 0.4
+  },
+  "defaults": {
+    "narrator_speed": 10.5,
+    "dialogue_speed": 10.0,
+    "thought_speed": 9.5,
+    "heavy_speed": 8.75,
+    "pre_delay": 0.15,
+    "post_delay": 0.55,
+    "speaker_transition": 0.3,
+    "finish_fade": 0.5
+  },
+  "actors": [
+    {
+      "id": "doctor",
+      "name_zh": "博士",
+      "name_en": "Doctor",
+      "image": "Doctor_nobg.png",
+      "x": 0.42,
+      "scale": 0.94
+    },
+    {
+      "id": "exit_light",
+      "name_zh": "出口",
+      "name_en": "Exit",
+      "image": "tgc_exit_light.png",
+      "x": 0.82,
+      "scale": 1.05
+    }
+  ],
+  "initial_scene": "scene1",
+  "scenes": {
+    "scene1": {
+      "actors": ["doctor"]
+    },
+    "scene2": {
+      "actors": ["doctor", "exit_light"]
+    }
+  },
+  "lines": [
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "身後的轟鳴，\n已近得足以蓋過你的呼吸。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "沒有時間了。",
+      "post_delay": 0.75
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［不行……身體已經不聽使喚了。］"
+    },
+    {
+      "speaker": "doctor",
+      "style": "heavy",
+      "text": "［我要死在這裡了嗎？］",
+      "typing_speed": 8.25,
+      "post_delay": 0.9
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "前方最後一段道路，\n正在崩塌中逐漸斷裂。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "scene_transition": "scene2",
+      "text": "就在此時——\n一道蒼白的光穿過了煙塵。",
+      "post_delay": 0.8
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［……光？］",
+      "typing_speed": 8.0,
+      "post_delay": 0.65
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［等等……那是出口？］",
+      "typing_speed": 8.5,
+      "post_delay": 0.85
+    },
+    {
+      "speaker": "doctor",
+      "style": "heavy",
+      "text": "［還沒結束。］"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "你向那道光，\n重新邁出了腳步。",
+      "typing_speed": 9.0,
+      "post_delay": 0.9
+    }
+  ]
+}

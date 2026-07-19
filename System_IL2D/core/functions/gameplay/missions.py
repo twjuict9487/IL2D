@@ -4,27 +4,28 @@ import re
 from copy import deepcopy
 
 from ..support.utils import (
+    GAME_DATA_DIR,
     MISSIONS_FILE,
     MISSION_TYPES_FILE,
     MISSION_RUNTIME_REGISTRY_FILE,
     load_json,
 )
 
-_KILL_HINTS = ("?捏", "瘨?", "??", "畾脫?")
-_MISSION_COMPLETE_HINTS = ("摰?", "隞餃?")
+_KILL_HINTS = ("擊殺", "消滅", "殲滅", "清除", "擊倒", "擊敗")
+_MISSION_COMPLETE_HINTS = ("完成任務", "任務完成")
 _KEY_INTERACT_HINTS = (
-    "?",
-    "銝",
-    "璅?",
-    "靽風",
-    "?漱",
-    "撣嗅?",
-    "?園?",
-    "??",
-    "鈭支?",
-    "?",
+    "互動",
+    "掃描",
+    "上傳",
+    "提交",
+    "收集",
+    "帶回",
+    "回收",
+    "交付",
+    "保護",
+    "啟用",
 )
-_RETURN_HINTS = ("?勗?", "?日", "?日", "?ａ?")
+_RETURN_HINTS = ("回報", "返回", "交任務", "報告")
 
 _LEGACY_GIVER_ALIASES = {
     "kaltsit": "凱爾希",
@@ -299,9 +300,11 @@ def validate_missions(path=None, emit=True):
         return flat
 
     # Merged the duplicate except blocks cleanly here
+    entries_are_normalized = False
     try:
         book = load_mission_book(path)
-        entries = _flatten_mission_entries(raw_entries)
+        entries = list(book.get("missions", []))
+        entries_are_normalized = True
     except Exception:
         entries = raw_entries
         book = {
@@ -378,6 +381,13 @@ def validate_missions(path=None, emit=True):
                         has_field = True
                         break
                     continue
+                if (
+                    required_key == "rewards"
+                    and entry.get("allow_empty_rewards")
+                    and alias in entry
+                ):
+                    has_field = True
+                    break
                 value = entry.get(alias)
                 if value not in (None, "", [], {}):
                     has_field = True
@@ -502,7 +512,7 @@ def validate_missions(path=None, emit=True):
                         f"{mid}: unsupported objective type {obj_type}"
                     )
                 for runtime_key in ("progress", "done", "source", "mode", "status"):
-                    if runtime_key in obj:
+                    if not entries_are_normalized and runtime_key in obj:
                         report["warnings"].append(
                             f"{mid}: objective contains runtime field {runtime_key}"
                         )
@@ -517,7 +527,7 @@ def validate_missions(path=None, emit=True):
                         )
 
         rewards = entry.get("rewards", entry.get("reward_lines"))
-        if rewards in (None, "", [], {}):
+        if rewards in (None, "", [], {}) and not entry.get("allow_empty_rewards"):
             report["warnings"].append(f"{mid}: no rewards/reward_lines")
         elif isinstance(rewards, list):
             allowed_reward_types = {
@@ -1748,19 +1758,34 @@ def _sync_runtime_status(runtime):
 
 
 def load_mission_book(path):
-    raw = load_json(path)
+    sources = []
+    primary_path = path or MISSIONS_FILE
+    if primary_path and os.path.isfile(primary_path):
+        sources.append(primary_path)
+    legacy_path = os.path.join(GAME_DATA_DIR, "Loremissions.json")
+    if legacy_path and os.path.isfile(legacy_path) and legacy_path not in sources:
+        sources.append(legacy_path)
+    raws = []
+    for src_path in sources:
+        raw_src = load_json(src_path)
+        if isinstance(raw_src, dict):
+            raw_src["_source_path"] = src_path
+            raws.append(raw_src)
+    raw = raws[0] if raws else {}
     type_book = _load_mission_type_book()
     runtime_book = _load_mission_runtime_registry()
     book = {
         "version": raw.get("version", 1),
-        "source_file": raw.get("source_file", "temp_mission"),
-        "giver_aliases": raw.get("giver_aliases", {}),
-        "giver_display": raw.get("giver_display", {}),
+        "source_file": raw.get("source_file", "missions"),
+        "source_files": list(sources),
+        "giver_aliases": {},
+        "giver_display": {},
         "missions": [],
         "missions_by_id": {},
         "missions_by_giver": {},
         "first_by_giver": {},
         "title_to_id": {},
+        "duplicate_ids": [],
         "mission_types": deepcopy(type_book),
         "missions_type_source": MISSION_TYPES_FILE if type_book else "",
         "mission_runtime_registry": deepcopy(runtime_book),
@@ -1778,7 +1803,63 @@ def load_mission_book(path):
                 out.append(item)
         return out
 
-    missions = _flatten_missions(raw.get("missions", []))
+    for raw_item in raws:
+        book["giver_aliases"].update(raw_item.get("giver_aliases", {}) or {})
+        book["giver_display"].update(raw_item.get("giver_display", {}) or {})
+
+    legacy_by_id = {}
+    legacy_to_runtime = {}
+    for raw_item in raws:
+        source_path = raw_item.get("_source_path", "")
+        is_legacy = "loremissions" in os.path.basename(source_path).lower()
+        for entry in _flatten_missions(raw_item.get("missions", [])):
+            if not isinstance(entry, dict):
+                continue
+            if is_legacy:
+                legacy_id = _mission_id(entry)
+                if legacy_id:
+                    legacy_by_id[legacy_id] = entry
+                continue
+            legacy_id = _clean_text(entry.get("source_legacy_mission_id"))
+            runtime_id = _mission_id(entry)
+            if legacy_id and runtime_id:
+                legacy_to_runtime[legacy_id] = runtime_id
+
+    missions = []
+    for raw_item in raws:
+        source_kind = (
+            "legacy"
+            if "loremissions"
+            in os.path.basename(raw_item.get("_source_path", "")).lower()
+            else "runtime"
+        )
+        for entry in _flatten_missions(raw_item.get("missions", [])):
+            if isinstance(entry, dict):
+                entry_id = _mission_id(entry)
+                if source_kind == "legacy" and entry_id in legacy_to_runtime:
+                    continue
+                legacy_id = _clean_text(entry.get("source_legacy_mission_id"))
+                if source_kind == "runtime" and legacy_id in legacy_by_id:
+                    tagged = deepcopy(legacy_by_id[legacy_id])
+                    tagged.update(deepcopy(entry))
+                else:
+                    tagged = deepcopy(entry)
+                unlocks = tagged.get("unlocks")
+                if isinstance(unlocks, list):
+                    translated = []
+                    for unlock in unlocks:
+                        if isinstance(unlock, dict):
+                            unlock = deepcopy(unlock)
+                            unlock_id = _clean_text(unlock.get("id"))
+                            if unlock_id in legacy_to_runtime:
+                                unlock["id"] = legacy_to_runtime[unlock_id]
+                        elif _clean_text(unlock) in legacy_to_runtime:
+                            unlock = legacy_to_runtime[_clean_text(unlock)]
+                        translated.append(unlock)
+                    tagged["unlocks"] = translated
+                tagged["_source_kind"] = source_kind
+                tagged["_source_path"] = raw_item.get("_source_path", "")
+                missions.append(tagged)
     for entry in missions:
         if not isinstance(entry, dict):
             continue
@@ -1837,6 +1918,10 @@ def load_mission_book(path):
             "return_lines": list(entry.get("return_lines", []) or []),
             "return_dialogue": list(entry.get("return_lines", []) or []),
             "reward_lines": list(entry.get("reward_lines", []) or []),
+            "briefing": list(entry.get("briefing", []) or []),
+            "progress_lines": list(entry.get("progress_lines", []) or []),
+            "environment_changes": list(entry.get("environment_changes", []) or []),
+            "allow_empty_rewards": bool(entry.get("allow_empty_rewards", False)),
             "type": mission_type_id,
             "params": _normalize_params(
                 entry.get("params", {}), mission_type_id, type_book
@@ -1844,6 +1929,7 @@ def load_mission_book(path):
             "objectives": legacy_objectives,
             "rewards": legacy_rewards,
             "unlocks": [u for u in legacy_unlocks if u],
+            "source_kind": entry.get("_source_kind", "runtime"),
         }
         structured_objectives = []
         for item in entry.get("objectives", []) or []:
@@ -1925,6 +2011,10 @@ def load_mission_book(path):
             "primary": mission_type_id,
             "types": type_ids,
         }
+        if mission_id in book["missions_by_id"]:
+            book["duplicate_ids"].append(mission_id)
+            if parsed.get("source_kind") == "legacy":
+                continue
         book["missions"].append(parsed)
         book["missions_by_id"][mission_id] = parsed
         book["title_to_id"][title] = mission_id
@@ -1933,6 +2023,8 @@ def load_mission_book(path):
         rows.sort(key=lambda r: int(r.get("index", 0)))
         if rows:
             book["first_by_giver"][giver_id] = rows[0]["id"]
+    if book.get("duplicate_ids"):
+        print(f"[missions] duplicate mission ids: {sorted(set(book['duplicate_ids']))}")
     return book
 
 
@@ -1947,6 +2039,7 @@ def empty_mission_book():
         "missions_by_giver": {},
         "first_by_giver": {},
         "title_to_id": {},
+        "duplicate_ids": [],
         "mission_types": {},
         "missions_type_source": "",
         "mission_runtime_registry": {},
@@ -2104,6 +2197,7 @@ def normalize_runtime(runtime, mission_book=None):
             src.get("mission_type", base.get("mission_type", {})) or {}
         ),
         "status": str(src.get("status", "active")),
+        "source_context": deepcopy(src.get("source_context", base.get("source_context", {})) or {}),
     }
     for key, value in src.items():
         if key in out:
@@ -2233,6 +2327,33 @@ def ensure_key_items_for_mission(game, mission_runtime):
         state, _ = _get_state(game)
         state["key_items"] = dict(getattr(game, "mission_key_items", {}))
     return granted
+
+
+def reconcile_world_key_interactions(game):
+    state, _ = _get_state(game)
+    activated = getattr(game, "activated_campfires", set()) or set()
+    if not isinstance(activated, set):
+        activated = set(activated)
+    changed = False
+    for runtime in state["active"].values():
+        runtime_changed = False
+        for obj in runtime.get("objectives", []) or []:
+            if not isinstance(obj, dict):
+                continue
+            if obj.get("done") or obj.get("type") != "key_interact":
+                continue
+            target_id = str(obj.get("target_id") or "").strip()
+            req_key = str(obj.get("required_key") or "").strip()
+            if target_id in activated or req_key in activated:
+                obj["progress"] = max(
+                    int(obj.get("progress", 0) or 0), int(obj.get("target", 1) or 1)
+                )
+                obj["done"] = True
+                runtime_changed = True
+        if runtime_changed:
+            changed = True
+            _sync_runtime_status(runtime)
+    return changed
 
 
 def _get_state(game):
@@ -2612,6 +2733,36 @@ def accept_mission(game, mission_id):
     if hasattr(game, "tracked_mission"):
         game.tracked_mission = state["tracked"]
     ensure_key_items_for_mission(game, runtime)
+    reconcile_world_key_interactions(game)
+    return True
+
+
+def start_runtime_mission(game, mission_id, source_context=None):
+    state, book = _get_state(game)
+    mid = str(mission_id or "").strip()
+    mission = book.get("missions_by_id", {}).get(mid)
+    if not mid or not mission:
+        return False
+    if mid in state["completed"]:
+        return False
+    if mid in state["active"]:
+        runtime = state["active"][mid]
+        if isinstance(source_context, dict):
+            runtime["source_context"] = deepcopy(source_context)
+        reconcile_world_key_interactions(game)
+        return True
+    runtime = build_runtime(mission)
+    runtime["status"] = "active"
+    if isinstance(source_context, dict):
+        runtime["source_context"] = deepcopy(source_context)
+    state["active"][mid] = runtime
+    if mid not in state["accepted"]:
+        state["accepted"].append(mid)
+    state["tracked"] = _pick_tracked_mission_id(state, preferred=mid)
+    if hasattr(game, "tracked_mission"):
+        game.tracked_mission = state["tracked"]
+    ensure_key_items_for_mission(game, runtime)
+    reconcile_world_key_interactions(game)
     return True
 
 
@@ -2684,6 +2835,9 @@ def update_on_map_explored(game, map_name=None):
 
 
 def _apply_unlocks(game, mission_runtime, state=None, book=None):
+    context = mission_runtime.get("source_context", {})
+    if isinstance(context, dict) and context.get("source") == "story":
+        return
     unlocks = mission_runtime.get("unlocks", []) or []
     if not unlocks:
         return
@@ -2734,16 +2888,19 @@ def complete_mission(game, mission_id):
     if hasattr(game, "tracked_mission"):
         game.tracked_mission = state["tracked"]
     _apply_unlocks(game, runtime, state=state, book=book)
-    giver_id = _resolve_giver_key(book, runtime.get("giver_id", ""))
-    giver_rows = book.get("missions_by_giver", {}).get(giver_id, [])
-    for idx, row in enumerate(giver_rows):
-        if row.get("id") != mid:
-            continue
-        if idx + 1 < len(giver_rows):
-            nxt = giver_rows[idx + 1].get("id")
-            if nxt and nxt not in state["unlocked"]:
-                state["unlocked"].append(nxt)
-        break
+    context = runtime.get("source_context", {})
+    is_story = isinstance(context, dict) and context.get("source") == "story"
+    if not is_story:
+        giver_id = _resolve_giver_key(book, runtime.get("giver_id", ""))
+        giver_rows = book.get("missions_by_giver", {}).get(giver_id, [])
+        for idx, row in enumerate(giver_rows):
+            if row.get("id") != mid:
+                continue
+            if idx + 1 < len(giver_rows):
+                nxt = giver_rows[idx + 1].get("id")
+                if nxt and nxt not in state["unlocked"]:
+                    state["unlocked"].append(nxt)
+            break
     grant_rewards(game, runtime)
     _sync_runtime_status(runtime)
     return True

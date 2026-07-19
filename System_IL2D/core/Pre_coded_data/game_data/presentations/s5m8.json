@@ -1,0 +1,108 @@
+{
+    "transitions": {
+        "fade_to_black": 1.0,
+        "character_reveal": 2.2,
+        "reveal_hold": 0.8,
+        "scene_fade_out": 0.8,
+        "scene_fade_in": 1.0
+    },
+    "defaults": {
+        "narrator_speed": 13.5,
+        "dialogue_speed": 12.0,
+        "thought_speed": 11.25,
+        "heavy_speed": 10.125,
+        "pre_delay": 0.15,
+        "post_delay": 0.55,
+        "speaker_transition": 0.5,
+        "finish_fade": 0.6
+    },
+    "actors": [
+        {
+            "id": "kaltsit",
+            "name_zh": "凱爾希",
+            "name_en": "Kal'tsit",
+            "image": "1536px-Kal'tsit_nobg.png",
+            "x": 0.18,
+            "scale": 0.9
+        },
+        {
+            "id": "priestess",
+            "name_zh": "Priestess",
+            "name_en": "Priestess",
+            "image": "priestess_nobg.png",
+            "x": 0.5,
+            "scale": 0.94
+        },
+        {
+            "id": "doctor",
+            "name_zh": "博士",
+            "name_en": "Doctor",
+            "image": "Doctor_nobg.png",
+            "x": 0.82,
+            "scale": 0.9
+        }
+    ],
+    "initial_scene": "scene1",
+    "scenes": {
+        "scene1": {
+            "actors": [
+                "kaltsit",
+                "priestess",
+                "doctor"
+            ]
+        }
+    },
+    "lines": [
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「診療設備已經啟動。它的使用者是誰？」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「任何需要它的人。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「目前沒有已知對象。\n為未知的人保留設備並不符合效率。」"
+        },
+        {
+            "speaker": "kaltsit",
+            "style": "heavy",
+            "text": "「這正是實驗設施與避難所之間的差別。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「這是 New RITC 第一個，\n不是為了恢復我而建造的設施。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「你以前曾經想承擔更龐大的目標。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「也許。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「但現在的我，先選擇讓眼前的人活下來。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「即使那個人與你毫無關係？」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「關係可以從他抵達這裡的那一刻開始。」",
+            "post_delay": 0.9
+        }
+    ]
+}

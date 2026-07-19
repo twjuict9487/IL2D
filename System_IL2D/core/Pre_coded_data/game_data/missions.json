@@ -1,0 +1,2339 @@
+{
+  "version": 1,
+  "source_file": "missions",
+  "missions": [
+    {
+      "id": "mission_kaltsit_1",
+      "source_legacy_mission_id": "凱爾希_1",
+      "title": "野外資格驗證",
+      "handler": "KE",
+      "type": "KE",
+      "objectives": [
+        {
+          "type": "KE",
+          "text": "消滅 5 名敵人。",
+          "amount": 5,
+          "enemy_id": "*"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 1000,
+          "text": "1000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_2",
+      "source_legacy_mission_id": "凱爾希_2",
+      "title": "異常讀數",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "text": "調查 1 處異常區域。",
+          "amount": 1,
+          "map": "map_1.json",
+          "area": {
+            "x1": 8,
+            "y1": 4,
+            "x2": 12,
+            "y2": 8,
+            "corners": [
+              [
+                8,
+                4
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                8,
+                8
+              ],
+              [
+                12,
+                8
+              ]
+            ]
+          },
+          "seconds": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 2000,
+          "text": "2000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_3",
+      "source_legacy_mission_id": "凱爾希_3",
+      "title": "殘留紀錄",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "text": "回收 2 份資料。",
+          "amount": 2,
+          "map": "map_1.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 5,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ]
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 3000,
+          "text": "3000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_4",
+      "source_legacy_mission_id": "凱爾希_4",
+      "title": "封存程序",
+      "handler": "UD",
+      "type": "UD",
+      "objectives": [
+        {
+          "type": "UD",
+          "text": "上傳資料。",
+          "terminal_id": "mission_house_terminal",
+          "required_data_id": "kaltsit_chain",
+          "map": "ritc_mission_house.json",
+          "requires_data": false
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 4000,
+          "text": "4000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_5",
+      "source_legacy_mission_id": "凱爾希_5",
+      "title": "候選者紀錄",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_2.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 6,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                6,
+                3
+              ]
+            ]
+          }
+        },
+        {
+          "type": "KE",
+          "amount": 8,
+          "enemy_id": "*"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 5000,
+          "text": "5000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_6",
+      "source_legacy_mission_id": "凱爾希_6",
+      "title": "驗證失敗",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "area": {
+            "x1": 10,
+            "y1": 7,
+            "x2": 16,
+            "y2": 11,
+            "corners": [
+              [
+                10,
+                7
+              ],
+              [
+                16,
+                7
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                16,
+                11
+              ]
+            ]
+          },
+          "map": "map_2.json",
+          "seconds": 8
+        },
+        {
+          "type": "CM",
+          "amount": 2
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 6000
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_7",
+      "source_legacy_mission_id": "凱爾希_7",
+      "title": "同步錯誤",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 4,
+          "map": "map_3.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 5,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "terminal_id": "mission_house_terminal",
+          "map": "ritc_mission_house.json",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 7000
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_8",
+      "source_legacy_mission_id": "凱爾希_8",
+      "title": "封鎖區域",
+      "handler": "CA",
+      "type": "CA",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 4,
+          "map": "map_2.json",
+          "area": {
+            "x1": 10,
+            "y1": 7,
+            "x2": 16,
+            "y2": 11,
+            "corners": [
+              [
+                10,
+                7
+              ],
+              [
+                16,
+                7
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                16,
+                11
+              ]
+            ]
+          }
+        },
+        {
+          "type": "CA",
+          "amount": 1,
+          "text": "清理一處作戰區域。",
+          "map": "map_2.json"
+        },
+        {
+          "type": "CM",
+          "amount": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 8000
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_9",
+      "source_legacy_mission_id": "凱爾希_9",
+      "title": "異常個體",
+      "handler": "KEE",
+      "type": "KEE",
+      "objectives": [
+        {
+          "type": "KEE",
+          "amount": 1,
+          "enemy_id": "*",
+          "elite_only": true
+        },
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_3.json",
+          "area": {
+            "x1": 1,
+            "y1": 7,
+            "x2": 5,
+            "y2": 10,
+            "corners": [
+              [
+                1,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                1,
+                10
+              ],
+              [
+                5,
+                10
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 9000
+        }
+      ]
+    },
+    {
+      "id": "mission_kaltsit_10",
+      "source_legacy_mission_id": "凱爾希_10",
+      "title": "候選者",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "map": "map_3.json",
+          "area": {
+            "x1": 7,
+            "y1": 5,
+            "x2": 11,
+            "y2": 9,
+            "corners": [
+              [
+                7,
+                5
+              ],
+              [
+                11,
+                5
+              ],
+              [
+                7,
+                9
+              ],
+              [
+                11,
+                9
+              ]
+            ]
+          },
+          "seconds": 8
+        },
+        {
+          "type": "CD",
+          "amount": 5,
+          "map": "map_1.json",
+          "area": {
+            "x1": 2,
+            "y1": 10,
+            "x2": 6,
+            "y2": 14,
+            "corners": [
+              [
+                2,
+                10
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                6,
+                14
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 10000
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_1",
+      "source_legacy_mission_id": "伊內絲_1",
+      "title": "熟悉的影子",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "area": {
+            "x1": 2,
+            "y1": 10,
+            "x2": 6,
+            "y2": 14,
+            "corners": [
+              [
+                2,
+                10
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                6,
+                14
+              ]
+            ]
+          },
+          "map": "map_1.json",
+          "seconds": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 1000,
+          "text": "1000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_2",
+      "source_legacy_mission_id": "伊內絲_2",
+      "title": "遺留監視站",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 2,
+          "map": "map_1.json",
+          "area": {
+            "x1": 2,
+            "y1": 10,
+            "x2": 6,
+            "y2": 14,
+            "corners": [
+              [
+                2,
+                10
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                6,
+                14
+              ]
+            ]
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 2000,
+          "text": "2000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_3",
+      "source_legacy_mission_id": "伊內絲_3",
+      "title": "黑箱",
+      "handler": "UD",
+      "type": "UD",
+      "objectives": [
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": false
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 3000,
+          "text": "3000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_4",
+      "source_legacy_mission_id": "伊內絲_4",
+      "title": "尾巴",
+      "handler": "KE",
+      "type": "KE",
+      "objectives": [
+        {
+          "type": "KE",
+          "amount": 8,
+          "enemy_id": "*"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 4000,
+          "text": "4000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_5",
+      "source_legacy_mission_id": "伊內絲_5",
+      "title": "被發現的人",
+      "handler": "CI",
+      "type": "CI",
+      "objectives": [
+        {
+          "type": "CI",
+          "amount": 3,
+          "target_id": "identity_document",
+          "item_id": "identity_document"
+        },
+        {
+          "type": "KEE",
+          "amount": 1,
+          "enemy_id": "*",
+          "elite_only": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 5000,
+          "text": "5000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_6",
+      "source_legacy_mission_id": "伊內絲_6",
+      "title": "第二批觀察者",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "map": "map_2.json",
+          "area": {
+            "x1": 20,
+            "y1": 12,
+            "x2": 26,
+            "y2": 16,
+            "corners": [
+              [
+                20,
+                12
+              ],
+              [
+                26,
+                12
+              ],
+              [
+                20,
+                16
+              ],
+              [
+                26,
+                16
+              ]
+            ]
+          },
+          "seconds": 8
+        },
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_2.json",
+          "area": {
+            "x1": 20,
+            "y1": 12,
+            "x2": 26,
+            "y2": 16,
+            "corners": [
+              [
+                20,
+                12
+              ],
+              [
+                26,
+                12
+              ],
+              [
+                20,
+                16
+              ],
+              [
+                26,
+                16
+              ]
+            ]
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 6000,
+          "text": "6000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_7",
+      "source_legacy_mission_id": "伊內絲_7",
+      "title": "黑名單",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 4,
+          "map": "map_2.json",
+          "area": {
+            "x1": 20,
+            "y1": 12,
+            "x2": 26,
+            "y2": 16,
+            "corners": [
+              [
+                20,
+                12
+              ],
+              [
+                26,
+                12
+              ],
+              [
+                20,
+                16
+              ],
+              [
+                26,
+                16
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 7000,
+          "text": "7000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_8",
+      "source_legacy_mission_id": "伊內絲_8",
+      "title": "指揮者",
+      "handler": "KEE",
+      "type": "KEE",
+      "objectives": [
+        {
+          "type": "KEE",
+          "amount": 1,
+          "enemy_id": "*",
+          "elite_only": true
+        },
+        {
+          "type": "CI",
+          "amount": 1,
+          "target_id": "comm_device",
+          "item_id": "comm_device"
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": false
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 8000,
+          "text": "8000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_9",
+      "source_legacy_mission_id": "伊內絲_9",
+      "title": "追蹤網",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "map": "map_3.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 5,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ]
+          },
+          "seconds": 8
+        },
+        {
+          "type": "KE",
+          "amount": 10,
+          "enemy_id": "*"
+        },
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_1.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 5,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ]
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 9000,
+          "text": "9000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_ines_10",
+      "source_legacy_mission_id": "伊內絲_10",
+      "title": "未償還的債務",
+      "handler": "KEE",
+      "type": "KEE",
+      "objectives": [
+        {
+          "type": "KEE",
+          "amount": 2,
+          "enemy_id": "*",
+          "elite_only": true
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": false
+        },
+        {
+          "type": "CM",
+          "amount": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 10000,
+          "text": "10000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_1",
+      "source_legacy_mission_id": "可露希爾_1",
+      "title": "缺少的零件",
+      "handler": "CI",
+      "type": "CI",
+      "objectives": [
+        {
+          "type": "CI",
+          "amount": 3,
+          "target_id": "machine_parts",
+          "item_id": "machine_parts"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 1000,
+          "text": "1000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_2",
+      "source_legacy_mission_id": "可露希爾_2",
+      "title": "故障終端",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 2,
+          "map": "map_2.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 6,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                6,
+                3
+              ]
+            ]
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 2000,
+          "text": "2000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_3",
+      "source_legacy_mission_id": "可露希爾_3",
+      "title": "韌體更新",
+      "handler": "UD",
+      "type": "UD",
+      "objectives": [
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": false
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 3000,
+          "text": "3000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_4",
+      "source_legacy_mission_id": "可露希爾_4",
+      "title": "搶修現場",
+      "handler": "CA",
+      "type": "CA",
+      "objectives": [
+        {
+          "type": "CA",
+          "amount": 1,
+          "text": "清空中繼站周邊區域。",
+          "map": "map_3.json"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 4000,
+          "text": "4000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_5",
+      "source_legacy_mission_id": "可露希爾_5",
+      "title": "原型機",
+      "handler": "CI",
+      "type": "CI",
+      "objectives": [
+        {
+          "type": "CI",
+          "amount": 4,
+          "target_id": "prototype_parts",
+          "item_id": "prototype_parts"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 5000,
+          "text": "5000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_6",
+      "source_legacy_mission_id": "可露希爾_6",
+      "title": "訊號干擾",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_3.json",
+          "area": {
+            "x1": 1,
+            "y1": 7,
+            "x2": 5,
+            "y2": 10,
+            "corners": [
+              [
+                1,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                1,
+                10
+              ],
+              [
+                5,
+                10
+              ]
+            ]
+          }
+        },
+        {
+          "type": "CA",
+          "amount": 1,
+          "text": "清空干擾區域。",
+          "map": "map_3.json"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 6000,
+          "text": "6000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_7",
+      "source_legacy_mission_id": "可露希爾_7",
+      "title": "備品庫存",
+      "handler": "CI",
+      "type": "CI",
+      "objectives": [
+        {
+          "type": "CI",
+          "amount": 5,
+          "target_id": "spare_parts",
+          "item_id": "spare_parts"
+        },
+        {
+          "type": "CM",
+          "amount": 2
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 7000,
+          "text": "7000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_8",
+      "source_legacy_mission_id": "可露希爾_8",
+      "title": "系統恢復",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 4,
+          "map": "map_1.json",
+          "area": {
+            "x1": 8,
+            "y1": 4,
+            "x2": 12,
+            "y2": 8,
+            "corners": [
+              [
+                8,
+                4
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                8,
+                8
+              ],
+              [
+                12,
+                8
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "amount": 1,
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        },
+        {
+          "type": "CA",
+          "amount": 1,
+          "text": "清空數據節點區域。",
+          "map": "map_1.json"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 8000,
+          "text": "8000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_9",
+      "source_legacy_mission_id": "可露希爾_9",
+      "title": "失控機體",
+      "handler": "KEE",
+      "type": "KEE",
+      "objectives": [
+        {
+          "type": "KEE",
+          "amount": 1,
+          "enemy_id": "*",
+          "elite_only": true
+        },
+        {
+          "type": "CI",
+          "amount": 1,
+          "target_id": "machine_core",
+          "item_id": "machine_core"
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": false
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 9000,
+          "text": "9000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_closure_10",
+      "source_legacy_mission_id": "可露希爾_10",
+      "title": "完工驗收",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 5,
+          "map": "map_2.json",
+          "area": {
+            "x1": 10,
+            "y1": 7,
+            "x2": 16,
+            "y2": 11,
+            "corners": [
+              [
+                10,
+                7
+              ],
+              [
+                16,
+                7
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                16,
+                11
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        },
+        {
+          "type": "CM",
+          "amount": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 10000,
+          "text": "10000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_1",
+      "source_legacy_mission_id": "priestess_1",
+      "title": "模糊記憶",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 6,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                6,
+                3
+              ]
+            ]
+          },
+          "map": "map_2.json",
+          "seconds": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 1000,
+          "text": "1000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_2",
+      "source_legacy_mission_id": "priestess_2",
+      "title": "失落片段",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 2,
+          "map": "map_2.json",
+          "area": {
+            "x1": 10,
+            "y1": 7,
+            "x2": 16,
+            "y2": 11,
+            "corners": [
+              [
+                10,
+                7
+              ],
+              [
+                16,
+                7
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                16,
+                11
+              ]
+            ]
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 2000,
+          "text": "2000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_3",
+      "source_legacy_mission_id": "priestess_3",
+      "title": "記錄歸檔",
+      "handler": "UD",
+      "type": "UD",
+      "objectives": [
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": false
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 3000,
+          "text": "3000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_4",
+      "source_legacy_mission_id": "priestess_4",
+      "title": "重複的夢",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_3.json",
+          "area": {
+            "x1": 1,
+            "y1": 7,
+            "x2": 5,
+            "y2": 10,
+            "corners": [
+              [
+                1,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                1,
+                10
+              ],
+              [
+                5,
+                10
+              ]
+            ]
+          },
+          "seconds": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 4000,
+          "text": "4000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_5",
+      "source_legacy_mission_id": "priestess_5",
+      "title": "不存在的人",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_3.json",
+          "area": {
+            "x1": 7,
+            "y1": 5,
+            "x2": 11,
+            "y2": 9,
+            "corners": [
+              [
+                7,
+                5
+              ],
+              [
+                11,
+                5
+              ],
+              [
+                7,
+                9
+              ],
+              [
+                11,
+                9
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 5000,
+          "text": "5000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_6",
+      "source_legacy_mission_id": "priestess_6",
+      "title": "門後的聲音",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "map": "map_1.json",
+          "area": {
+            "x1": 8,
+            "y1": 4,
+            "x2": 12,
+            "y2": 8,
+            "corners": [
+              [
+                8,
+                4
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                8,
+                8
+              ],
+              [
+                12,
+                8
+              ]
+            ]
+          },
+          "seconds": 8
+        },
+        {
+          "type": "CM",
+          "amount": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 6000,
+          "text": "6000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_7",
+      "source_legacy_mission_id": "priestess_7",
+      "title": "破碎座標",
+      "handler": "CD",
+      "type": "CD",
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 4,
+          "map": "map_1.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 5,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 7000,
+          "text": "7000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_8",
+      "source_legacy_mission_id": "priestess_8",
+      "title": "守門者",
+      "handler": "KEE",
+      "type": "KEE",
+      "objectives": [
+        {
+          "type": "KEE",
+          "amount": 1,
+          "enemy_id": "*",
+          "elite_only": true
+        },
+        {
+          "type": "CD",
+          "amount": 3,
+          "map": "map_2.json",
+          "area": {
+            "x1": 20,
+            "y1": 12,
+            "x2": 26,
+            "y2": 16,
+            "corners": [
+              [
+                20,
+                12
+              ],
+              [
+                26,
+                12
+              ],
+              [
+                20,
+                16
+              ],
+              [
+                26,
+                16
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 8000,
+          "text": "8000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_9",
+      "source_legacy_mission_id": "priestess_9",
+      "title": "最後的走廊",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "map": "map_1.json",
+          "area": {
+            "x1": 2,
+            "y1": 10,
+            "x2": 6,
+            "y2": 14,
+            "corners": [
+              [
+                2,
+                10
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                6,
+                14
+              ]
+            ]
+          },
+          "seconds": 8
+        },
+        {
+          "type": "CD",
+          "amount": 4,
+          "map": "map_2.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 6,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                6,
+                3
+              ]
+            ]
+          }
+        },
+        {
+          "type": "KE",
+          "amount": 10,
+          "enemy_id": "*"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 9000,
+          "text": "9000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_priestess_10",
+      "source_legacy_mission_id": "priestess_10",
+      "title": "甦醒之前",
+      "handler": "SA",
+      "type": "SA",
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 2,
+          "map": "map_2.json",
+          "area": {
+            "x1": 10,
+            "y1": 7,
+            "x2": 16,
+            "y2": 11,
+            "corners": [
+              [
+                10,
+                7
+              ],
+              [
+                16,
+                7
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                16,
+                11
+              ]
+            ]
+          },
+          "seconds": 8
+        },
+        {
+          "type": "CD",
+          "amount": 5,
+          "map": "map_3.json",
+          "area": {
+            "x1": 1,
+            "y1": 1,
+            "x2": 5,
+            "y2": 3,
+            "corners": [
+              [
+                1,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ]
+          }
+        },
+        {
+          "type": "UD",
+          "map": "ritc_mission_house.json",
+          "terminal_id": "mission_house_terminal",
+          "requires_data": true
+        }
+      ],
+      "rewards": [
+        {
+          "type": "money",
+          "amount": 10000,
+          "text": "10000 Robux"
+        }
+      ]
+    },
+    {
+      "id": "mission_stage5_01",
+      "title": "出口之外",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 1,
+      "handler": "SA",
+      "type": "SA",
+      "description": "穿過前方的道路。 找到一個能夠安全休息的地方。",
+      "description_lines": [
+        "穿過前方的道路。",
+        "找到一個能夠安全休息的地方。"
+      ],
+      "accept_lines": [
+        "穿過前方的道路。",
+        "找到一個能夠安全休息的地方。"
+      ],
+      "briefing": [
+        "穿過前方的道路。",
+        "找到一個能夠安全休息的地方。"
+      ],
+      "objectives": [
+        {
+          "type": "key_interact",
+          "target_id": "campfire_stage_5",
+          "required_key": "campfire_stage_5",
+          "text": "點燃 Map 4 的營火。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_4.json",
+          "area": {
+            "x1": 1,
+            "y1": 6,
+            "x2": 3,
+            "y2": 8
+          },
+          "seconds": 2,
+          "text": "確認 Map 4 入口區域。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "火光亮起。",
+        "TGC 的道路從此不再是唯一的入口。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_02",
+      "title": "延伸的道路",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 2,
+      "handler": "SA",
+      "type": "SA",
+      "description": "Map 4 的道路仍然處於崩壞狀態。 修復三個損壞位置，確保補給能夠通過。",
+      "description_lines": [
+        "Map 4 的道路仍然處於崩壞狀態。",
+        "修復三個損壞位置，確保補給能夠通過。"
+      ],
+      "accept_lines": [
+        "Map 4 的道路仍然處於崩壞狀態。",
+        "修復三個損壞位置，確保補給能夠通過。"
+      ],
+      "briefing": [
+        "Map 4 的道路仍然處於崩壞狀態。",
+        "修復三個損壞位置，確保補給能夠通過。"
+      ],
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_4.json",
+          "area": {
+            "x1": 3,
+            "y1": 4,
+            "x2": 5,
+            "y2": 6
+          },
+          "seconds": 1,
+          "text": "修復第一處道路損壞。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_4.json",
+          "area": {
+            "x1": 6,
+            "y1": 8,
+            "x2": 8,
+            "y2": 10
+          },
+          "seconds": 1,
+          "text": "修復第二處道路損壞。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_4.json",
+          "area": {
+            "x1": 9,
+            "y1": 4,
+            "x2": 11,
+            "y2": 6
+          },
+          "seconds": 1,
+          "text": "修復第三處道路損壞。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "道路可以留下。",
+        "但它通往哪裡，由我決定。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_03",
+      "title": "第一批物資",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 3,
+      "handler": "SA",
+      "type": "SA",
+      "description": "空地本身無法成為據點。 前往 Map 5，收集第一批建設物資。",
+      "description_lines": [
+        "空地本身無法成為據點。",
+        "前往 Map 5，收集第一批建設物資。"
+      ],
+      "accept_lines": [
+        "空地本身無法成為據點。",
+        "前往 Map 5，收集第一批建設物資。"
+      ],
+      "briefing": [
+        "空地本身無法成為據點。",
+        "前往 Map 5，收集第一批建設物資。"
+      ],
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 4,
+            "y1": 4,
+            "x2": 6,
+            "y2": 6
+          },
+          "seconds": 1,
+          "text": "確認木材回收點。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 21,
+            "y1": 4,
+            "x2": 23,
+            "y2": 6
+          },
+          "seconds": 1,
+          "text": "確認石材回收點。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 24,
+            "y1": 8,
+            "x2": 26,
+            "y2": 10
+          },
+          "seconds": 1,
+          "text": "確認金屬回收點。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 21,
+            "y1": 21,
+            "x2": 23,
+            "y2": 23
+          },
+          "seconds": 1,
+          "text": "確認零件回收點。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "把物資收起來，但不要執行舊計畫。",
+        "它們要用在什麼地方，我會重新決定。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_04",
+      "title": "空白之地",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 4,
+      "handler": "SA",
+      "type": "SA",
+      "description": "這裡仍然缺少能夠休息的地方。 按照留下的設計，完成第一個住宿區吧。",
+      "description_lines": [
+        "這裡仍然缺少能夠休息的地方。",
+        "按照留下的設計，完成第一個住宿區吧。"
+      ],
+      "accept_lines": [
+        "這裡仍然缺少能夠休息的地方。",
+        "按照留下的設計，完成第一個住宿區吧。"
+      ],
+      "briefing": [
+        "這裡仍然缺少能夠休息的地方。",
+        "按照留下的設計，完成第一個住宿區吧。"
+      ],
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 14,
+            "y1": 14,
+            "x2": 16,
+            "y2": 16
+          },
+          "seconds": 2,
+          "text": "建立第一個住宿區。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "一個真正的避難所，不應該先替居住者決定未來。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_05",
+      "title": "回收命令",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 5,
+      "handler": "CD",
+      "type": "CD",
+      "description": "Map 6 出現了與 TGC 相同的回收訊號。 清除阻礙，將那份紀錄帶回來。",
+      "description_lines": [
+        "Map 6 出現了與 TGC 相同的回收訊號。",
+        "清除阻礙，將那份紀錄帶回來。"
+      ],
+      "accept_lines": [
+        "Map 6 出現了與 TGC 相同的回收訊號。",
+        "清除阻礙，將那份紀錄帶回來。"
+      ],
+      "briefing": [
+        "Map 6 出現了與 TGC 相同的回收訊號。",
+        "清除阻礙，將那份紀錄帶回來。"
+      ],
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 1,
+          "target_id": "map6_retrieval_record",
+          "map": "map_6.json",
+          "text": "讀取 Map 6 的回收紀錄。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "沒有拒絕權的保護，和囚禁沒有太大差別。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_06",
+      "title": "自己的目的",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 6,
+      "handler": "SA",
+      "type": "SA",
+      "description": "你已經知道這座設施原本的用途。 現在決定你要讓它成為什麼。",
+      "description_lines": [
+        "你已經知道這座設施原本的用途。",
+        "現在決定你要讓它成為什麼。"
+      ],
+      "accept_lines": [
+        "你已經知道這座設施原本的用途。",
+        "現在決定你要讓它成為什麼。"
+      ],
+      "briefing": [
+        "你已經知道這座設施原本的用途。",
+        "現在決定你要讓它成為什麼。"
+      ],
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_6.json",
+          "area": {
+            "x1": 1,
+            "y1": 29,
+            "x2": 3,
+            "y2": 31
+          },
+          "seconds": 2,
+          "text": "確認 Map 6 入口。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_6.json",
+          "area": {
+            "x1": 38,
+            "y1": 16,
+            "x2": 40,
+            "y2": 18
+          },
+          "seconds": 2,
+          "text": "調查回收紀錄區域。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "從今天開始，這裡叫 New RITC。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_07",
+      "title": "儲存與製造",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 7,
+      "handler": "SA",
+      "type": "SA",
+      "description": "現有物資只能維持短期運作。 取得足夠零件，讓這裡能夠自行生產。",
+      "description_lines": [
+        "現有物資只能維持短期運作。",
+        "取得足夠零件，讓這裡能夠自行生產。"
+      ],
+      "accept_lines": [
+        "現有物資只能維持短期運作。",
+        "取得足夠零件，讓這裡能夠自行生產。"
+      ],
+      "briefing": [
+        "現有物資只能維持短期運作。",
+        "取得足夠零件，讓這裡能夠自行生產。"
+      ],
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 21,
+            "y1": 21,
+            "x2": 23,
+            "y2": 23
+          },
+          "seconds": 1,
+          "text": "確認物資儲存區。"
+        },
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_5.json",
+          "area": {
+            "x1": 24,
+            "y1": 24,
+            "x2": 26,
+            "y2": 26
+          },
+          "seconds": 1,
+          "text": "確認零件製造區。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "不是不需要妳。",
+        "是不再由任何一個人決定全部。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_08",
+      "title": "讓人活下來的地方",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 8,
+      "handler": "SA",
+      "type": "SA",
+      "description": "一個聚落不能只提供床位與工具。 收集醫療物資，建立能夠救人的設施。",
+      "description_lines": [
+        "一個聚落不能只提供床位與工具。",
+        "收集醫療物資，建立能夠救人的設施。"
+      ],
+      "accept_lines": [
+        "一個聚落不能只提供床位與工具。",
+        "收集醫療物資，建立能夠救人的設施。"
+      ],
+      "briefing": [
+        "一個聚落不能只提供床位與工具。",
+        "收集醫療物資，建立能夠救人的設施。"
+      ],
+      "objectives": [
+        {
+          "type": "SA",
+          "amount": 1,
+          "map": "map_6.json",
+          "area": {
+            "x1": 33,
+            "y1": 49,
+            "x2": 35,
+            "y2": 51
+          },
+          "seconds": 2,
+          "text": "建立醫療設施。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "但現在的我，先選擇讓眼前的人活下來。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_09",
+      "title": "獨立線路",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 9,
+      "handler": "CD",
+      "type": "CD",
+      "description": "連接外部之後，這裡將不再是封閉的系統。 如果這仍是你的選擇，就取回需要的通訊元件。",
+      "description_lines": [
+        "連接外部之後，這裡將不再是封閉的系統。",
+        "如果這仍是你的選擇，就取回需要的通訊元件。"
+      ],
+      "accept_lines": [
+        "連接外部之後，這裡將不再是封閉的系統。",
+        "如果這仍是你的選擇，就取回需要的通訊元件。"
+      ],
+      "briefing": [
+        "連接外部之後，這裡將不再是封閉的系統。",
+        "如果這仍是你的選擇，就取回需要的通訊元件。"
+      ],
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 1,
+          "target_id": "map6_communication_parts",
+          "map": "map_6.json",
+          "text": "取得通訊元件。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "一條我可以靠近，也可以離開的線。",
+        "不是鎖鏈。"
+      ],
+      "environment_changes": []
+    },
+    {
+      "id": "mission_stage5_10",
+      "title": "New RITC",
+      "provider": "kaltsit",
+      "giver_id": "kaltsit",
+      "chain": "stage_5",
+      "allow_empty_rewards": true,
+      "rewards": [],
+      "order": 10,
+      "handler": "CD",
+      "type": "CD",
+      "description": "最後的建設清單已經整理完成。 完成它，然後告訴我們這個地方的答案。",
+      "description_lines": [
+        "最後的建設清單已經整理完成。",
+        "完成它，然後告訴我們這個地方的答案。"
+      ],
+      "accept_lines": [
+        "最後的建設清單已經整理完成。",
+        "完成它，然後告訴我們這個地方的答案。"
+      ],
+      "briefing": [
+        "最後的建設清單已經整理完成。",
+        "完成它，然後告訴我們這個地方的答案。"
+      ],
+      "objectives": [
+        {
+          "type": "CD",
+          "amount": 1,
+          "target_id": "map6_final_material",
+          "map": "map_6.json",
+          "text": "取得最後建設元件。"
+        }
+      ],
+      "progress_lines": [],
+      "return_lines": [
+        "歡迎來到 New RITC。",
+        "休息、準備，並在你選擇時離開。"
+      ],
+      "environment_changes": []
+    }
+  ]
+}

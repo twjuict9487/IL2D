@@ -78,6 +78,17 @@ def handle_held_movement(c):
                 if q < 0
                 else g.skill_tree_selected + 1
             )
+        elif m == "story":
+            rows = g.get_story_timeline_rows() if hasattr(g, "get_story_timeline_rows") else []
+            if rows:
+                g.story_timeline_selected = (
+                    max(0, int(getattr(g, "story_timeline_selected", 0) or 0) - 1)
+                    if q < 0
+                    else min(
+                        len(rows) - 1,
+                        int(getattr(g, "story_timeline_selected", 0) or 0) + 1,
+                    )
+                )
         elif m == "leave_confirm":
             g.leave_selected = (
                 max(0, g.leave_selected - 1) if q < 0 else min(2, g.leave_selected + 1)

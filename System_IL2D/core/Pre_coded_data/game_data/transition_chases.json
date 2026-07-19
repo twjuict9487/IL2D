@@ -1,0 +1,43 @@
+{
+  "chases": {
+    "stage_4_to_5": {
+      "id": "stage_4_to_5",
+      "map": "the_great_chase_01.json",
+      "stage_5_map": "map_4.json",
+      "music": "Sewer Creature.mp3",
+      "campfire": [
+        6,
+        5
+      ],
+      "save_trigger_x": 15,
+      "chase_start_x": 16,
+      "monster_release_x": 350,
+      "final_trigger_x": 2222,
+      "player_tiles_per_second": 16.6667,
+      "opening_segment": [
+        0.0,
+        20.0
+      ],
+      "scene_segment": [
+        132.0,
+        153.0
+      ],
+      "outro_segment": [
+        153.0,
+        169.2
+      ],
+      "presentation_file": "tgc_presentation.json",
+      "warning_seconds": 3.0,
+      "monster_start_gap": 4.0,
+      "monster_contact_lead": 1.0,
+      "danger_distance": 8.0,
+      "progress_bar_fade_seconds": 0.5,
+      "monster_distance_speeds": [
+        {"max_distance": 8.0, "ratio": 0.95},
+        {"max_distance": 20.0, "ratio": 1.0},
+        {"max_distance": 60.0, "inclusive": false, "ratio": 1.05},
+        {"ratio": 2.0}
+      ]
+    }
+  }
+}

@@ -1,0 +1,2009 @@
+{
+  "version": 1,
+  "stages": [
+    {
+      "id": "stage_1",
+      "number": "1",
+      "title": "凱爾希篇",
+      "entry": {
+        "trigger": "tutorial_completed",
+        "automatic": true
+      },
+      "opening_scenes": [
+        {
+          "id": "stage_1_title",
+          "type": "stage_title",
+          "label": "Stage 1",
+          "title": "凱爾希篇",
+          "hold_seconds": 1.5,
+          "fade_seconds": 1.0
+        }
+      ],
+      "requires": [],
+      "lines": [
+        {
+          "id": "line_1_1",
+          "number": "1-1",
+          "role": "major",
+          "title": "凱爾希篇 主線",
+          "requires": [],
+          "unlocks": [],
+          "missions": [
+            {
+              "id": "story_1_1_1",
+              "number": "1-1.1",
+              "title": "野外資格驗證",
+              "source_legacy_mission_id": "凱爾希_1",
+              "requires": [],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_1_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "這只是例行驗證。",
+                    "按照平常的方式完成即可。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_1_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_1"
+                },
+                {
+                  "id": "story_1_1_1_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "結果符合預期。",
+                    "至少你的判斷能力還沒有退化。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_2",
+              "number": "1-1.2",
+              "title": "異常讀數",
+              "source_legacy_mission_id": "凱爾希_2",
+              "requires": [
+                "story_1_1_1"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_2_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "前往標記區域。",
+                    "確認現場狀況。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_2_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_2"
+                },
+                {
+                  "id": "story_1_1_2_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "儀器沒有故障。",
+                    "那麼異常是真實存在的。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_3",
+              "number": "1-1.3",
+              "title": "殘留紀錄",
+              "source_legacy_mission_id": "凱爾希_3",
+              "requires": [
+                "story_1_1_2"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_3_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "不要遺漏任何一份資料。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_3_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_3"
+                },
+                {
+                  "id": "story_1_1_3_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "很好。",
+                    "這些紀錄值得分析。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_4",
+              "number": "1-1.4",
+              "title": "封存程序",
+              "source_legacy_mission_id": "凱爾希_4",
+              "requires": [
+                "story_1_1_3"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_4_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "不要直接交給我。",
+                    "使用標準程序。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_4_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_4"
+                },
+                {
+                  "id": "story_1_1_4_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "資料已經同步。",
+                    "繼續下一步。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_5",
+              "number": "1-1.5",
+              "title": "候選者紀錄",
+              "source_legacy_mission_id": "凱爾希_5",
+              "requires": [
+                "story_1_1_4"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_5_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "把所有殘留資料帶回來。",
+                    "不要遺漏任何一份。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_5_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_5"
+                },
+                {
+                  "id": "story_1_1_5_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "有人正在刻意掩蓋真相。",
+                    "這讓事情變得更有趣了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_6",
+              "number": "1-1.6",
+              "title": "驗證失敗",
+              "source_legacy_mission_id": "凱爾希_6",
+              "requires": [
+                "story_1_1_5"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_6_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "調查標記區域。",
+                    "順便完成例行委託。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_6_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_6"
+                },
+                {
+                  "id": "story_1_1_6_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "異常不是偶然。",
+                    "它正在擴散。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_7",
+              "number": "1-1.7",
+              "title": "同步錯誤",
+              "source_legacy_mission_id": "凱爾希_7",
+              "requires": [
+                "story_1_1_6"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_7_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "回收資料。",
+                    "之後上傳。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_7_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_7"
+                },
+                {
+                  "id": "story_1_1_7_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "事情越來越不合理了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_8",
+              "number": "1-1.8",
+              "title": "封鎖區域",
+              "source_legacy_mission_id": "凱爾希_8",
+              "requires": [
+                "story_1_1_7"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_8_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "清理現場。",
+                    "帶回資料。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_8_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_8"
+                },
+                {
+                  "id": "story_1_1_8_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "至少我們拿到了想要的東西。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_9",
+              "number": "1-1.9",
+              "title": "異常個體",
+              "source_legacy_mission_id": "凱爾希_9",
+              "requires": [
+                "story_1_1_8"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_9_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "取得資料。",
+                    "不要讓它離開。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_9_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_9"
+                },
+                {
+                  "id": "story_1_1_9_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "那不是普通敵人。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_1_1_10",
+              "number": "1-1.10",
+              "title": "候選者",
+              "source_legacy_mission_id": "凱爾希_10",
+              "requires": [
+                "story_1_1_9"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_1_1_10_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "調查。",
+                    "下載。",
+                    "上傳。"
+                  ]
+                },
+                {
+                  "id": "story_1_1_10_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_kaltsit_10"
+                },
+                {
+                  "id": "story_1_1_10_outro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "博士。",
+                    "那份紀錄屬於你。"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage_2",
+      "number": "2",
+      "title": "伊內絲篇",
+      "entry": {},
+      "opening_scenes": [
+        {
+          "id": "stage_2_title",
+          "type": "stage_title",
+          "label": "Stage 2",
+          "title": "伊內絲篇",
+          "hold_seconds": 1.5,
+          "fade_seconds": 1.0
+        }
+      ],
+      "requires": [
+        "stage_1"
+      ],
+      "lines": [
+        {
+          "id": "line_2_1",
+          "number": "2-1",
+          "role": "major",
+          "title": "伊內絲篇 主線",
+          "requires": [
+            "line_1_1"
+          ],
+          "unlocks": [],
+          "missions": [
+            {
+              "id": "story_2_1_1",
+              "number": "2-1.1",
+              "title": "熟悉的影子",
+              "source_legacy_mission_id": "伊內絲_1",
+              "requires": [],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_1_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "去幫我探探路。",
+                    "看看是哪來的耗子。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_1_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_1"
+                },
+                {
+                  "id": "story_2_1_1_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "回來了？腳步聲聽起來沒受傷嘛。",
+                    "看來對方的警戒心比我想像的要低。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_2",
+              "number": "2-1.2",
+              "title": "遺留監視站",
+              "source_legacy_mission_id": "伊內絲_2",
+              "requires": [
+                "story_2_1_1"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_2_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "把那兩份監控紀錄帶回來。",
+                    "我想看看他們究竟在窺探誰的隱私。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_2_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_2"
+                },
+                {
+                  "id": "story_2_1_2_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "這就是全部了？上面的編碼痕跡……",
+                    "嘖，真是一群熟悉又令人討厭的傢伙。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_3",
+              "number": "2-1.3",
+              "title": "黑箱",
+              "source_legacy_mission_id": "伊內絲_3",
+              "requires": [
+                "story_2_1_2"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_3_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "把資料上傳到羅德島的獨立終端上。",
+                    "我要藉由這條線路逆向追蹤這群幕後黑手。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_3_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_3"
+                },
+                {
+                  "id": "story_2_1_3_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "線路連接成功了，數據正在滾動。",
+                    "他們的尾巴已經漏出來了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_4",
+              "number": "2-1.4",
+              "title": "尾巴",
+              "source_legacy_mission_id": "伊內絲_4",
+              "requires": [
+                "story_2_1_3"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_4_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "既然他們不打算掩飾殺意。",
+                    "那我們也沒必要跟他們客氣，去清理乾淨。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_4_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_4"
+                },
+                {
+                  "id": "story_2_1_4_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "血腥味……處理得很俐落嘛，博士。",
+                    "那些尾巴在死前大概也沒料到你會反擊。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_5",
+              "number": "2-1.5",
+              "title": "被發現的人",
+              "source_legacy_mission_id": "伊內絲_5",
+              "requires": [
+                "story_2_1_4"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_5_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "我倒要看看。",
+                    "這次又是哪個不長進的王國組織在大費周章。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_5_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_5"
+                },
+                {
+                  "id": "story_2_1_5_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "把印章和徽章給我。讓我看看……",
+                    "哼，果然是這群滿嘴利益的烏合之眾。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_6",
+              "number": "2-1.6",
+              "title": "第二批觀察者",
+              "source_legacy_mission_id": "伊內絲_6",
+              "requires": [
+                "story_2_1_5"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_6_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "動身吧，去這兩個地點搜查。",
+                    "把他們還沒來得及銷毀的情報通通截獲過來。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_6_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_6"
+                },
+                {
+                  "id": "story_2_1_6_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "在殘骸燒光前拿到了嗎？算你手快。",
+                    "這些羊皮紙上的字跡還算清晰。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_7",
+              "number": "2-1.7",
+              "title": "黑名單",
+              "source_legacy_mission_id": "伊內絲_7",
+              "requires": [
+                "story_2_1_6"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_7_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "把名單的核心數據全數回收並上傳。",
+                    "我要讓凱爾希也過目一下這份名冊。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_7_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_7"
+                },
+                {
+                  "id": "story_2_1_7_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "名單上傳完畢了。我看到上面也有我的名字？",
+                    "呵，那他們的懸賞金可能下得有點太低了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_8",
+              "number": "2-1.8",
+              "title": "指揮者",
+              "source_legacy_mission_id": "伊內絲_8",
+              "requires": [
+                "story_2_1_7"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_8_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "擊潰他，把他的加密通訊器奪過來。",
+                    "我們要用他的終端直接對他的上線進行數據爆破。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_8_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_8"
+                },
+                {
+                  "id": "story_2_1_8_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "核心頻率到手了。他臨死前那幅不可置信的表情，",
+                    "你有好好欣賞嗎，博士？"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_9",
+              "number": "2-1.9",
+              "title": "追蹤網",
+              "source_legacy_mission_id": "伊內絲_9",
+              "requires": [
+                "story_2_1_8"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_9_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "別讓他們得逞。",
+                    "一邊清除攔截的雜魚，一邊把剩餘的斷片資料挖出來。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_9_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_9"
+                },
+                {
+                  "id": "story_2_1_9_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "攔截網被踩碎了，資料也全攔截下來了。",
+                    "他們自以為安全的防線漏洞百出。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_2_1_10",
+              "number": "2-1.10",
+              "title": "未償還的債務",
+              "source_legacy_mission_id": "伊內絲_10",
+              "requires": [
+                "story_2_1_9"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_2_1_10_intro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "帶上這份證據，去最深處把他們徹底解決。",
+                    "在卡茲戴爾，出來混總是要還的。"
+                  ]
+                },
+                {
+                  "id": "story_2_1_10_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_ines_10"
+                },
+                {
+                  "id": "story_2_1_10_outro",
+                  "type": "dialogue",
+                  "speaker": "ines",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "債務兩清。看來今後這片荒野能稍微安靜一陣子了。",
+                    "幹得不錯，博士，看來你的指挥刀還沒鈍。"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage_3",
+      "number": "3",
+      "title": "可露希爾篇",
+      "entry": {},
+      "opening_scenes": [
+        {
+          "id": "stage_3_title",
+          "type": "stage_title",
+          "label": "Stage 3",
+          "title": "可露希爾篇",
+          "hold_seconds": 1.5,
+          "fade_seconds": 1.0
+        }
+      ],
+      "requires": [
+        "stage_2"
+      ],
+      "lines": [
+        {
+          "id": "line_3_1",
+          "number": "3-1",
+          "role": "major",
+          "title": "可露希爾篇 主線",
+          "requires": [
+            "line_2_1"
+          ],
+          "unlocks": [],
+          "missions": [
+            {
+              "id": "story_3_1_1",
+              "number": "3-1.1",
+              "title": "缺少的零件",
+              "source_legacy_mission_id": "可露希爾_1",
+              "requires": [],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_1_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "這要在凱爾希發現前處理好。",
+                    "去外面的整備場找找看吧。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_1_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_1"
+                },
+                {
+                  "id": "story_3_1_1_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "太好了，零件總算齊了！",
+                    "這下無人機的日常維護就能順利進行囉。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_2",
+              "number": "3-1.2",
+              "title": "故障終端",
+              "source_legacy_mission_id": "可露希爾_2",
+              "requires": [
+                "story_3_1_1"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_2_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "去那一帶的終端看看。",
+                    "把那兩份故障紀錄下載下來。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_2_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_2"
+                },
+                {
+                  "id": "story_3_1_2_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "收到日誌文件了！讓我瞧瞧……",
+                    "哇啊，這指針衝突寫得像一團義大利麵一樣！"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_3",
+              "number": "3-1.3",
+              "title": "韌體更新",
+              "source_legacy_mission_id": "可露希爾_3",
+              "requires": [
+                "story_3_1_2"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_3_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "這件事就交給可靠的博士了。",
+                    "把修補資料上傳吧。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_3_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_3"
+                },
+                {
+                  "id": "story_3_1_3_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "進度條跑滿了！叮咚——上傳成功！",
+                    "博士傳輸線果然是全羅德島效率最高的！"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_4",
+              "number": "3-1.4",
+              "title": "搶修現場",
+              "source_legacy_mission_id": "可露希爾_4",
+              "requires": [
+                "story_3_1_3"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_4_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "這嚴重影響到後勤部的進度了。",
+                    "帶上幹員們去清空指定區域吧。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_4_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_4"
+                },
+                {
+                  "id": "story_3_1_4_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "呼，警報解除了！不愧是博士，動起手來乾脆利落。",
+                    "這下中繼站終於能安全重新啟動了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_5",
+              "number": "3-1.5",
+              "title": "原型機",
+              "source_legacy_mission_id": "可露希爾_5",
+              "requires": [
+                "story_3_1_4"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_5_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "幫我把原型零件找回來。",
+                    "可不能讓羅德島的科技外流了。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_5_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_5"
+                },
+                {
+                  "id": "story_3_1_5_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "哇！一、二、三、四，一個都沒少！",
+                    "趕緊鎖進保險箱，要是被凱爾希看到我就慘了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_6",
+              "number": "3-1.6",
+              "title": "訊號干擾",
+              "source_legacy_mission_id": "可露希爾_6",
+              "requires": [
+                "story_3_1_5"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_6_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "這導致我們無線波段全部癱瘓了。",
+                    "深入干擾區域，一邊清場一邊下載資料吧。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_6_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_6"
+                },
+                {
+                  "id": "story_3_1_6_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "干擾波形數據拿到了！看我用代碼反制他們……",
+                    "哼哼，這下輪到他們的雷達變成瞎子了！"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_7",
+              "number": "3-1.7",
+              "title": "備品庫存",
+              "source_legacy_mission_id": "可露希爾_7",
+              "requires": [
+                "story_3_1_6"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_7_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "既然是我們的東西，那就物歸原主吧。",
+                    "順便完成例行外勤，把備品都搬回來。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_7_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_7"
+                },
+                {
+                  "id": "story_3_1_7_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "哇哈！零成本零稅率的物資回收！",
+                    "後勤部的庫存水位瞬間回升，博士最棒了！"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_8",
+              "number": "3-1.8",
+              "title": "系統恢復",
+              "source_legacy_mission_id": "可露希爾_8",
+              "requires": [
+                "story_3_1_7"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_8_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "先清空周圍那些礙事的潛在威脅。",
+                    "接著按照順序，先下載，再上傳。"
+                  ]
+                },
+                {
+                  "id": "story_3_1_8_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_8"
+                },
+                {
+                  "id": "story_3_1_8_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "系統重新初始化完成！綠燈全亮！",
+                    "防線的算力重新充沛起來了，太舒服了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_9",
+              "number": "3-1.9",
+              "title": "失控機體",
+              "source_legacy_mission_id": "可露希爾_9",
+              "requires": [
+                "story_3_1_8"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_9_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "不能讓它接近外圍關口。",
+                    "擊敗它，把它的核心拆回來分析！"
+                  ]
+                },
+                {
+                  "id": "story_3_1_9_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_9"
+                },
+                {
+                  "id": "story_3_1_9_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "呼……核心安全卸載了，超載警報解除！",
+                    "裡面的活化合金剛好能拿來當新無人機的底盤底座！"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_3_1_10",
+              "number": "3-1.10",
+              "title": "完工驗收",
+              "source_legacy_mission_id": "可露希爾_10",
+              "requires": [
+                "story_3_1_9"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_3_1_10_intro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "去把分布在各節點的驗收資料下載下來。",
+                    "上傳總結報告，我們就大功告成了！"
+                  ]
+                },
+                {
+                  "id": "story_3_1_10_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_closure_10"
+                },
+                {
+                  "id": "story_3_1_10_outro",
+                  "type": "dialogue",
+                  "speaker": "closure",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "大、功、告、成！數據鏈路完全閉合了！",
+                    "走走走，販賣機走起，碳酸飲料管夠，加冰的哦！"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage_4",
+      "number": "4",
+      "title": "Priestess篇",
+      "entry": {},
+      "opening_scenes": [
+        {
+          "id": "stage_4_title",
+          "type": "stage_title",
+          "label": "Stage 4",
+          "title": "Priestess篇",
+          "hold_seconds": 1.5,
+          "fade_seconds": 1.0
+        }
+      ],
+      "requires": [
+        "stage_3"
+      ],
+      "lines": [
+        {
+          "id": "line_4_1",
+          "number": "4-1",
+          "role": "major",
+          "title": "Priestess篇 主線",
+          "requires": [
+            "line_3_1"
+          ],
+          "unlocks": [],
+          "missions": [
+            {
+              "id": "story_4_1_1",
+              "number": "4-1.1",
+              "title": "模糊記憶",
+              "source_legacy_mission_id": "priestess_1",
+              "requires": [],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_1_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "去往那個被標記的象限。",
+                    "別擔心，我一直都在。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_1_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_1"
+                },
+                {
+                  "id": "story_4_1_1_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "你看，指針在顫動，那就是我們的回音。",
+                    "大地的喧囂掩蓋不了這個頻率。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_2",
+              "number": "4-1.2",
+              "title": "失落片段",
+              "source_legacy_mission_id": "priestess_2",
+              "requires": [
+                "story_4_1_1"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_2_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "別讓它們在荒野中碳化。",
+                    "把那些記憶碎片帶回安全的地方。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_2_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_2"
+                },
+                {
+                  "id": "story_4_1_2_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "微弱的靜電……這塊晶片還在發熱呢。",
+                    "辛苦了，你沒有讓它們消散在風裡。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_3",
+              "number": "4-1.3",
+              "title": "記錄歸檔",
+              "source_legacy_mission_id": "priestess_3",
+              "requires": [
+                "story_4_1_2"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_3_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "使用標準線路進行歸檔。",
+                    "數據的流向會指引你的思緒。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_3_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_3"
+                },
+                {
+                  "id": "story_4_1_3_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "同步進度：100%。底層電路運作得非常平穩。",
+                    "我能感覺到，你的思緒離我又近了一步。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_4",
+              "number": "4-1.4",
+              "title": "重複的夢",
+              "source_legacy_mission_id": "priestess_4",
+              "requires": [
+                "story_4_1_3"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_4_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "夢境的殘響是有實體的。",
+                    "走向那個重疊的象限吧。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_4_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_4"
+                },
+                {
+                  "id": "story_4_1_4_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "你看到了什麼？是一片漆黑，還是漫天繁星？",
+                    "別害怕，那只是我們共同度過的漫長時光。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_5",
+              "number": "4-1.5",
+              "title": "不存在的人",
+              "source_legacy_mission_id": "priestess_5",
+              "requires": [
+                "story_4_1_4"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_5_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "不要相信系統的錯誤判定。",
+                    "把那些被定義為不存在的紀錄帶回來。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_5_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_5"
+                },
+                {
+                  "id": "story_4_1_5_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "數據已經強行注入成功。任憑他們怎麼抹除，",
+                    "這些名字將永遠銘刻在協議的最底層。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_6",
+              "number": "4-1.6",
+              "title": "門後的聲音",
+              "source_legacy_mission_id": "priestess_6",
+              "requires": [
+                "story_4_1_5"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_6_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "現實的異常只是虛妄的投影。",
+                    "穿過層級，我在那裡等你。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_6_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_6"
+                },
+                {
+                  "id": "story_4_1_6_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "你成功穿過了幻境。雖然隔著沉重的數據閘門，",
+                    "但我已經能清晰地聽見你的心跳了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_7",
+              "number": "4-1.7",
+              "title": "破碎座標",
+              "source_legacy_mission_id": "priestess_7",
+              "requires": [
+                "story_4_1_6"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_7_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "別在交錯的象限中迷失了方向。",
+                    "抓緊那些座標資料。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_7_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_7"
+                },
+                {
+                  "id": "story_4_1_7_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "座標線交匯了。矩陣已重新鎖定。",
+                    "無論你在這片大地上漂流多遠，我都能隨時找到你。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_8",
+              "number": "4-1.8",
+              "title": "守門者",
+              "source_legacy_mission_id": "priestess_8",
+              "requires": [
+                "story_4_1_7"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_8_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "這是一場跨越世代的考驗。",
+                    "擊碎指令，把資料上傳吧。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_8_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_8"
+                },
+                {
+                  "id": "story_4_1_8_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "古老的傀儡終於倒下了，檔案正在破譯……",
+                    "你看，你在那個很久以前的世代，也是如此卓越。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_9",
+              "number": "4-1.9",
+              "title": "最後的走廊",
+              "source_legacy_mission_id": "priestess_9",
+              "requires": [
+                "story_4_1_8"
+              ],
+              "unlocks": [
+                "story_4_1_10"
+              ],
+              "scenes": [
+                {
+                  "id": "story_4_1_9_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "不要讓外來的噪音干擾這個時刻。",
+                    "一邊清理戰場，一邊完成區域調查。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_9_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_9"
+                },
+                {
+                  "id": "story_4_1_9_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "噪音被平息了，長廊重新歸於寂靜。",
+                    "最後的阻礙已經消失，最後一扇門就在眼前了。"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "story_4_1_10",
+              "number": "4-1.10",
+              "title": "甦醒之前",
+              "source_legacy_mission_id": "priestess_10",
+              "requires": [
+                "story_4_1_9"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_4_1_10_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "accept_lines",
+                  "lines": [
+                    "去揭開最後的帷幕吧，博士。",
+                    "上傳完成後，你就該醒來了。"
+                  ]
+                },
+                {
+                  "id": "story_4_1_10_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_priestess_10"
+                },
+                {
+                  "id": "story_4_1_10_outro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "source_field": "return_lines",
+                  "lines": [
+                    "艙蓋正在打開……光芒照進來了呢，博士。",
+                    "去吧，去那片大地。不論發生什麼，永遠不要忘記我。"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage_5",
+      "number": "5",
+      "title": "New RITC 篇",
+      "entry": {
+        "trigger": "tgc_completed",
+        "automatic": true
+      },
+      "opening_scenes": [
+        {
+          "id": "stage_5_title",
+          "type": "stage_title",
+          "label": "Stage 5",
+          "title": "New RITC 篇",
+          "hold_seconds": 1.5,
+          "fade_seconds": 1.0
+        }
+      ],
+      "requires": [
+        "stage_4"
+      ],
+      "lines": [
+        {
+          "id": "line_5_1",
+          "number": "5-1",
+          "role": "major",
+          "title": "確認異常",
+          "requires": [],
+          "unlocks": [
+            "line_5_2"
+          ],
+          "missions": [
+            {
+              "id": "story_5_1_1",
+              "number": "5-1.1",
+              "title": "出口之外",
+              "source_legacy_mission_id": null,
+              "requires": [],
+              "unlocks": [
+                "story_5_1_2"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_1_1_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "穿過前方的道路。",
+                    "找到一個能夠安全休息的地方。"
+                  ]
+                },
+                {
+                  "id": "story_5_1_1_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_01"
+                },
+                {
+                  "id": "story_5_1_1_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m1.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_1_2",
+              "number": "5-1.2",
+              "title": "延伸的道路",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_1_1"
+              ],
+              "unlocks": [
+                "story_5_1_3"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_1_2_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "Map 4 的道路仍然處於崩壞狀態。",
+                    "修復三個損壞位置，確保補給能夠通過。"
+                  ]
+                },
+                {
+                  "id": "story_5_1_2_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_02"
+                },
+                {
+                  "id": "story_5_1_2_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m2.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_1_3",
+              "number": "5-1.3",
+              "title": "第一批物資",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_1_2"
+              ],
+              "unlocks": [
+                "story_5_1_4"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_1_3_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "空地本身無法成為據點。",
+                    "前往 Map 5，收集第一批建設物資。"
+                  ]
+                },
+                {
+                  "id": "story_5_1_3_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_03"
+                },
+                {
+                  "id": "story_5_1_3_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m3.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_1_4",
+              "number": "5-1.4",
+              "title": "空白之地",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_1_3"
+              ],
+              "unlocks": [
+                "story_5_1_5"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_1_4_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "lines": [
+                    "這裡仍然缺少能夠休息的地方。",
+                    "按照留下的設計，完成第一個住宿區吧。"
+                  ]
+                },
+                {
+                  "id": "story_5_1_4_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_04"
+                },
+                {
+                  "id": "story_5_1_4_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m4.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_1_5",
+              "number": "5-1.5",
+              "title": "回收命令",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_1_4"
+              ],
+              "unlocks": [
+                "story_5_2_1"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_1_5_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "Map 6 出現了與 TGC 相同的回收訊號。",
+                    "清除阻礙，將那份紀錄帶回來。"
+                  ]
+                },
+                {
+                  "id": "story_5_1_5_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_05"
+                },
+                {
+                  "id": "story_5_1_5_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m5.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "line_5_2",
+          "number": "5-2",
+          "role": "major",
+          "title": "延伸希望",
+          "requires": [
+            "story_5_1_5"
+          ],
+          "unlocks": [],
+          "missions": [
+            {
+              "id": "story_5_2_1",
+              "number": "5-2.1",
+              "title": "自己的目的",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_1_5"
+              ],
+              "unlocks": [
+                "story_5_2_2"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_2_1_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "你已經知道這座設施原本的用途。",
+                    "現在決定你要讓它成為什麼。"
+                  ]
+                },
+                {
+                  "id": "story_5_2_1_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_06"
+                },
+                {
+                  "id": "story_5_2_1_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m6.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_2_2",
+              "number": "5-2.2",
+              "title": "儲存與製造",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_2_1"
+              ],
+              "unlocks": [
+                "story_5_2_3"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_2_2_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "lines": [
+                    "現有物資只能維持短期運作。",
+                    "取得足夠零件，讓這裡能夠自行生產。"
+                  ]
+                },
+                {
+                  "id": "story_5_2_2_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_07"
+                },
+                {
+                  "id": "story_5_2_2_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m7.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_2_3",
+              "number": "5-2.3",
+              "title": "讓人活下來的地方",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_2_2"
+              ],
+              "unlocks": [
+                "story_5_2_4"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_2_3_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "一個聚落不能只提供床位與工具。",
+                    "收集醫療物資，建立能夠救人的設施。"
+                  ]
+                },
+                {
+                  "id": "story_5_2_3_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_08"
+                },
+                {
+                  "id": "story_5_2_3_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m8.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_2_4",
+              "number": "5-2.4",
+              "title": "獨立線路",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_2_3"
+              ],
+              "unlocks": [
+                "story_5_2_5"
+              ],
+              "scenes": [
+                {
+                  "id": "story_5_2_4_intro",
+                  "type": "dialogue",
+                  "speaker": "priestess",
+                  "lines": [
+                    "連接外部之後，這裡將不再是封閉的系統。",
+                    "如果這仍是你的選擇，就取回需要的通訊元件。"
+                  ]
+                },
+                {
+                  "id": "story_5_2_4_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_09"
+                },
+                {
+                  "id": "story_5_2_4_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m9.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            },
+            {
+              "id": "story_5_2_5",
+              "number": "5-2.5",
+              "title": "New RITC",
+              "source_legacy_mission_id": null,
+              "requires": [
+                "story_5_2_4"
+              ],
+              "unlocks": [],
+              "scenes": [
+                {
+                  "id": "story_5_2_5_intro",
+                  "type": "dialogue",
+                  "speaker": "kaltsit",
+                  "lines": [
+                    "最後的建設清單已經整理完成。",
+                    "完成它，然後告訴我們這個地方的答案。"
+                  ]
+                },
+                {
+                  "id": "story_5_2_5_runtime",
+                  "type": "mission",
+                  "runtime_id": "mission_stage5_10"
+                },
+                {
+                  "id": "story_5_2_5_outro",
+                  "type": "png_dialogue",
+                  "source_file": "presentations/s5m10.json",
+                  "mandatory_first_view": true,
+                  "allow_skip_after_seen": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "completion": {
+        "requires": [
+          "story_5_2_5"
+        ],
+        "set_free_explore": true,
+        "set_objective": "懷抱希望，自由探索這片土地。",
+        "next_stage": null
+      }
+    }
+  ]
+}

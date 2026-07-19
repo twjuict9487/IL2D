@@ -1,0 +1,152 @@
+{
+    "version":  1,
+    "animation":  "“庞贝”_Die",
+    "atlas":  "“庞贝”_Die_atlas.png",
+    "frame_size":  [
+                       1000,
+                       1000
+                   ],
+    "atlas_size":  [
+                       4000,
+                       4000
+                   ],
+    "fps":  12,
+    "loop":  true,
+    "frames":  [
+                   {
+                       "index":  0,
+                       "name":  "frame_0001_nobg.png",
+                       "x":  0,
+                       "y":  0,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  1,
+                       "name":  "frame_0002_nobg.png",
+                       "x":  1000,
+                       "y":  0,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  2,
+                       "name":  "frame_0003_nobg.png",
+                       "x":  2000,
+                       "y":  0,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  3,
+                       "name":  "frame_0004_nobg.png",
+                       "x":  3000,
+                       "y":  0,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  4,
+                       "name":  "frame_0005_nobg.png",
+                       "x":  0,
+                       "y":  1000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  5,
+                       "name":  "frame_0006_nobg.png",
+                       "x":  1000,
+                       "y":  1000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  6,
+                       "name":  "frame_0007_nobg.png",
+                       "x":  2000,
+                       "y":  1000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  7,
+                       "name":  "frame_0008_nobg.png",
+                       "x":  3000,
+                       "y":  1000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  8,
+                       "name":  "frame_0009_nobg.png",
+                       "x":  0,
+                       "y":  2000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  9,
+                       "name":  "frame_0010_nobg.png",
+                       "x":  1000,
+                       "y":  2000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  10,
+                       "name":  "frame_0011_nobg.png",
+                       "x":  2000,
+                       "y":  2000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  11,
+                       "name":  "frame_0012_nobg.png",
+                       "x":  3000,
+                       "y":  2000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  12,
+                       "name":  "frame_0013_nobg.png",
+                       "x":  0,
+                       "y":  3000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  13,
+                       "name":  "frame_0014_nobg.png",
+                       "x":  1000,
+                       "y":  3000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   },
+                   {
+                       "index":  14,
+                       "name":  "frame_0015_nobg.png",
+                       "x":  2000,
+                       "y":  3000,
+                       "w":  1000,
+                       "h":  1000,
+                       "duration":  1
+                   }
+               ]
+}

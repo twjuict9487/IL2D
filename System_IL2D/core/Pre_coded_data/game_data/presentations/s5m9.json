@@ -1,0 +1,113 @@
+{
+    "transitions": {
+        "fade_to_black": 1.0,
+        "character_reveal": 2.2,
+        "reveal_hold": 0.8,
+        "scene_fade_out": 0.8,
+        "scene_fade_in": 1.0
+    },
+    "defaults": {
+        "narrator_speed": 13.5,
+        "dialogue_speed": 12.0,
+        "thought_speed": 11.25,
+        "heavy_speed": 10.125,
+        "pre_delay": 0.15,
+        "post_delay": 0.55,
+        "speaker_transition": 0.5,
+        "finish_fade": 0.6
+    },
+    "actors": [
+        {
+            "id": "kaltsit",
+            "name_zh": "凱爾希",
+            "name_en": "Kal'tsit",
+            "image": "1536px-Kal'tsit_nobg.png",
+            "x": 0.18,
+            "scale": 0.9
+        },
+        {
+            "id": "priestess",
+            "name_zh": "Priestess",
+            "name_en": "Priestess",
+            "image": "priestess_nobg.png",
+            "x": 0.5,
+            "scale": 0.94
+        },
+        {
+            "id": "doctor",
+            "name_zh": "博士",
+            "name_en": "Doctor",
+            "image": "Doctor_nobg.png",
+            "x": 0.82,
+            "scale": 0.9
+        }
+    ],
+    "initial_scene": "scene1",
+    "scenes": {
+        "scene1": {
+            "actors": [
+                "kaltsit",
+                "priestess",
+                "doctor"
+            ]
+        }
+    },
+    "lines": [
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「一旦接通外部通訊，\n你的位置與狀態將不再只由我掌握。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「正因如此，我才需要接通它。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「我可以把完整的記憶還給你。\n你不必依賴那些陌生人的資訊。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「我不是永遠拒絕那些記憶。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「我拒絕的是由妳決定，\n我必須在什麼時候接受。」"
+        },
+        {
+            "speaker": "kaltsit",
+            "style": "dialogue",
+            "text": "「選擇是否取回過去的人，只能是博士。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "heavy",
+            "text": "「如果控制不再存在，\n我們之間還剩下什麼？」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「一條我可以靠近，也可以離開的線。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "heavy",
+            "text": "「不是鎖鏈。」"
+        },
+        {
+            "speaker": "priestess",
+            "style": "dialogue",
+            "text": "「……我還不理解這種差別。」"
+        },
+        {
+            "speaker": "doctor",
+            "style": "dialogue",
+            "text": "「那就慢慢理解。」",
+            "post_delay": 0.9
+        }
+    ]
+}

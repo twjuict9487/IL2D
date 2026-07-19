@@ -1117,26 +1117,44 @@
     {
       "x": 14,
       "y": 29,
+      "target_map": "farm_01.json",
+      "target_spawn": [
+        8,
+        1
+      ],
       "visible": false,
       "portal_id": "map2_south_farm_gate",
-      "locked": true,
-      "message_key": "msg.area_still_cooking"
+      "target_portal_id": "farm_north_gate",
+      "exit_direction": "down",
+      "entry_direction": "up"
     },
     {
       "x": 15,
       "y": 29,
+      "target_map": "farm_01.json",
+      "target_spawn": [
+        8,
+        1
+      ],
       "visible": false,
       "portal_id": "map2_south_farm_gate",
-      "locked": true,
-      "message_key": "msg.area_still_cooking"
+      "target_portal_id": "farm_north_gate",
+      "exit_direction": "down",
+      "entry_direction": "up"
     },
     {
       "x": 16,
       "y": 29,
+      "target_map": "farm_01.json",
+      "target_spawn": [
+        8,
+        1
+      ],
       "visible": false,
       "portal_id": "map2_south_farm_gate",
-      "locked": true,
-      "message_key": "msg.area_still_cooking"
+      "target_portal_id": "farm_north_gate",
+      "exit_direction": "down",
+      "entry_direction": "up"
     }
   ],
   "spawn_interval": 0.1,

@@ -1,0 +1,180 @@
+﻿# GitHub Diff Summary
+
+Compared base: origin/main
+Scope: current working tree compared to latest fetched GitHub main.
+Note: this file is a human-readable summary only. It intentionally does not include full code diff.
+
+## Overall Size
+
+- Tracked modified files: 27
+- Tracked diff size: 3997 insertions, 344 deletions
+- Untracked files/assets: 62
+- Biggest changed areas: rendering, gameplay core, system loop, mission handling, story/chase systems, map data, new assets.
+
+## Main Feature Changes
+
+### Stage 5 / The Great Chase
+
+- Added a new Stage 4 to Stage 5 transition flow centered around The Great Chase.
+- Added chase controller logic for TGC timing, music sections, monster chase behavior, final cutscene, and transition to Stage 5 maps.
+- Added TGC segmented map support so multiple JSON map files can load as one continuous map.
+- Added TGC map files: the_great_chase_01 through the_great_chase_05.
+- Added transition chase configuration data.
+- Added BSR entrance/portal toward the chase route.
+- Added chase-specific camera / movement support through gameplay, input, rendering, and system loop changes.
+
+### Stage 5 Maps / New RITC
+
+- Added new Stage 5 map chain: map_4, map_5, map_6, and new_ritc.
+- Added new_ritc_progression data.
+- Added world map entries/edges for the Stage 5 route and New RITC.
+- Added map music overrides:
+  - map_4/map_5/map_6 use [Arknights OST] boss act1vhalfidle.mp3.
+  - new_ritc uses Pivot of the Future.mp3.
+- Added or changed map block types for new Stage 5 terrain/obstacles.
+- Updated existing map files to connect or support new progression.
+
+### Missions / Story Campaign
+
+- Added structured story campaign data.
+- Added missions.json with Stage 5 mission chain and runtime mission data.
+- Added story manager/loader/state/scene modules.
+- Added presentation JSON files for prologue, TGC, and Stage 5 mission scenes.
+- Mission handling now supports newer objective/progression flow alongside existing systems.
+- Added/changed support for mission unlocks, return-to-giver behavior, objective display, and Stage 5 progression.
+
+### Cutscenes / Presentations
+
+- Added prologue presentation system.
+- Added presentation support in UI/system flow.
+- Added TGC presentation/cutscene data.
+- Added Stage 5 mission presentation data.
+- Added cutscene skip/dev hotkey related behavior.
+
+### ESC Menu / UI / Developer Tools
+
+- Expanded rendering code for story timeline, map UI, mission/objective display, cutscene presentation, chase HUD, and related panels.
+- Added developer menu support for skipping to Stage 5 and mission selection/progression tools.
+- Added/updated i18n strings for new UI and dev options.
+
+### NPC / Dialogue / Interaction
+
+- Updated Kal'tsit dialogue data.
+- Updated NPC operation flow to support story/mission interactions and newer failure reporting.
+- Added campfire gameplay module and campfire interaction/save support.
+- Added support utilities for map/file aliases such as new_rite -> new_ritc.
+
+### Audio
+
+- Added audio manager support for BGM switching/segments and chase-related playback behavior.
+- Added new music assets:
+  - Sewer Creature.mp3
+  - Pivot of the Future.mp3
+  - [Arknights OST] boss act1vhalfidle.mp3
+
+### Mobs / Visual Assets
+
+- Updated mobs.json to connect boss mobs to atlas animations.
+- Added atlas assets for:
+  - Pompeii / 庞贝
+  - Big Bob / 大鲍勃
+  - Eblana / 死芒
+- Rendering now supports generic animated mob state selection for move/attack style playback.
+- Updated priestess image asset.
+- Added Kal'tsit, Doctor, campfire, and enemy head/cutout assets.
+
+### Save / Input / Runtime
+
+- Save logic changed to preserve and restore newer story/mission/chase/campfire state.
+- Input flow changed for cutscene skip, chase movement, and menu interactions.
+- Held movement logic changed for chase auto-run behavior.
+- System core changed for new presentation/chase/story runtime integration.
+
+### Farmer Mod
+
+- Farmer mod hook/map data changed slightly, likely to stay compatible with new map/save/runtime behavior.
+
+## Tracked Files Changed
+
+- System_IL2D/clips/nobg_heads/priestess_nobg.png
+- System_IL2D/core/Pre_coded_data/entity/mob_related/mobs.json
+- System_IL2D/core/Pre_coded_data/entity/npc_related/dialogue/kaltsit.json
+- System_IL2D/core/Pre_coded_data/game_data/i18n.json
+- System_IL2D/core/Pre_coded_data/game_data/items.json
+- System_IL2D/core/Pre_coded_data/map/blocktype.json
+- System_IL2D/core/Pre_coded_data/map/burnt_supply_route.json
+- System_IL2D/core/Pre_coded_data/map/map_1.json
+- System_IL2D/core/Pre_coded_data/map/map_2.json
+- System_IL2D/core/Pre_coded_data/map/ritc.json
+- System_IL2D/core/functions/audio/audio_manager.py
+- System_IL2D/core/functions/gameplay/game.py
+- System_IL2D/core/functions/gameplay/mission_handlers.py
+- System_IL2D/core/functions/gameplay/missions.py
+- System_IL2D/core/functions/gameplay/npc_ops.py
+- System_IL2D/core/functions/gameplay/save_ops.py
+- System_IL2D/core/functions/gameplay/tutorial/tutorial_core.py
+- System_IL2D/core/functions/input/game_key_flow.py
+- System_IL2D/core/functions/input/held_movement.py
+- System_IL2D/core/functions/rendering/draw.py
+- System_IL2D/core/functions/support/utils.py
+- System_IL2D/core/functions/ui/dev_menu_flow.py
+- System_IL2D/core/functions/ui/name_input_flow.py
+- System_IL2D/core/functions/world/map.py
+- System_IL2D/core/system_core.py
+- System_IL2D/mods/farmer_mod/functions/hooks.py
+- System_IL2D/mods/farmer_mod/maps/farm_01.json
+
+## New Untracked Content Categories
+
+### New maps
+
+- map_4.json
+- map_5.json
+- map_6.json
+- new_ritc.json
+- new_ritc_progression.json
+- stage_4_to_5_chase.json
+- stage_5_settlement.json
+- the_great_chase_01.json through the_great_chase_05.json
+
+### New game data
+
+- missions.json
+- story_campaign.json
+- transition_chases.json
+- world_map.json
+- presentations/prologue_presentation.json
+- presentations/tgc_presentation.json
+- presentations/s5m1.json through s5m10.json
+
+### New Python modules
+
+- campfires.py
+- chase_transition.py
+- gameplay/story package
+- ui/prologue_presentation.py
+
+### New assets
+
+- Boss atlas JSON/PNG files for 庞贝, 大鲍勃, 死芒.
+- New music files listed above.
+- New character/object cutouts: Kal'tsit, Doctor, campfire, enemy head image.
+
+## Risk Notes
+
+- Large rendering/game/system changes may affect unrelated UI or runtime flow.
+- Many new files are still untracked, so a commit without adding them would break Stage 5/TGC/story features.
+- Several files show CRLF-to-LF warnings; line endings may change when Git touches them.
+- Some binary assets changed or were added, especially images and music.
+- Existing saves may need compatibility attention because story, mission, chase, and campfire state were added.
+
+## Suggested Verification Before Commit
+
+- Run py_compile on changed Python modules.
+- Load each new map through GameMap.
+- Verify TGC combined dimensions and segment boundaries.
+- Verify BSR -> TGC -> Stage 5 transition.
+- Verify map_4/map_5/map_6/new_ritc music switching.
+- Verify Stage 5 missions can be accepted, progressed, returned to Kal'tit, and unlock next mission.
+- Verify ESC map and story timeline rendering.
+- Verify new boss atlas animations load.

@@ -1,0 +1,392 @@
+{
+  "transitions": {
+    "fade_to_black": 1.0,
+    "character_reveal": 2.2,
+    "reveal_hold": 0.8,
+    "scene_fade_out": 0.8,
+    "scene_fade_in": 1.0
+  },
+  "defaults": {
+    "narrator_speed": 13.5,
+    "dialogue_speed": 12.0,
+    "thought_speed": 11.25,
+    "heavy_speed": 10.125,
+    "pre_delay": 0.15,
+    "post_delay": 0.55,
+    "speaker_transition": 0.5,
+    "finish_fade": 0.6
+  },
+  "actors": [
+    {
+      "id": "kaltsit",
+      "name_zh": "凱爾希",
+      "name_en": "Kal'tsit",
+      "image": "1536px-Kal'tsit_nobg.png",
+      "x": 0.2,
+      "scale": 0.94
+    },
+    {
+      "id": "priestess",
+      "name_zh": "熟悉的聲音",
+      "name_en": "A Familiar Voice",
+      "image": "priestess_nobg.png",
+      "x": 0.5,
+      "scale": 0.98,
+      "silhouette": true
+    },
+    {
+      "id": "doctor",
+      "name_zh": "博士",
+      "name_en": "Doctor",
+      "image": "Doctor_nobg.png",
+      "x": 0.8,
+      "scale": 0.94
+    }
+  ],
+  "initial_scene": "scene1",
+  "scenes": {
+    "scene1": {
+      "actors": ["kaltsit", "doctor"]
+    },
+    "scene2": {
+      "actors": ["doctor", "priestess"]
+    }
+  },
+  "lines": [
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "「魔王。」"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "薩卡茲眾魂之所向，\n亦是引領族群前行的明標。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "曾有一位心懷理想的魔王，\n因不忍泰拉眾生所受的苦難，\n遂與眾多志同道合之人一道，\n踏上名為「改變」的漫長道路。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "他們一次次涉足險境，\n一次次將自身置於風暴中央。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "然而，當塵埃落定，\n當風暴終於散去——"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "又有多少事物，\n真正被留了下來？"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "heavy",
+      "text": "「你的選擇……讓我有了憎恨你的理由。」"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "heavy",
+      "text": "「我本該放棄你。」",
+      "typing_speed": 9.75,
+      "pre_delay": 0.35,
+      "post_delay": 0.9
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "heavy",
+      "text": "「……也理應如此。」"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "dialogue",
+      "text": "「但她留下的意志，仍需要有人使其延續。」"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "dialogue",
+      "text": "「所以，為自己的幸運感到慶幸吧。」"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "dialogue",
+      "text": "「至少，它能暫時保住你的性命。」"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "dialogue",
+      "text": "「等到未來的某一天，我會來接你。」"
+    },
+    {
+      "speaker": "kaltsit",
+      "style": "heavy",
+      "text": "「……或許。」"
+    },
+    {
+      "speaker": "doctor",
+      "style": "dialogue",
+      "text": "「我……」"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "你感覺自己正身處某個狹窄的容器之中。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "冰冷的液體包圍著軀體，\n機械運轉的低鳴，逐漸遠去。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "你的意識正在消散。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "或許，待你再次睜開雙眼時，\n一切都將有所不同。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "那也正是■■■的目的。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "但在繼續前進以前——\n回頭看看吧。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "以此刻仍然「純淨」的你，\n重新走過那些早已被你遺忘，\n以及終將再次被你遺忘的往事。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "heavy",
+      "text": "或許這一次，\n結局能有所不同。"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［這裡……是哪裡？］"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［我……又是誰？］"
+    },
+    {
+      "speaker": "priestess",
+      "speaker_name_zh": "熟悉的聲音",
+      "speaker_name_en": "A Familiar Voice",
+      "style": "dialogue",
+      "scene_transition": "scene2",
+      "text": "「純淨的生靈……」"
+    },
+    {
+      "speaker": "priestess",
+      "speaker_name_zh": "熟悉的聲音",
+      "speaker_name_en": "A Familiar Voice",
+      "style": "dialogue",
+      "text": "「不，還不能這麼說。」"
+    },
+    {
+      "speaker": "priestess",
+      "speaker_name_zh": "熟悉的聲音",
+      "speaker_name_en": "A Familiar Voice",
+      "style": "dialogue",
+      "text": "「你的身上，似乎仍殘留著一些東西。」"
+    },
+    {
+      "speaker": "priestess",
+      "speaker_name_zh": "熟悉的聲音",
+      "speaker_name_en": "A Familiar Voice",
+      "style": "dialogue",
+      "text": "「真有趣。」"
+    },
+    {
+      "speaker": "priestess",
+      "speaker_name_zh": "熟悉的聲音",
+      "speaker_name_en": "A Familiar Voice",
+      "style": "dialogue",
+      "text": "「Dr. {player_name}——我可以這樣稱呼你吧？」"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［Dr. {player_name}？］"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「他們曾經這樣稱呼你。」"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［他們……？］"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「你過去的同伴。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「戰友、追隨者，或者其他什麼稱呼……我並不在意。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「那些都不重要。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「反正，你遲早還會再見到他們。」"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［那麼，你又是誰？］"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「我？」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "heavy",
+      "text": "「原來如此……你果然又把我忘了。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「沒關係。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「我們還會再見面的。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「至於現在——」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「有人正在等你。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「去找她吧。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「反正此刻的你，也沒有其他事情可做。」"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［誰在等我？］"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「你的問題還真多。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「親自去看看，不就知道了？」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「這次我不會陪你。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「你與你的那位同伴……需要一些獨處的空間。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「不必擔心時間。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「對現在的你而言，最不缺少的，恰好就是時間。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「好好和她『相處』吧。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「坦白說，連我也沒有料到事情會變成這樣。」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "dialogue",
+      "text": "「不過——」"
+    },
+    {
+      "speaker": "priestess",
+      "style": "heavy",
+      "text": "「能夠獲得第二次機會的人，可沒有你想像中那麼多。」"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［第二次機會……是什麼意思？］"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "無人回應。"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "先前縈繞在意識深處的聲音，\n彷彿從未存在過一般，徹底消失了。"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［消失了？］"
+    },
+    {
+      "speaker": "narrator",
+      "style": "narrator",
+      "text": "……"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［算了。］"
+    },
+    {
+      "speaker": "doctor",
+      "style": "thought",
+      "text": "［現在也只能照她說的去做了。］",
+      "post_delay": 0.9
+    }
+  ]
+}

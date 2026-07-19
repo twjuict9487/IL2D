@@ -237,7 +237,12 @@
         "chance": 0.18
       }
     ],
-    "exp_reward": 120
+    "exp_reward": 120,
+    "render_mode": "animated",
+    "anim_fps": 12,
+    "anim_move": "大鲍勃_Move",
+    "anim_attack": "大鲍勃_attack",
+    "anim_die": "大鲍勃_Die"
   },
   "pompeii": {
     "hp": 260,
@@ -269,7 +274,12 @@
         "chance": 0.75
       }
     ],
-    "exp_reward": 150
+    "exp_reward": 150,
+    "render_mode": "animated",
+    "anim_fps": 12,
+    "anim_move": "“庞贝”_Move",
+    "anim_attack": "“庞贝”_Combat",
+    "anim_die": "“庞贝”_Die"
   },
   "eblana": {
     "hp": 180,
@@ -301,6 +311,11 @@
         "chance": 0.45
       }
     ],
-    "exp_reward": 170
+    "exp_reward": 170,
+    "render_mode": "animated",
+    "anim_fps": 12,
+    "anim_move": "死芒_Move",
+    "anim_attack": "死芒_Attack",
+    "anim_die": "死芒_Die"
   }
 }
