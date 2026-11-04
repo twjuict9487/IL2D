@@ -270,5 +270,37 @@
     "image": "grass_nobg.png",
     "base": "01",
     "zh_comment": "營火 / 存檔點"
+  },
+  "90": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_corner",
+    "rotation": 0,
+    "zh_comment": "旋轉測試 0 度"
+  },
+  "91": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_corner",
+    "rotation": 90,
+    "zh_comment": "旋轉測試 90 度"
+  },
+  "92": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_corner",
+    "rotation": 180,
+    "zh_comment": "旋轉測試 180 度"
+  },
+  "93": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "RITC_tileset (2).json",
+    "tileset_ref": "ritc_marking_corner",
+    "rotation": 270,
+    "zh_comment": "旋轉測試 270 度"
   }
 }

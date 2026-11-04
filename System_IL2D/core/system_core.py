@@ -1,4 +1,5 @@
 import os
+import time
 os.environ.setdefault("SDL_VIDEO_CENTERED", "1")
 
 import pygame
@@ -234,17 +235,23 @@ def init_context():
         pass
     win_w = TILE_SIZE * VIEWPORT
     win_h = TILE_SIZE * (VIEWPORT + 1)
-    screen = pygame.display.set_mode((win_w, win_h))
+    try:
+        screen = pygame.display.set_mode((win_w, win_h), pygame.FULLSCREEN | pygame.SCALED)
+        fullscreen = True
+    except pygame.error:
+        screen = pygame.display.set_mode((win_w, win_h))
+        fullscreen = False
     pygame.display.set_caption('Projekt:"IL2D" Prototype')
-    _center_window(screen)
-    _set_always_on_top()
+    if not fullscreen:
+        _center_window(screen)
+        _set_always_on_top()
     clock = pygame.time.Clock()
     ctx = {
         "screen": screen,
         "clock": clock,
         "game": Game(),
         "running": True,
-        "fullscreen": False,
+        "fullscreen": fullscreen,
         "state": "main_menu",
         "new_game_name": "",
         "cutscene_lines": [],
@@ -255,7 +262,7 @@ def init_context():
         "lore_pages": [],
         "lore_page_idx": 0,
         "lore_reveal_chars": 0.0,
-        "lore_reveal_speed": 120.0,
+        "lore_reveal_speed": 240.0,
         "lore_reveal_done": False,
         "lore_return_state": "game",
         "lore_entry_title": "",
@@ -325,11 +332,15 @@ def _sync_chase_window(ctx):
     desired = (TILE_SIZE * (VIEWPORT * 2 if wide else VIEWPORT), TILE_SIZE * (VIEWPORT + 1))
     if ctx["screen"].get_size() == desired:
         return
-    flags = pygame.FULLSCREEN if ctx.get("fullscreen", False) else 0
-    ctx["screen"] = pygame.display.set_mode(desired, flags)
+    flags = pygame.FULLSCREEN | pygame.SCALED if ctx.get("fullscreen", False) else 0
+    try:
+        ctx["screen"] = pygame.display.set_mode(desired, flags)
+    except pygame.error:
+        ctx["fullscreen"] = False
+        ctx["screen"] = pygame.display.set_mode(desired)
     if not ctx.get("fullscreen", False):
         _center_window(ctx["screen"])
-    _set_always_on_top()
+        _set_always_on_top()
 
 
 def run():
@@ -343,6 +354,10 @@ def _process_events(ctx):
         if event.type == pygame.QUIT:
             ctx["running"] = False
         elif event.type == pygame.KEYDOWN:
+            key_name = {pygame.K_w: "w", pygame.K_a: "a",
+                        pygame.K_s: "s", pygame.K_d: "d"}.get(event.key)
+            if key_name and not ctx["held_keys"][key_name]:
+                ctx["press_time"][key_name] = pygame.time.get_ticks() / 1000.0
             if _check_dev_secret(ctx, event):
                 continue
             _handle_key(ctx, event)
@@ -353,13 +368,37 @@ def _process_events(ctx):
             _update_held_keys(ctx, event, False)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
+                if ctx.get("state") == "prologue_presentation":
+                    state = ctx["prologue_presentation"]
+                    if event.pos[0] >= ctx["screen"].get_width() // 2:
+                        state["speed_drag_start_y"] = event.pos[1]
+                        state["speed_multiplier"] = 1
+                    continue
                 _handle_mouse(ctx, event.pos)
             elif event.button in (4, 5):
                 _handle_mouse_scroll(ctx, event.button)
+        elif event.type == pygame.MOUSEMOTION:
+            state = ctx.get("prologue_presentation")
+            if ctx.get("state") == "prologue_presentation" and state is not None and "speed_drag_start_y" in state:
+                distance = max(0, state["speed_drag_start_y"] - event.pos[1])
+                step = max(1, ctx["screen"].get_height() / 10)
+                state["speed_multiplier"] = 2 ** min(5, int(distance / step))
+            if ctx.get("state") == "esc_menu" and ctx["game"].ui_mode == "map":
+                _hover_world_map_campfire(ctx["game"], event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            state = ctx.get("prologue_presentation")
+            if state is not None:
+                state.pop("speed_drag_start_y", None)
+                state["speed_multiplier"] = 1
 
 
 def _handle_mouse_scroll(ctx, button):
     game = ctx["game"]
+    if game.ui_mode == "story_timeline":
+        rows = game.get_story_timeline_visible_rows()
+        game.story_timeline_selected = max(0, min(len(rows) - 1,
+            game.story_timeline_selected + (-1 if button == 4 else 1)))
+        return
     if game.ui_mode == "dialog":
         step = -3 if button == 4 else 3
         game.dialog_scroll = max(0, int(getattr(game, "dialog_scroll", 0) or 0) + step)
@@ -632,7 +671,7 @@ def _update_lore_reader(ctx, dt):
         return
     if ctx.get("lore_reveal_done", False):
         return
-    speed = float(ctx.get("lore_reveal_speed", 120.0) or 120.0)
+    speed = float(ctx.get("lore_reveal_speed", 240.0) or 240.0)
     ctx["lore_reveal_chars"] = min(
         len(page_text),
         float(ctx.get("lore_reveal_chars", 0.0))
@@ -994,6 +1033,9 @@ def _handle_esc_menu_key(ctx, event):
                 ctx["state"] = "game"
             return
         if game.ui_mode == "map":
+            if (event.key != pygame.K_ESCAPE and
+                    time.monotonic() < getattr(game, "world_map_mouse_pause_until", 0.0)):
+                return
             if event.key in (pygame.K_LEFT, pygame.K_a):
                 game.move_world_map_reticle(-1, 0)
             elif event.key in (pygame.K_RIGHT, pygame.K_d):
@@ -1600,7 +1642,36 @@ def _press_move(ctx, key, dx, dy):
 
 
 def _handle_held_movement(ctx):
+    state = ctx.get("state")
+    game = ctx["game"]
+    menu_states = {"main_menu", "settings", "continue_menu", "dev_menu", "esc_menu"}
+    game_menus = {"story_timeline", "mission_board", "shop", "farm_shop", "farm_kitchen", "interact_pick",
+                  "blackjack_bet", "hotbar", "level_stat_choice"}
+    if state in menu_states or (state == "game" and game.ui_mode in game_menus):
+        held = ctx.get("held_keys", {})
+        now = pygame.time.get_ticks() / 1000.0
+        for name, key in (("w", pygame.K_w), ("s", pygame.K_s),
+                          ("a", pygame.K_a), ("d", pygame.K_d)):
+            if held.get(name) and now - ctx["press_time"][name] >= 0.28:
+                if now - ctx.get("last_menu_repeat", 0.0) >= 0.11:
+                    _handle_key(ctx, pygame.event.Event(pygame.KEYDOWN, key=key))
+                    ctx["last_menu_repeat"] = now
+                return
+        return
     _input_handle_held_movement(ctx)
+
+
+def _hover_world_map_campfire(game, pos):
+    for marker_id, rect in (getattr(game, "world_map_campfire_hitboxes", {}) or {}).items():
+        if rect.inflate(90, 90).collidepoint(pos):
+            marker = next((row for row in game.get_visible_campfire_markers()
+                           if row.get("id") == marker_id and row.get("state") == "activated_lit"), None)
+            if marker:
+                game.world_map_reticle_x, game.world_map_reticle_y = marker["world_position"]
+                game.world_map_reticle_state = "SNAPPED"
+                game.world_map_reticle_target = marker_id
+                game.world_map_mouse_pause_until = time.monotonic() + 1.0
+            return
 
 
 def _handle_mouse_main_menu(ctx, pos):
@@ -2050,6 +2121,29 @@ def _handle_mouse_game(ctx, pos):
     mx, my = pos
     screen = ctx["screen"]
     game = ctx["game"]
+    if game.ui_mode == "story_timeline":
+        w, h = screen.get_size()
+        panel = pygame.Rect(max(20, w // 12), max(20, h // 10),
+                            w - max(40, w // 6), h - max(40, h // 5))
+        stages = game.get_story_stage_entries()
+        tab_w = max(1, (panel.w - 40) // max(1, len(stages)))
+        for index in range(len(stages)):
+            rect = pygame.Rect(panel.x + 20 + index * tab_w, panel.y + 55, tab_w - 4, 32)
+            if rect.collidepoint(pos):
+                game.change_story_timeline_stage(index - game.story_timeline_stage)
+                return
+        rows = game.get_story_timeline_visible_rows()
+        start = int(getattr(game, "story_timeline_scroll", 0) or 0)
+        for index in range(start, min(len(rows), start + max(1, (panel.h - 133) // 34))):
+            rect = pygame.Rect(panel.x + 20, panel.y + 100 + (index - start) * 34,
+                               panel.w - 40, 28)
+            if rect.collidepoint(pos):
+                if game.story_timeline_selected == index:
+                    game.confirm_story_timeline_selection()
+                else:
+                    game.story_timeline_selected = index
+                return
+        return
     if game.ui_mode == "death_menu":
         menu_w = min(680, screen.get_width() - 120)
         menu_h = 240
@@ -2220,7 +2314,8 @@ def _update(ctx, dt):
         game.update_world_map_reticle(dt)
     if ctx.get("state") == "prologue_presentation":
         try:
-            if _ui_update_prologue_presentation(ctx, dt):
+            speed = (ctx.get("prologue_presentation") or {}).get("speed_multiplier", 1)
+            if _ui_update_prologue_presentation(ctx, dt * speed):
                 state = ctx.get("prologue_presentation") or {}
                 _finish_prologue_presentation(ctx, error=state.get("error"))
         except Exception as exc:
@@ -2408,6 +2503,11 @@ def _render(ctx):
     elif ctx["state"] == "prologue_presentation":
         try:
             _ui_draw_prologue_presentation(ctx)
+            speed = (ctx.get("prologue_presentation") or {}).get("speed_multiplier", 1)
+            label = f"{speed}x"
+            font = pygame.font.Font(None, 32)
+            surface = font.render(label, True, (245, 245, 245))
+            ctx["screen"].blit(surface, (20, 20))
         except Exception as exc:
             _finish_prologue_presentation(ctx, error=exc)
     elif ctx["state"] == "opening_cutscene":
@@ -2449,4 +2549,23 @@ def _render(ctx):
         ctx["state"] = "main_menu"
     if ctx["game"].request_quit:
         ctx["running"] = False
+    key = (ctx["state"], getattr(ctx["game"], "ui_mode", None),
+           ctx.get("settings_sub"))
+    previous_key = ctx.get("ui_transition_key")
+    if key != previous_key:
+        previous_frame = ctx.get("ui_transition_frame")
+        if previous_key is not None and previous_frame is not None:
+            ctx["ui_transition_old"] = previous_frame
+            ctx["ui_transition_start"] = time.monotonic()
+        ctx["ui_transition_key"] = key
+    old = ctx.get("ui_transition_old")
+    if old is not None:
+        progress = (time.monotonic() - ctx["ui_transition_start"]) / 0.18
+        if progress >= 1:
+            ctx["ui_transition_old"] = None
+        else:
+            overlay = pygame.transform.smoothscale(old, ctx["screen"].get_size())
+            overlay.set_alpha(round(255 * (1 - progress)))
+            ctx["screen"].blit(overlay, (0, 0))
     pygame.display.flip()
+    ctx["ui_transition_frame"] = ctx["screen"].copy()

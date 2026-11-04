@@ -2419,8 +2419,6 @@ def draw_player_ui(game, screen):
 def draw_messages(game, screen):
     if not game.message_queue:
         return
-    if getattr(game, "ui_mode", None) == "mission_board":
-        return
     font = _q(14)
     messages = list(game.message_queue)[-3:]
     y = screen.get_height() - (56 + 34 + 12)
@@ -4152,6 +4150,8 @@ def draw(game, screen):
     draw_dialog(game, screen)
     draw_mission_board(game, screen)
     draw_story_timeline(game, screen)
+    if getattr(game, "ui_mode", None) in ("mission_board", "story_timeline"):
+        draw_messages(game, screen)
     draw_story_title_card(game, screen)
     draw_story_mission_card(game, screen)
     draw_blackjack(game, screen)
@@ -5299,10 +5299,11 @@ def draw_story_timeline(game, screen):
     if getattr(game, "ui_mode", None) != "story_timeline":
         return
     rows = (
-        game.get_story_timeline_rows()
-        if hasattr(game, "get_story_timeline_rows")
+        game.get_story_timeline_visible_rows()
+        if hasattr(game, "get_story_timeline_visible_rows")
         else []
     )
+    stages = game.get_story_stage_entries() if hasattr(game, "get_story_stage_entries") else []
     w, h = screen.get_size()
     panel = pygame.Rect(max(20, w // 12), max(20, h // 10), w - max(40, w // 6), h - max(40, h // 5))
     overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -5322,7 +5323,24 @@ def draw_story_timeline(game, screen):
         min(len(rows) - 1, int(getattr(game, "story_timeline_selected", 0) or 0)),
     )
     game.story_timeline_selected = selected
-    max_rows = max(1, (panel.h - 90) // 34)
+    tab_y = panel.y + 55
+    tab_w = max(1, (panel.w - 40) // max(1, len(stages)))
+    for index, stage in enumerate(stages):
+        rect = pygame.Rect(panel.x + 20 + index * tab_w, tab_y, tab_w - 4, 32)
+        active = index == int(getattr(game, "story_timeline_stage", 0))
+        pygame.draw.rect(screen, (67, 91, 108) if active else (31, 43, 54), rect, border_radius=4)
+        pygame.draw.rect(screen, (245, 220, 135) if active else (110, 135, 150), rect, 2, border_radius=4)
+        label = f"{stage.get('number', index + 1)}  {stage.get('title', '')}"
+        _r(screen, small_font, _t(small_font, label, rect.w - 12), (245, 245, 245), (0, 0, 0), (rect.x + 6, rect.y + 8))
+    if stages:
+        target = max(0, min(len(stages) - 1, int(getattr(game, "story_timeline_stage", 0))))
+        previous = int(getattr(game, "story_timeline_previous_stage", target))
+        progress = min(1.0, max(0.0, (time.monotonic() -
+                       float(getattr(game, "story_timeline_switch_time", 0))) / 0.18))
+        progress = progress * progress * (3 - 2 * progress)
+        x = panel.x + 20 + round((previous + (target - previous) * progress) * tab_w)
+        pygame.draw.rect(screen, (255, 226, 135), (x, tab_y + 34, tab_w - 4, 3))
+    max_rows = max(1, (panel.h - 133) // 34)
     scroll = max(
         0,
         min(
@@ -5341,7 +5359,7 @@ def draw_story_timeline(game, screen):
         "active": (120, 210, 245),
         "completed": (130, 225, 165),
     }
-    y = panel.y + 62
+    y = panel.y + 100
     for idx, row in enumerate(rows[scroll : scroll + max_rows], start=scroll):
         data = row.get("data", {})
         kind = row.get("kind")

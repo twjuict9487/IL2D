@@ -1,11 +1,13 @@
-import time
-
 import pygame
 
 from core.functions.rendering.draw import TILE_SIZE, VIEWPORT
 from core.functions.support.asset_resolver import resolve_image_candidates
 
-from .logic import is_farm_map, plot_key, shop_rows
+from .logic import is_farm_map, plot_key
+from .ui_actions import rows as shop_rows
+from .business import normalize
+from .business import COOK_POSITIONS, TABLE_POSITIONS, KITCHEN_POSITION
+from .ui_actions import kitchen_rows
 from .state import farm_runtime
 
 _IMG_CACHE = {}
@@ -52,10 +54,10 @@ def draw_farm_land_overlay(screen, game, state):
     data = state["data"]
     cfg = state["cfg"]
     owned = int(data.get("owned_land", 0))
-    plots = cfg.get("plots", [])
+    field = game.map.name == "farm_02.json"
+    plots = cfg.get("field_plots", []) if field else cfg.get("plots", [])
+    ownership_offset = len(cfg.get("plots", [])) if field else 0
     planted = data.get("planted", {})
-    now = time.time()
-    grow_seconds = int(cfg.get("grow_seconds", 10))
     player_pos = (int(game.player.x), int(game.player.y))
 
     for idx, pt in enumerate(plots):
@@ -70,14 +72,14 @@ def draw_farm_land_overlay(screen, game, state):
             continue
         rect = pygame.Rect(sx, sy, TILE_SIZE, TILE_SIZE)
 
-        fill = (120, 85, 45, 125) if idx < owned else (35, 45, 55, 90)
-        entry = planted.get(plot_key(tx, ty))
+        fill = (120, 85, 45, 125) if idx + ownership_offset < owned else (35, 45, 55, 90)
+        entry = planted.get(("field:" if field else "") + plot_key(tx, ty))
         icon = None
         if entry:
-            planted_at = float(entry.get("planted_at", now))
+            growth = float(cfg["crops"].get(entry.get("crop"), {}).get("growth_time", 10))
             fill = (
                 (170, 150, 65, 165)
-                if now - planted_at >= grow_seconds
+                if float(entry.get("elapsed", 0.0)) >= growth
                 else (60, 130, 70, 155)
             )
             crop = str(entry.get("crop", "rice"))
@@ -97,120 +99,161 @@ def draw_farm_land_overlay(screen, game, state):
 
 
 # 畫農場商店 UI。
-def draw_shop(screen, game, state):
-    font = pygame.font.SysFont("consolas", 22)
-    panel = pygame.Rect(
-        screen.get_width() // 6,
-        screen.get_height() // 6,
-        screen.get_width() * 2 // 3,
-        screen.get_height() * 2 // 3,
-    )
-    pygame.draw.rect(screen, (7, 24, 34), panel)
-    pygame.draw.rect(screen, (140, 210, 220), panel, 2)
-    screen.blit(
-        font.render("Shu Farm Service", True, (230, 240, 250)),
-        (panel.x + 16, panel.y + 12),
-    )
-
-    rows = shop_rows({"farmer_mod": state})
-    y = panel.y + 56
-    for idx, (_key, label) in enumerate(rows):
-        c = (
-            (255, 230, 140)
-            if idx == (game.shop_selected % len(rows))
-            else (210, 220, 235)
-        )
-        screen.blit(font.render(label, True, c), (panel.x + 16, y))
-        y += font.get_height() + 10
-
-    tiny = pygame.font.SysFont("consolas", 18)
-    info = state["data"]
-    footer = f"Land:{info.get('owned_land',0)}  Seeds[R:{info['seeds'].get('rice',0)} W:{info['seeds'].get('wheat',0)}]  Crops[R:{info['crops'].get('rice',0)} W:{info['crops'].get('wheat',0)}]"
-    screen.blit(
-        tiny.render(footer, True, (170, 200, 220)), (panel.x + 16, panel.bottom - 32)
-    )
-
-
-# 畫農場左側資訊面板（縮小、可讀）。
-def draw_farm_panel(screen, state):
-    data = state["data"]
-    cfg = state["cfg"]
-    panel_w = 155
-    panel_h = max(220, screen.get_height() // 2)
-    panel = pygame.Rect(12, (screen.get_height() - panel_h) // 2, panel_w, panel_h)
-    overlay = pygame.Surface((panel.width, panel.height), pygame.SRCALPHA)
-    overlay.fill((8, 18, 30, 210))
-    screen.blit(overlay, (panel.x, panel.y))
-    pygame.draw.rect(screen, (120, 190, 220), panel, 2)
-
-    title_font = pygame.font.SysFont("consolas", 14, bold=True)
-    font = pygame.font.SysFont("consolas", 11)
-    tiny = pygame.font.SysFont("consolas", 10)
-    x, y = panel.x + 8, panel.y + 10
-    shu_img = _load_img("头像_黍.png", (26, 26))
-    if shu_img is not None:
-        screen.blit(shu_img, (x, y - 2))
-        title_x = x + 30
-    else:
-        title_x = x
-    screen.blit(title_font.render("FARM", True, (235, 245, 255)), (title_x, y))
-    y += 18
-    screen.blit(tiny.render("I/J/K/L: Seed", True, (180, 210, 230)), (x, y))
-    y += 14
-    screen.blit(tiny.render("F: Plant/Harvest", True, (180, 210, 230)), (x, y))
-    y += 14
-    screen.blit(tiny.render("ESC: Exit", True, (180, 210, 230)), (x, y))
-    y += 18
-
-    seeds = ["rice", "wheat"]
-    selected = int(data.get("panel_index", 0)) % 2
-    for idx, name in enumerate(seeds):
-        color = (255, 225, 120) if idx == selected else (210, 220, 235)
-        txt = f"{name.upper()} seed: {int(data['seeds'].get(name, 0))}"
-        surf = font.render(txt, True, color)
-        row_rect = pygame.Rect(x - 3, y - 2, panel.width - 14, surf.get_height() + 4)
-        if idx == selected:
-            pygame.draw.rect(screen, (255, 255, 255), row_rect, 2)
-        icon_name = "Amber_Rice_nobg.png" if name == "rice" else "wheat_nobg.png"
-        icon = _load_img(icon_name, (12, 12))
-        text_x = x
-        if icon is not None:
-            screen.blit(icon, (x, y))
-            text_x = x + 15
-        screen.blit(surf, (text_x, y))
-        y += 16
-
-    y += 6
-    screen.blit(
-        font.render(
-            f"Land: {int(data.get('owned_land', 0))}/{len(cfg.get('plots', []))}",
-            True,
-            (200, 230, 230),
-        ),
-        (x, y),
-    )
-    y += 16
-    screen.blit(
-        font.render(
-            f"Rice: {int(data['crops'].get('rice', 0))}", True, (190, 230, 210)
-        ),
-        (x, y),
-    )
-    y += 16
-    screen.blit(
-        font.render(
-            f"Wheat: {int(data['crops'].get('wheat', 0))}", True, (210, 220, 190)
-        ),
-        (x, y),
-    )
-
-
-# 農場模組渲染入口（商店與農地 UI）。
 def render(ctx, screen):
     game = ctx["game"]
     state = farm_runtime(ctx)
-    if game.ui_mode == "farm_shop":
-        draw_shop(screen, game, state)
-    if is_farm_map(game):
+    name = getattr(game.map, "name", "")
+    if name in ("farm_01.json", "farm_02.json") and game.ui_mode is None:
         draw_farm_land_overlay(screen, game, state)
-        draw_farm_panel(screen, state)
+        font = pygame.font.SysFont("microsoftjhenghei", 16)
+        if name == "farm_01.json":
+            x, y = world_to_screen(game, 8, 18)
+            si_image = _load_img("祀_nobg.png", (48, 48))
+            if si_image is not None:
+                screen.blit(si_image, (x + 6, y + 4))
+            else:
+                pygame.draw.circle(screen, (115, 220, 250), (x + 30, y + 30), 18)
+            label = font.render("祀的商店　靠近按 E 購物／開店", True, (255, 240, 185))
+            screen.blit(label, (max(5, x - 55), max(5, y - 24)))
+            area = font.render("購物區　南門通往餐廳", True, (230, 225, 185))
+            ax, ay = world_to_screen(game, 8, 20)
+            screen.blit(area, (max(5, ax - 30), max(5, ay)))
+        else:
+            label = font.render("緣緣莊農田　自動耕作　西側返回", True, (235, 240, 215))
+            screen.blit(label, (12, 12))
+    if name == "farm_restaurant.json":
+        draw_restaurant_world(screen, game, state)
+    if game.ui_mode == "farm_shop":
+        draw_si_shop(screen, game, state)
+    elif game.ui_mode == "farm_kitchen":
+        draw_kitchen_panel(screen, state)
+    elif game.ui_mode == "farm_result":
+        draw_result_panel(screen, state)
+
+
+def _management_panel(screen, width, height):
+    shade = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 165))
+    screen.blit(shade, (0, 0))
+    panel = pygame.Rect(0, 0, min(width, screen.get_width() - 24),
+                        min(height, screen.get_height() - 24))
+    panel.center = screen.get_rect().center
+    pygame.draw.rect(screen, (9, 27, 35), panel, border_radius=8)
+    pygame.draw.rect(screen, (150, 210, 220), panel, 2, border_radius=8)
+    return panel
+
+
+def draw_si_shop(screen, game, state):
+    panel = _management_panel(screen, 560, 450)
+    title = pygame.font.SysFont("microsoftjhenghei", 24, bold=True)
+    font = pygame.font.SysFont("microsoftjhenghei", 18)
+    data, cfg = state["data"], state["cfg"]
+    portrait = _load_img("祀_nobg.png", (66, 66))
+    if portrait:
+        screen.blit(portrait, (panel.x + 18, panel.y + 12))
+    screen.blit(title.render("祀的商店", True, (240, 240, 215)), (panel.x + 94, panel.y + 24))
+    balance = f"主貨幣：{game.money}　祀幣：{data['si_currency']}"
+    screen.blit(font.render(balance, True, (255, 225, 145)),
+                (panel.right - 260, panel.y + 29))
+    for index, (_action, label) in enumerate(shop_rows({"farmer_mod": state})):
+        y = panel.y + 94 + index * 40
+        if index == game.shop_selected:
+            pygame.draw.rect(screen, (49, 83, 91), (panel.x + 18, y - 3, panel.w - 36, 35), border_radius=4)
+        screen.blit(font.render(label, True, (255, 230, 150) if index == game.shop_selected
+                                else (225, 235, 235)), (panel.x + 28, y + 2))
+    stock = "　".join(f"{cfg['crops'][crop]['name']}種 {data['seeds'][crop]}／食材 {data['crops'][crop]}"
+                    for crop in cfg["crops"])
+    screen.blit(font.render(stock, True, (185, 220, 190)), (panel.x + 22, panel.bottom - 62))
+    hint = pygame.font.SysFont("microsoftjhenghei", 14)
+    screen.blit(hint.render("W／S 選擇　Enter 確認　ESC 返回", True, (175, 205, 220)),
+                (panel.x + 22, panel.bottom - 30))
+
+
+def draw_restaurant_world(screen, game, state):
+    data, cfg = state["data"], state["cfg"]
+    restaurant = normalize(data, cfg)
+    small = pygame.font.SysFont("microsoftjhenghei", 14)
+    font = pygame.font.SysFont("microsoftjhenghei", 18)
+    remaining = max(0, int(restaurant["remaining"]))
+    status = "營業中" if restaurant["business_active"] else "未營業"
+    hud = pygame.Rect(10, 10, min(screen.get_width() - 20, 575), 43)
+    pygame.draw.rect(screen, (7, 24, 34), hud, border_radius=5)
+    screen.blit(font.render(f"緣緣莊餐廳　{status}　{remaining // 60:02d}:{remaining % 60:02d}　收入 {restaurant['revenue']} 祀幣",
+                            True, (250, 235, 190)), (hud.x + 10, hud.y + 10))
+    for index, (tx, ty) in enumerate(COOK_POSITIONS):
+        x, y = world_to_screen(game, tx, ty)
+        cook = restaurant["cooks"][index]
+        recipe_id = cook["active"] or cook["assignment"]
+        recipe = cfg["recipes"][recipe_id]
+        duration = max(0.1, float(recipe["cook_seconds"]))
+        progress = min(1.0, float(cook["progress"]) / duration) if cook["active"] else 0.0
+        pygame.draw.rect(screen, (80, 42, 25), (x + 4, y + 11, 52, 41), border_radius=5)
+        pygame.draw.rect(screen, (255, 145, 62), (x + 10, y + 19, 40, 17), border_radius=4)
+        screen.blit(small.render(f"爐{index + 1} {recipe['name']}", True, (255, 240, 205)), (x - 9, y - 10))
+        pygame.draw.rect(screen, (60, 65, 68), (x + 6, y + 48, 48, 5))
+        pygame.draw.rect(screen, (245, 210, 95), (x + 6, y + 48, round(48 * progress), 5))
+    table_colors = {"EMPTY": (77, 93, 83), "OCCUPIED": (99, 80, 58),
+                    "WAITING_FOR_FOOD": (145, 100, 48), "EATING": (67, 115, 81)}
+    table_labels = {"EMPTY": "空桌", "OCCUPIED": "入座", "WAITING_FOR_FOOD": "候餐", "EATING": "用餐"}
+    for index, (tx, ty) in enumerate(TABLE_POSITIONS):
+        x, y = world_to_screen(game, tx, ty)
+        table = restaurant["tables"][index]
+        pygame.draw.rect(screen, table_colors.get(table["state"], (70, 70, 70)),
+                         (x + 5, y + 13, 50, 34), border_radius=6)
+        pygame.draw.rect(screen, (220, 185, 120), (x + 5, y + 13, 50, 34), 2, border_radius=6)
+        screen.blit(small.render(f"{index + 1} {table_labels.get(table['state'], '?')}",
+                                 True, (255, 245, 220)), (x + 7, y + 20))
+    si = restaurant["si"]
+    task = si.get("task") or {}
+    target = TABLE_POSITIONS[int(task["table"])] if "table" in task else KITCHEN_POSITION
+    if si["state"] == "MOVING":
+        progress = 1 - max(0.0, float(si["timer"])) / max(0.1, float(cfg["si_move_seconds"]))
+        sx = KITCHEN_POSITION[0] + (target[0] - KITCHEN_POSITION[0]) * progress
+        sy = KITCHEN_POSITION[1] + (target[1] - KITCHEN_POSITION[1]) * progress
+    elif si["state"] in ("WORKING", "COOLDOWN") and si.get("location", "").startswith("table "):
+        sx, sy = TABLE_POSITIONS[int(si["location"].split()[-1]) - 1]
+    else:
+        sx, sy = KITCHEN_POSITION
+    px, py = world_to_screen(game, sx, sy)
+    portrait = _load_img("祀_nobg.png", (42, 42))
+    if portrait:
+        screen.blit(portrait, (px + 9, py + 1))
+    else:
+        pygame.draw.circle(screen, (115, 220, 250), (px + 30, py + 25), 12)
+    hint = pygame.Rect(max(12, screen.get_width() - 360), screen.get_height() - 132, 348, 30)
+    pygame.draw.rect(screen, (7, 24, 34), hint, border_radius=4)
+    screen.blit(small.render("靠近爐台按 E：設定菜色／排程", True, (245, 240, 200)),
+                (hint.x + 8, hint.y + 6))
+
+
+def draw_kitchen_panel(screen, state):
+    panel = _management_panel(screen, 405, 240)
+    index = state["kitchen_index"]
+    cook = state["data"]["restaurant"]["cooks"][index]
+    cfg = state["cfg"]
+    font = pygame.font.SysFont("microsoftjhenghei", 18)
+    status = {"IDLE": "待命", "COOKING": "烹調中", "BLOCKED": "食材不足"}.get(cook["state"], cook["state"])
+    screen.blit(font.render(f"爐台 {index + 1}　{status}　進度 {cook['progress']:.1f} 秒",
+                            True, (250, 230, 180)), (panel.x + 20, panel.y + 20))
+    for row, label in enumerate(kitchen_rows({"farmer_mod": state})):
+        y = panel.y + 64 + row * 42
+        if row == state.get("kitchen_selected", 0):
+            pygame.draw.rect(screen, (49, 83, 91), (panel.x + 15, y - 3, panel.w - 30, 34), border_radius=4)
+        screen.blit(font.render(label, True, (245, 240, 215)), (panel.x + 23, y + 2))
+    queued = ([cook["active"]] if cook["active"] else []) + cook["queue"]
+    summary = "　→　".join(cfg["recipes"][recipe]["name"] for recipe in queued) or "無排程"
+    screen.blit(font.render(summary, True, (195, 220, 230)), (panel.x + 20, panel.bottom - 32))
+
+
+def draw_result_panel(screen, state):
+    panel = _management_panel(screen, 420, 220)
+    result = state["data"]["restaurant"].get("result") or {}
+    font = pygame.font.SysFont("microsoftjhenghei", 22)
+    lines = ["緣緣莊營業結算", f"完成訂單：{result.get('orders', 0)}",
+             f"本次收入：{result.get('revenue', 0)} 祀幣",
+             f"目前餘額：{result.get('balance', state['data']['si_currency'])} 祀幣"]
+    for index, line in enumerate(lines):
+        screen.blit(font.render(line, True, (245, 235, 205)), (panel.x + 26, panel.y + 18 + 38 * index))
+    hint = pygame.font.SysFont("microsoftjhenghei", 15)
+    screen.blit(hint.render("Enter／ESC 關閉", True, (175, 205, 220)),
+                (panel.x + 26, panel.bottom - 26))

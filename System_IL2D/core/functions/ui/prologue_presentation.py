@@ -15,6 +15,7 @@ _PRESENTATION_FILE = os.path.abspath(
         "..",
         "Pre_coded_data",
         "game_data",
+        "presentations",
         "prologue_presentation.json",
     )
 )

@@ -251,6 +251,7 @@ class Game:
         self.story_manager = None
         self.story_timeline_selected = 0
         self.story_timeline_scroll = 0
+        self.story_timeline_stage = 0
         self.story_graph_selected_id = "stage_1"
         self.story_graph_expanded_stage = "stage_1"
         self.story_graph_expanded_lines = {"line_1_1"}
@@ -513,6 +514,7 @@ class Game:
             return False
         self.story_timeline_selected = 0
         self.story_timeline_scroll = 0
+        self.story_timeline_stage = 0
         self.ui_mode = "story_timeline"
         return True
 
@@ -585,6 +587,35 @@ class Game:
                         }
                     )
         return rows
+
+    def get_story_timeline_visible_rows(self):
+        stages = self.get_story_stage_entries()
+        if not stages:
+            return []
+        index = max(0, min(len(stages) - 1, int(self.story_timeline_stage)))
+        stage = stages[index]
+        rows = [{"kind": "stage", "id": stage.get("id"), "data": stage}]
+        for line in stage.get("lines", []) or []:
+            rows.append({"kind": "line", "id": line.get("id"), "data": line})
+            for mission in line.get("missions", []) or []:
+                rows.append({"kind": "mission", "id": mission.get("id"),
+                             "data": mission, "stage_id": stage.get("id")})
+        return rows
+
+    def change_story_timeline_stage(self, step):
+        stages = self.get_story_stage_entries()
+        if not stages:
+            return False
+        index = max(0, min(len(stages) - 1, self.story_timeline_stage + step))
+        if index == self.story_timeline_stage:
+            return False
+        self.story_timeline_previous_stage = self.story_timeline_stage
+        self.story_timeline_switch_time = time.monotonic()
+        self.story_timeline_stage = index
+        self.story_timeline_selected = 0
+        self.story_timeline_scroll = 0
+        self.push_message(f"Stage {stages[index].get('number', index + 1)}")
+        return True
 
     def reset_story_graph(self):
         self.story_graph_expanded_stage = "stage_1"
@@ -1047,7 +1078,7 @@ class Game:
         return False
 
     def confirm_story_timeline_selection(self):
-        rows = self.get_story_timeline_rows()
+        rows = self.get_story_timeline_visible_rows()
         if not rows:
             return False
         idx = max(0, min(len(rows) - 1, int(getattr(self, "story_timeline_selected", 0))))

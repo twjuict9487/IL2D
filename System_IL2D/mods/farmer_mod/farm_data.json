@@ -1,19 +1,45 @@
 {
   "grow_seconds": 10,
-  "land_price": 100,
+  "business_seconds": 180,
+  "customer_interval": 12,
+  "si_move_seconds": 1.0,
+  "si_work_seconds": 0.8,
+  "si_cooldown_seconds": 2.0,
+  "land_price": 20,
   "crops": {
     "rice": {
+      "name": "米",
       "seed_price": 20,
-      "sell_price": 35
+      "ingredient_pack_price": 20,
+      "ingredient_pack_size": 10,
+      "sell_price": 35,
+      "growth_time": 10,
+      "harvest_yield": 2
     },
     "wheat": {
+      "name": "麥",
       "seed_price": 15,
-      "sell_price": 28
+      "ingredient_pack_price": 15,
+      "ingredient_pack_size": 10,
+      "sell_price": 28,
+      "growth_time": 12,
+      "harvest_yield": 2
     }
+  },
+  "recipes": {
+    "rice_bowl": {"name": "米飯", "ingredients": {"rice": 2}, "cook_seconds": 8, "price": 45},
+    "wheat_bread": {"name": "麥麵包", "ingredients": {"wheat": 2}, "cook_seconds": 10, "price": 40},
+    "farm_plate": {"name": "田園拼盤", "ingredients": {"rice": 1, "wheat": 1}, "cook_seconds": 12, "price": 55}
   },
   "plots": [
     [5, 5], [6, 5], [7, 5], [8, 5],
     [5, 6], [6, 6], [7, 6], [8, 6],
     [5, 7], [6, 7], [7, 7], [8, 7]
+  ],
+  "field_plots": [
+    [5, 5], [6, 5], [7, 5], [8, 5], [5, 6], [6, 6], [7, 6], [8, 6],
+    [5, 7], [6, 7], [7, 7], [8, 7], [5, 8], [6, 8], [7, 8], [8, 8],
+    [14, 14], [15, 14], [16, 14], [17, 14], [14, 15], [15, 15], [16, 15], [17, 15],
+    [14, 16], [15, 16], [16, 16], [17, 16], [14, 17], [15, 17], [16, 17], [17, 17]
   ]
 }

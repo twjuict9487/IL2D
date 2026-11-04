@@ -127,7 +127,7 @@ def handle_game_key(
     if m == "story_title_card":
         return
     if m == "story_timeline":
-        rows = g.get_story_timeline_rows() if hasattr(g, "get_story_timeline_rows") else []
+        rows = g.get_story_timeline_visible_rows() if hasattr(g, "get_story_timeline_visible_rows") else []
         if U(k) and rows:
             g.story_timeline_selected = max(
                 0, int(getattr(g, "story_timeline_selected", 0)) - 1
@@ -138,6 +138,10 @@ def handle_game_key(
                 len(rows) - 1, int(getattr(g, "story_timeline_selected", 0)) + 1
             )
             _scroll(g, "story_timeline_scroll", 1, max(0, len(rows) - 1))
+        elif k in (P.K_LEFT, P.K_a):
+            g.change_story_timeline_stage(-1)
+        elif k in (P.K_RIGHT, P.K_d):
+            g.change_story_timeline_stage(1)
         elif OK(k):
             if hasattr(g, "confirm_story_timeline_selection"):
                 g.confirm_story_timeline_selection()
@@ -352,7 +356,12 @@ def handle_game_key(
         c["fullscreen"] = not c["fullscreen"]
         w = tile_size * viewport
         h = tile_size * (viewport + 1)
-        c["screen"] = P.display.set_mode((w, h), P.FULLSCREEN if c["fullscreen"] else 0)
+        flags = P.FULLSCREEN | P.SCALED if c["fullscreen"] else 0
+        try:
+            c["screen"] = P.display.set_mode((w, h), flags)
+        except P.error:
+            c["fullscreen"] = False
+            c["screen"] = P.display.set_mode((w, h))
         if not c["fullscreen"]:
             center_window_fn(c["screen"])
         set_always_on_top_fn()

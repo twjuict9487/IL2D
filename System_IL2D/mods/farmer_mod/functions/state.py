@@ -1,9 +1,11 @@
 import json
 import os
+import time
 
 from core.functions.support.utils import SAVE_DIR
 
 from .constants import MOD_KEY
+from .business import normalize
 
 
 # 回傳 farmer_mod 資料夾絕對路徑。
@@ -36,10 +38,11 @@ def save_path(game):
 # 建立 farmer mod 的預設資料狀態。
 def default_state(_cfg):
     return {
-        "owned_land": 0,
+        "owned_land": 4,
         "seeds": {"rice": 0, "wheat": 0},
         "crops": {"rice": 0, "wheat": 0},
         "planted": {},
+        "si_currency": 100,
         "panel_index": 0,
         "prev_map_name": None,
         "prev_pos": None,
@@ -58,6 +61,7 @@ def farm_runtime(ctx):
         state["cfg"] = load_farm_cfg()
     if "data" not in state:
         state["data"] = default_state(state["cfg"])
+    normalize(state["data"], state["cfg"])
     return state
 
 
@@ -72,6 +76,14 @@ def load_state(game, ctx):
             data = json.load(f)
         if isinstance(data, dict):
             state["data"].update(data)
+            normalize(state["data"], state["cfg"])
+            for entry in state["data"]["planted"].values():
+                if "elapsed" not in entry and "planted_at" in entry:
+                    entry["elapsed"] = max(0.0, time.time() - float(entry["planted_at"]))
+            # A saved business session is cancelled on load; consumed ingredients stay consumed.
+            from .business import close_business
+            if state["data"]["restaurant"]["business_active"]:
+                close_business(state["data"], state["cfg"])
     except Exception:
         pass
 
