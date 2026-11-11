@@ -114,11 +114,17 @@ def load_save(game, slot):
         return False
     data = load_json(save_path)
     game._loading_save = True
+    loaded_story_state = data.get("story_state", None)
+    game.story_state = normalize_story_state(
+        loaded_story_state if isinstance(loaded_story_state, dict) else {},
+        getattr(game, "story_book", None),
+    )
     map_name = data.get("map", "map_1.json")
     game.load_map(map_name)
     pdata = data.get("player", {})
     game.player.x = pdata.get("x", game.player.x)
     game.player.y = pdata.get("y", game.player.y)
+    game.relocate_new_ritc_player()
     game.player_name = pdata.get("name", game.player_name)
     # Legacy saves predate the showcase and must never replay it on load.
     game.opening_showcase_completed = bool(
@@ -300,11 +306,6 @@ def load_save(game, slot):
         game_missions.reconcile_world_key_interactions(game)
     except Exception as exc:
         print(f"[mission restore] key interaction reconcile failed: {exc}")
-    loaded_story_state = data.get("story_state", None)
-    game.story_state = normalize_story_state(
-        loaded_story_state if isinstance(loaded_story_state, dict) else {},
-        getattr(game, "story_book", None),
-    )
     game.story_title_card = game.story_state.get("title_card")
     if isinstance(game.story_title_card, dict):
         game.story_title_card["started_at"] = __import__("time").time()

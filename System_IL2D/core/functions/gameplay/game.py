@@ -1654,13 +1654,40 @@ class Game:
             spell_books.append({"name": book_id, "price": price})
         return non_equipment + spell_books + equipment_rows
 
+    def refresh_new_ritc(self):
+        if self.map.name != "new_ritc.json":
+            return
+        completed = self.story_state.get("completed_story_missions", [])
+        updated = GameMap(resolve_map_file(self.map.name), completed)
+        if updated.settlement_stage == self.map.settlement_stage:
+            return
+        self.map = updated
+        self.map_max_h_mob = updated.mob_limit
+        self.spawn_timer = 0.0
+        self.entities = [
+            ent for ent in self.entities
+            if not getattr(ent, "settlement_ambient", False)
+        ]
+        self.relocate_new_ritc_player()
+        self.place_npcs_for_map()
+        self.teleport_team_to_player()
+        self.set_objectives_for_map()
+
+    def relocate_new_ritc_player(self):
+        if self.map.name == "new_ritc.json" and not self.is_world_tile_walkable(
+            self.player.x, self.player.y
+        ):
+            self.player.x, self.player.y = self.map.spawn
+            self.player_move_anim = None
+
     def load_map(self, mapname):
         if mapname == "rogue":
             self.enter_rogue_layer(new_entry=True)
             return
         was_chase_map = self.chase_controller.is_chase_map(self)
         map_path = resolve_map_file(mapname)
-        self.map = GameMap(map_path)
+        completed = getattr(self, "story_state", {}).get("completed_story_missions", [])
+        self.map = GameMap(map_path, completed_story_missions=completed)
         # Prevent hostile entities from leaking across map transitions.
         if hasattr(self, "entities"):
             allowed_npcs = set(self._npc_layout_for_map().keys())
@@ -3869,6 +3896,9 @@ class Game:
         return game_rogue_ops.spawn_rogue_boss(self)
 
     def spawn_random_hostile(self):
+        bounds = getattr(self.map, "ambient_spawn_bounds", None)
+        if bounds and self.count_hostile_mobs() >= self.map.mob_limit:
+            return False
         pool = []
         if self.map.name == "rogue":
             pool = self.build_rogue_spawn_pool(getattr(self, "rogue_layer", 0))
@@ -3891,8 +3921,15 @@ class Game:
             enemy_class = self.get_mob_enemy_class(mob_id)
             width = 2 if self.map.name == "rogue" and enemy_class == "boss" else 1
             height = 2 if self.map.name == "rogue" and enemy_class == "boss" else 1
-            x = random.randint(0, max(0, self.map.w - width))
-            y = random.randint(0, max(0, self.map.h - height))
+            left, top, right, bottom = bounds or (0, 0, self.map.w - 1, self.map.h - 1)
+            x = random.randint(left, max(left, right - width + 1))
+            y = random.randint(top, max(top, bottom - height + 1))
+            if bounds and any(
+                roof["bounds"][0] <= x <= roof["bounds"][2]
+                and roof["bounds"][1] <= y <= roof["bounds"][3]
+                for roof in self.map.roofs
+            ):
+                continue
             if not self.can_spawn_entity_at_size(x, y, width, height):
                 continue
             mult = 1.0
@@ -3910,6 +3947,7 @@ class Game:
                 attack_multiplier=mult,
                 defence_multiplier=mult,
                 extra_flags={
+                    "settlement_ambient": bool(bounds),
                     "rogue_boss_class": self.map.name == "rogue" and enemy_class == "boss",
                     "enemy_class": enemy_class,
                 },

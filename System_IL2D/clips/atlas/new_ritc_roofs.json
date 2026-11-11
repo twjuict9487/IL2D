@@ -1,0 +1,140 @@
+{
+  "source": "new_ritc_roofs.png",
+  "selected": [
+    {
+      "name": "north_eave_west",
+      "row": 1,
+      "col": 1,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "north_eave_middle",
+      "row": 1,
+      "col": 2,
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "north_eave_east",
+      "row": 1,
+      "col": 3,
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "north_west",
+      "row": 2,
+      "col": 1,
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "north_middle",
+      "row": 2,
+      "col": 2,
+      "x": 32,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "north_east",
+      "row": 2,
+      "col": 3,
+      "x": 64,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "ridge_west",
+      "row": 3,
+      "col": 1,
+      "x": 0,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "ridge_middle",
+      "row": 3,
+      "col": 2,
+      "x": 32,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "ridge_east",
+      "row": 3,
+      "col": 3,
+      "x": 64,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "south_west",
+      "row": 4,
+      "col": 1,
+      "x": 0,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "south_middle",
+      "row": 4,
+      "col": 2,
+      "x": 32,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "south_east",
+      "row": 4,
+      "col": 3,
+      "x": 64,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "south_eave_west",
+      "row": 5,
+      "col": 1,
+      "x": 0,
+      "y": 128,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "south_eave_middle",
+      "row": 5,
+      "col": 2,
+      "x": 32,
+      "y": 128,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "name": "south_eave_east",
+      "row": 5,
+      "col": 3,
+      "x": 64,
+      "y": 128,
+      "w": 32,
+      "h": 32
+    }
+  ]
+}
