@@ -1809,20 +1809,20 @@
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 1,
-      "handler": "SA",
-      "type": "SA",
-      "description": "穿過前方的道路。 找到一個能夠安全休息的地方。",
+      "handler": "key_interact",
+      "type": "key_interact",
+      "description": "把出口旁的火點起來，讓落在後面的人知道往哪走。 穿過開闊空地，從北口進 New RITC。看看南入口，再到營地找我。",
       "description_lines": [
-        "穿過前方的道路。",
-        "找到一個能夠安全休息的地方。"
+        "把出口旁的火點起來，讓落在後面的人知道往哪走。",
+        "穿過開闊空地，從北口進 New RITC。看看南入口，再到營地找我。"
       ],
       "accept_lines": [
-        "穿過前方的道路。",
-        "找到一個能夠安全休息的地方。"
+        "把出口旁的火點起來，讓落在後面的人知道往哪走。",
+        "穿過開闊空地，從北口進 New RITC。看看南入口，再到營地找我。"
       ],
       "briefing": [
-        "穿過前方的道路。",
-        "找到一個能夠安全休息的地方。"
+        "把出口旁的火點起來，讓落在後面的人知道往哪走。",
+        "穿過開闊空地，從北口進 New RITC。看看南入口，再到營地找我。"
       ],
       "objectives": [
         {
@@ -1834,15 +1834,15 @@
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_4.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 1,
-            "y1": 6,
-            "x2": 3,
-            "y2": 8
+            "x1": 19,
+            "y1": 54,
+            "x2": 21,
+            "y2": 56
           },
           "seconds": 2,
-          "text": "確認 Map 4 入口區域。"
+          "text": "勘查 New RITC 南入口。"
         }
       ],
       "progress_lines": [],
@@ -1850,7 +1850,8 @@
         "火光亮起。",
         "TGC 的道路從此不再是唯一的入口。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "凱爾希"
     },
     {
       "id": "mission_stage5_02",
@@ -1863,58 +1864,45 @@
       "order": 2,
       "handler": "SA",
       "type": "SA",
-      "description": "Map 4 的道路仍然處於崩壞狀態。 修復三個損壞位置，確保補給能夠通過。",
+      "description": "南口到營火之間連擔架都不好抬。 沿兩處標記走一遍，看看哪裡能開路。樹線旁有怪物，留意兩側。",
       "description_lines": [
-        "Map 4 的道路仍然處於崩壞狀態。",
-        "修復三個損壞位置，確保補給能夠通過。"
+        "南口到營火之間連擔架都不好抬。",
+        "沿兩處標記走一遍，看看哪裡能開路。樹線旁有怪物，留意兩側。"
       ],
       "accept_lines": [
-        "Map 4 的道路仍然處於崩壞狀態。",
-        "修復三個損壞位置，確保補給能夠通過。"
+        "南口到營火之間連擔架都不好抬。",
+        "沿兩處標記走一遍，看看哪裡能開路。樹線旁有怪物，留意兩側。"
       ],
       "briefing": [
-        "Map 4 的道路仍然處於崩壞狀態。",
-        "修復三個損壞位置，確保補給能夠通過。"
+        "南口到營火之間連擔架都不好抬。",
+        "沿兩處標記走一遍，看看哪裡能開路。樹線旁有怪物，留意兩側。"
       ],
       "objectives": [
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_4.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 3,
-            "y1": 4,
-            "x2": 5,
-            "y2": 6
+            "x1": 19,
+            "y1": 49,
+            "x2": 21,
+            "y2": 51
           },
-          "seconds": 1,
-          "text": "修復第一處道路損壞。"
+          "seconds": 2,
+          "text": "勘查南側道路。"
         },
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_4.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 6,
-            "y1": 8,
-            "x2": 8,
-            "y2": 10
+            "x1": 19,
+            "y1": 42,
+            "x2": 21,
+            "y2": 44
           },
-          "seconds": 1,
-          "text": "修復第二處道路損壞。"
-        },
-        {
-          "type": "SA",
-          "amount": 1,
-          "map": "map_4.json",
-          "area": {
-            "x1": 9,
-            "y1": 4,
-            "x2": 11,
-            "y2": 6
-          },
-          "seconds": 1,
-          "text": "修復第三處道路損壞。"
+          "seconds": 2,
+          "text": "勘查營火前的道路。"
         }
       ],
       "progress_lines": [],
@@ -1922,84 +1910,54 @@
         "道路可以留下。",
         "但它通往哪裡，由我決定。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "凱爾希"
     },
     {
       "id": "mission_stage5_03",
       "title": "第一批物資",
-      "provider": "kaltsit",
-      "giver_id": "kaltsit",
+      "provider": "closure",
+      "giver_id": "closure",
       "chain": "stage_5",
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 3,
-      "handler": "SA",
-      "type": "SA",
-      "description": "空地本身無法成為據點。 前往 Map 5，收集第一批建設物資。",
+      "handler": "CD",
+      "type": "CD",
+      "description": "料還堆在泥地上，再下場雨我們就得重撿。 到三個標記點登記木料、石料和鐵件。清單拿給我，我先搭儲藏間。",
       "description_lines": [
-        "空地本身無法成為據點。",
-        "前往 Map 5，收集第一批建設物資。"
+        "料還堆在泥地上，再下場雨我們就得重撿。",
+        "到三個標記點登記木料、石料和鐵件。清單拿給我，我先搭儲藏間。"
       ],
       "accept_lines": [
-        "空地本身無法成為據點。",
-        "前往 Map 5，收集第一批建設物資。"
+        "料還堆在泥地上，再下場雨我們就得重撿。",
+        "到三個標記點登記木料、石料和鐵件。清單拿給我，我先搭儲藏間。"
       ],
       "briefing": [
-        "空地本身無法成為據點。",
-        "前往 Map 5，收集第一批建設物資。"
+        "料還堆在泥地上，再下場雨我們就得重撿。",
+        "到三個標記點登記木料、石料和鐵件。清單拿給我，我先搭儲藏間。"
       ],
       "objectives": [
         {
-          "type": "SA",
+          "type": "CD",
           "amount": 1,
-          "map": "map_5.json",
-          "area": {
-            "x1": 4,
-            "y1": 4,
-            "x2": 6,
-            "y2": 6
-          },
-          "seconds": 1,
-          "text": "確認木材回收點。"
+          "map": "new_ritc.json",
+          "target_id": "new_ritc_timber",
+          "text": "登記木料。"
         },
         {
-          "type": "SA",
+          "type": "CD",
           "amount": 1,
-          "map": "map_5.json",
-          "area": {
-            "x1": 21,
-            "y1": 4,
-            "x2": 23,
-            "y2": 6
-          },
-          "seconds": 1,
-          "text": "確認石材回收點。"
+          "map": "new_ritc.json",
+          "target_id": "new_ritc_stone",
+          "text": "登記石料。"
         },
         {
-          "type": "SA",
+          "type": "CD",
           "amount": 1,
-          "map": "map_5.json",
-          "area": {
-            "x1": 24,
-            "y1": 8,
-            "x2": 26,
-            "y2": 10
-          },
-          "seconds": 1,
-          "text": "確認金屬回收點。"
-        },
-        {
-          "type": "SA",
-          "amount": 1,
-          "map": "map_5.json",
-          "area": {
-            "x1": 21,
-            "y1": 21,
-            "x2": 23,
-            "y2": 23
-          },
-          "seconds": 1,
-          "text": "確認零件回收點。"
+          "map": "new_ritc.json",
+          "target_id": "new_ritc_hardware",
+          "text": "登記鐵件。"
         }
       ],
       "progress_lines": [],
@@ -2007,52 +1965,54 @@
         "把物資收起來，但不要執行舊計畫。",
         "它們要用在什麼地方，我會重新決定。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "可露希爾"
     },
     {
       "id": "mission_stage5_04",
       "title": "空白之地",
-      "provider": "kaltsit",
-      "giver_id": "kaltsit",
+      "provider": "priestess",
+      "giver_id": "priestess",
       "chain": "stage_5",
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 4,
       "handler": "SA",
       "type": "SA",
-      "description": "這裡仍然缺少能夠休息的地方。 按照留下的設計，完成第一個住宿區吧。",
+      "description": "第一間住屋我畫在西邊。那塊地比較乾，離火也近。 去標記處看看床和門怎麼擺。晚上來的人要能自己找到入口。",
       "description_lines": [
-        "這裡仍然缺少能夠休息的地方。",
-        "按照留下的設計，完成第一個住宿區吧。"
+        "第一間住屋我畫在西邊。那塊地比較乾，離火也近。",
+        "去標記處看看床和門怎麼擺。晚上來的人要能自己找到入口。"
       ],
       "accept_lines": [
-        "這裡仍然缺少能夠休息的地方。",
-        "按照留下的設計，完成第一個住宿區吧。"
+        "第一間住屋我畫在西邊。那塊地比較乾，離火也近。",
+        "去標記處看看床和門怎麼擺。晚上來的人要能自己找到入口。"
       ],
       "briefing": [
-        "這裡仍然缺少能夠休息的地方。",
-        "按照留下的設計，完成第一個住宿區吧。"
+        "第一間住屋我畫在西邊。那塊地比較乾，離火也近。",
+        "去標記處看看床和門怎麼擺。晚上來的人要能自己找到入口。"
       ],
       "objectives": [
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_5.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 14,
-            "y1": 14,
-            "x2": 16,
-            "y2": 16
+            "x1": 5,
+            "y1": 29,
+            "x2": 7,
+            "y2": 31
           },
           "seconds": 2,
-          "text": "建立第一個住宿區。"
+          "text": "勘查西側住屋用地。"
         }
       ],
       "progress_lines": [],
       "return_lines": [
         "一個真正的避難所，不應該先替居住者決定未來。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "普瑞賽斯"
     },
     {
       "id": "mission_stage5_05",
@@ -2065,18 +2025,18 @@
       "order": 5,
       "handler": "CD",
       "type": "CD",
-      "description": "Map 6 出現了與 TGC 相同的回收訊號。 清除阻礙，將那份紀錄帶回來。",
+      "description": "東部回收區的訊號，和追著你的東西一樣。 去讀回收命令，把原文帶回來。我得知道南口的門要防誰。",
       "description_lines": [
-        "Map 6 出現了與 TGC 相同的回收訊號。",
-        "清除阻礙，將那份紀錄帶回來。"
+        "東部回收區的訊號，和追著你的東西一樣。",
+        "去讀回收命令，把原文帶回來。我得知道南口的門要防誰。"
       ],
       "accept_lines": [
-        "Map 6 出現了與 TGC 相同的回收訊號。",
-        "清除阻礙，將那份紀錄帶回來。"
+        "東部回收區的訊號，和追著你的東西一樣。",
+        "去讀回收命令，把原文帶回來。我得知道南口的門要防誰。"
       ],
       "briefing": [
-        "Map 6 出現了與 TGC 相同的回收訊號。",
-        "清除阻礙，將那份紀錄帶回來。"
+        "東部回收區的訊號，和追著你的東西一樣。",
+        "去讀回收命令，把原文帶回來。我得知道南口的門要防誰。"
       ],
       "objectives": [
         {
@@ -2091,116 +2051,105 @@
       "return_lines": [
         "沒有拒絕權的保護，和囚禁沒有太大差別。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "凱爾希"
     },
     {
       "id": "mission_stage5_06",
       "title": "自己的目的",
-      "provider": "kaltsit",
-      "giver_id": "kaltsit",
+      "provider": "priestess",
+      "giver_id": "priestess",
       "chain": "stage_5",
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 6,
       "handler": "SA",
       "type": "SA",
-      "description": "你已經知道這座設施原本的用途。 現在決定你要讓它成為什麼。",
+      "description": "那道命令替進去的人決定了去向。這裡的門可以由我們自己設計。 去中央廣場看看。桌子要放得下，也得給往外走的人留路。",
       "description_lines": [
-        "你已經知道這座設施原本的用途。",
-        "現在決定你要讓它成為什麼。"
+        "那道命令替進去的人決定了去向。這裡的門可以由我們自己設計。",
+        "去中央廣場看看。桌子要放得下，也得給往外走的人留路。"
       ],
       "accept_lines": [
-        "你已經知道這座設施原本的用途。",
-        "現在決定你要讓它成為什麼。"
+        "那道命令替進去的人決定了去向。這裡的門可以由我們自己設計。",
+        "去中央廣場看看。桌子要放得下，也得給往外走的人留路。"
       ],
       "briefing": [
-        "你已經知道這座設施原本的用途。",
-        "現在決定你要讓它成為什麼。"
+        "那道命令替進去的人決定了去向。這裡的門可以由我們自己設計。",
+        "去中央廣場看看。桌子要放得下，也得給往外走的人留路。"
       ],
       "objectives": [
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_6.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 1,
+            "x1": 19,
             "y1": 29,
-            "x2": 3,
+            "x2": 21,
             "y2": 31
           },
           "seconds": 2,
-          "text": "確認 Map 6 入口。"
-        },
-        {
-          "type": "SA",
-          "amount": 1,
-          "map": "map_6.json",
-          "area": {
-            "x1": 38,
-            "y1": 16,
-            "x2": 40,
-            "y2": 18
-          },
-          "seconds": 2,
-          "text": "調查回收紀錄區域。"
+          "text": "勘查中央廣場用地。"
         }
       ],
       "progress_lines": [],
       "return_lines": [
         "從今天開始，這裡叫 New RITC。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "普瑞賽斯"
     },
     {
       "id": "mission_stage5_07",
       "title": "儲存與製造",
-      "provider": "kaltsit",
-      "giver_id": "kaltsit",
+      "provider": "closure",
+      "giver_id": "closure",
       "chain": "stage_5",
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 7,
       "handler": "SA",
       "type": "SA",
-      "description": "現有物資只能維持短期運作。 取得足夠零件，讓這裡能夠自行生產。",
+      "description": "儲藏間不漏雨了，接著要有地方鋸木頭、修工具。 去東側看看木工台的位置，順便走一趟門外的搬運路線。桌子釘了我可不想再拆。",
       "description_lines": [
-        "現有物資只能維持短期運作。",
-        "取得足夠零件，讓這裡能夠自行生產。"
+        "儲藏間不漏雨了，接著要有地方鋸木頭、修工具。",
+        "去東側看看木工台的位置，順便走一趟門外的搬運路線。桌子釘了我可不想再拆。"
       ],
       "accept_lines": [
-        "現有物資只能維持短期運作。",
-        "取得足夠零件，讓這裡能夠自行生產。"
+        "儲藏間不漏雨了，接著要有地方鋸木頭、修工具。",
+        "去東側看看木工台的位置，順便走一趟門外的搬運路線。桌子釘了我可不想再拆。"
       ],
       "briefing": [
-        "現有物資只能維持短期運作。",
-        "取得足夠零件，讓這裡能夠自行生產。"
+        "儲藏間不漏雨了，接著要有地方鋸木頭、修工具。",
+        "去東側看看木工台的位置，順便走一趟門外的搬運路線。桌子釘了我可不想再拆。"
       ],
       "objectives": [
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_5.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 21,
-            "y1": 21,
-            "x2": 23,
-            "y2": 23
+            "x1": 32,
+            "y1": 42,
+            "x2": 34,
+            "y2": 44
           },
-          "seconds": 1,
-          "text": "確認物資儲存區。"
+          "seconds": 2,
+          "text": "確認木工台位置。"
         },
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_5.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 24,
-            "y1": 24,
-            "x2": 26,
-            "y2": 26
+            "x1": 31,
+            "y1": 47,
+            "x2": 33,
+            "y2": 49
           },
-          "seconds": 1,
-          "text": "確認零件製造區。"
+          "seconds": 2,
+          "text": "確認木料搬運路線。"
         }
       ],
       "progress_lines": [],
@@ -2208,7 +2157,8 @@
         "不是不需要妳。",
         "是不再由任何一個人決定全部。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "可露希爾"
     },
     {
       "id": "mission_stage5_08",
@@ -2221,63 +2171,64 @@
       "order": 8,
       "handler": "SA",
       "type": "SA",
-      "description": "一個聚落不能只提供床位與工具。 收集醫療物資，建立能夠救人的設施。",
+      "description": "屋子已經能住人，受傷的人也得有地方抬。 去東側看看診療所的地面，門口留給兩個人抬擔架。回來我會安排最後一輪巡查。",
       "description_lines": [
-        "一個聚落不能只提供床位與工具。",
-        "收集醫療物資，建立能夠救人的設施。"
+        "屋子已經能住人，受傷的人也得有地方抬。",
+        "去東側看看診療所的地面，門口留給兩個人抬擔架。回來我會安排最後一輪巡查。"
       ],
       "accept_lines": [
-        "一個聚落不能只提供床位與工具。",
-        "收集醫療物資，建立能夠救人的設施。"
+        "屋子已經能住人，受傷的人也得有地方抬。",
+        "去東側看看診療所的地面，門口留給兩個人抬擔架。回來我會安排最後一輪巡查。"
       ],
       "briefing": [
-        "一個聚落不能只提供床位與工具。",
-        "收集醫療物資，建立能夠救人的設施。"
+        "屋子已經能住人，受傷的人也得有地方抬。",
+        "去東側看看診療所的地面，門口留給兩個人抬擔架。回來我會安排最後一輪巡查。"
       ],
       "objectives": [
         {
           "type": "SA",
           "amount": 1,
-          "map": "map_6.json",
+          "map": "new_ritc.json",
           "area": {
-            "x1": 33,
-            "y1": 49,
-            "x2": 35,
-            "y2": 51
+            "x1": 32,
+            "y1": 28,
+            "x2": 34,
+            "y2": 30
           },
           "seconds": 2,
-          "text": "建立醫療設施。"
+          "text": "勘查東側診療所用地。"
         }
       ],
       "progress_lines": [],
       "return_lines": [
         "但現在的我，先選擇讓眼前的人活下來。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "凱爾希"
     },
     {
       "id": "mission_stage5_09",
       "title": "獨立線路",
-      "provider": "kaltsit",
-      "giver_id": "kaltsit",
+      "provider": "closure",
+      "giver_id": "closure",
       "chain": "stage_5",
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 9,
       "handler": "CD",
       "type": "CD",
-      "description": "連接外部之後，這裡將不再是封閉的系統。 如果這仍是你的選擇，就取回需要的通訊元件。",
+      "description": "這裡得有自己的通訊線。有人受傷時，不能跑到舊設施才叫得到人。 去東部回收區把通訊元件拿回來，線我接。",
       "description_lines": [
-        "連接外部之後，這裡將不再是封閉的系統。",
-        "如果這仍是你的選擇，就取回需要的通訊元件。"
+        "這裡得有自己的通訊線。有人受傷時，不能跑到舊設施才叫得到人。",
+        "去東部回收區把通訊元件拿回來，線我接。"
       ],
       "accept_lines": [
-        "連接外部之後，這裡將不再是封閉的系統。",
-        "如果這仍是你的選擇，就取回需要的通訊元件。"
+        "這裡得有自己的通訊線。有人受傷時，不能跑到舊設施才叫得到人。",
+        "去東部回收區把通訊元件拿回來，線我接。"
       ],
       "briefing": [
-        "連接外部之後，這裡將不再是封閉的系統。",
-        "如果這仍是你的選擇，就取回需要的通訊元件。"
+        "這裡得有自己的通訊線。有人受傷時，不能跑到舊設施才叫得到人。",
+        "去東部回收區把通訊元件拿回來，線我接。"
       ],
       "objectives": [
         {
@@ -2293,31 +2244,32 @@
         "一條我可以靠近，也可以離開的線。",
         "不是鎖鏈。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "可露希爾"
     },
     {
       "id": "mission_stage5_10",
       "title": "New RITC",
-      "provider": "kaltsit",
-      "giver_id": "kaltsit",
+      "provider": "priestess",
+      "giver_id": "priestess",
       "chain": "stage_5",
       "allow_empty_rewards": true,
       "rewards": [],
       "order": 10,
       "handler": "CD",
       "type": "CD",
-      "description": "最後的建設清單已經整理完成。 完成它，然後告訴我們這個地方的答案。",
+      "description": "最後一件建設元件還在東部回收區。帶回來，南口的菜圃就能收尾。 做完來找我。我想聽你怎麼跟第一次到這裡的人介紹這個地方。",
       "description_lines": [
-        "最後的建設清單已經整理完成。",
-        "完成它，然後告訴我們這個地方的答案。"
+        "最後一件建設元件還在東部回收區。帶回來，南口的菜圃就能收尾。",
+        "做完來找我。我想聽你怎麼跟第一次到這裡的人介紹這個地方。"
       ],
       "accept_lines": [
-        "最後的建設清單已經整理完成。",
-        "完成它，然後告訴我們這個地方的答案。"
+        "最後一件建設元件還在東部回收區。帶回來，南口的菜圃就能收尾。",
+        "做完來找我。我想聽你怎麼跟第一次到這裡的人介紹這個地方。"
       ],
       "briefing": [
-        "最後的建設清單已經整理完成。",
-        "完成它，然後告訴我們這個地方的答案。"
+        "最後一件建設元件還在東部回收區。帶回來，南口的菜圃就能收尾。",
+        "做完來找我。我想聽你怎麼跟第一次到這裡的人介紹這個地方。"
       ],
       "objectives": [
         {
@@ -2333,7 +2285,8 @@
         "歡迎來到 New RITC。",
         "休息、準備，並在你選擇時離開。"
       ],
-      "environment_changes": []
+      "environment_changes": [],
+      "giver_name": "普瑞賽斯"
     }
   ]
 }

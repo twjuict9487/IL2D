@@ -16,7 +16,7 @@
           "label": "Stage 1",
           "title": "凱爾希篇",
           "hold_seconds": 1.5,
-          "fade_seconds": 1.0
+          "fade_seconds": 1
         }
       ],
       "requires": [],
@@ -410,7 +410,7 @@
           "label": "Stage 2",
           "title": "伊內絲篇",
           "hold_seconds": 1.5,
-          "fade_seconds": 1.0
+          "fade_seconds": 1
         }
       ],
       "requires": [
@@ -811,7 +811,7 @@
           "label": "Stage 3",
           "title": "可露希爾篇",
           "hold_seconds": 1.5,
-          "fade_seconds": 1.0
+          "fade_seconds": 1
         }
       ],
       "requires": [
@@ -1212,7 +1212,7 @@
           "label": "Stage 4",
           "title": "Priestess篇",
           "hold_seconds": 1.5,
-          "fade_seconds": 1.0
+          "fade_seconds": 1
         }
       ],
       "requires": [
@@ -1618,7 +1618,7 @@
           "label": "Stage 5",
           "title": "New RITC 篇",
           "hold_seconds": 1.5,
-          "fade_seconds": 1.0
+          "fade_seconds": 1
         }
       ],
       "requires": [
@@ -1650,9 +1650,10 @@
                   "type": "dialogue",
                   "speaker": "kaltsit",
                   "lines": [
-                    "穿過前方的道路。",
-                    "找到一個能夠安全休息的地方。"
-                  ]
+                    "把出口旁的火點起來，讓落在後面的人知道往哪走。",
+                    "穿過開闊空地，從北口進 New RITC。看看南入口，再到營地找我。"
+                  ],
+                  "speaker_name_zh": "凱爾希"
                 },
                 {
                   "id": "story_5_1_1_runtime",
@@ -1685,9 +1686,10 @@
                   "type": "dialogue",
                   "speaker": "kaltsit",
                   "lines": [
-                    "Map 4 的道路仍然處於崩壞狀態。",
-                    "修復三個損壞位置，確保補給能夠通過。"
-                  ]
+                    "南口到營火之間連擔架都不好抬。",
+                    "沿兩處標記走一遍，看看哪裡能開路。樹線旁有怪物，留意兩側。"
+                  ],
+                  "speaker_name_zh": "凱爾希"
                 },
                 {
                   "id": "story_5_1_2_runtime",
@@ -1718,11 +1720,12 @@
                 {
                   "id": "story_5_1_3_intro",
                   "type": "dialogue",
-                  "speaker": "kaltsit",
+                  "speaker": "closure",
                   "lines": [
-                    "空地本身無法成為據點。",
-                    "前往 Map 5，收集第一批建設物資。"
-                  ]
+                    "料還堆在泥地上，再下場雨我們就得重撿。",
+                    "到三個標記點登記木料、石料和鐵件。清單拿給我，我先搭儲藏間。"
+                  ],
+                  "speaker_name_zh": "可露希爾"
                 },
                 {
                   "id": "story_5_1_3_runtime",
@@ -1755,9 +1758,10 @@
                   "type": "dialogue",
                   "speaker": "priestess",
                   "lines": [
-                    "這裡仍然缺少能夠休息的地方。",
-                    "按照留下的設計，完成第一個住宿區吧。"
-                  ]
+                    "第一間住屋我畫在西邊。那塊地比較乾，離火也近。",
+                    "去標記處看看床和門怎麼擺。晚上來的人要能自己找到入口。"
+                  ],
+                  "speaker_name_zh": "普瑞賽斯"
                 },
                 {
                   "id": "story_5_1_4_runtime",
@@ -1790,9 +1794,10 @@
                   "type": "dialogue",
                   "speaker": "kaltsit",
                   "lines": [
-                    "Map 6 出現了與 TGC 相同的回收訊號。",
-                    "清除阻礙，將那份紀錄帶回來。"
-                  ]
+                    "東部回收區的訊號，和追著你的東西一樣。",
+                    "去讀回收命令，把原文帶回來。我得知道南口的門要防誰。"
+                  ],
+                  "speaker_name_zh": "凱爾希"
                 },
                 {
                   "id": "story_5_1_5_runtime",
@@ -1835,11 +1840,12 @@
                 {
                   "id": "story_5_2_1_intro",
                   "type": "dialogue",
-                  "speaker": "kaltsit",
+                  "speaker": "priestess",
                   "lines": [
-                    "你已經知道這座設施原本的用途。",
-                    "現在決定你要讓它成為什麼。"
-                  ]
+                    "那道命令替進去的人決定了去向。這裡的門可以由我們自己設計。",
+                    "去中央廣場看看。桌子要放得下，也得給往外走的人留路。"
+                  ],
+                  "speaker_name_zh": "普瑞賽斯"
                 },
                 {
                   "id": "story_5_2_1_runtime",
@@ -1870,11 +1876,12 @@
                 {
                   "id": "story_5_2_2_intro",
                   "type": "dialogue",
-                  "speaker": "priestess",
+                  "speaker": "closure",
                   "lines": [
-                    "現有物資只能維持短期運作。",
-                    "取得足夠零件，讓這裡能夠自行生產。"
-                  ]
+                    "儲藏間不漏雨了，接著要有地方鋸木頭、修工具。",
+                    "去東側看看木工台的位置，順便走一趟門外的搬運路線。桌子釘了我可不想再拆。"
+                  ],
+                  "speaker_name_zh": "可露希爾"
                 },
                 {
                   "id": "story_5_2_2_runtime",
@@ -1907,9 +1914,10 @@
                   "type": "dialogue",
                   "speaker": "kaltsit",
                   "lines": [
-                    "一個聚落不能只提供床位與工具。",
-                    "收集醫療物資，建立能夠救人的設施。"
-                  ]
+                    "屋子已經能住人，受傷的人也得有地方抬。",
+                    "去東側看看診療所的地面，門口留給兩個人抬擔架。回來我會安排最後一輪巡查。"
+                  ],
+                  "speaker_name_zh": "凱爾希"
                 },
                 {
                   "id": "story_5_2_3_runtime",
@@ -1940,11 +1948,12 @@
                 {
                   "id": "story_5_2_4_intro",
                   "type": "dialogue",
-                  "speaker": "priestess",
+                  "speaker": "closure",
                   "lines": [
-                    "連接外部之後，這裡將不再是封閉的系統。",
-                    "如果這仍是你的選擇，就取回需要的通訊元件。"
-                  ]
+                    "這裡得有自己的通訊線。有人受傷時，不能跑到舊設施才叫得到人。",
+                    "去東部回收區把通訊元件拿回來，線我接。"
+                  ],
+                  "speaker_name_zh": "可露希爾"
                 },
                 {
                   "id": "story_5_2_4_runtime",
@@ -1973,11 +1982,12 @@
                 {
                   "id": "story_5_2_5_intro",
                   "type": "dialogue",
-                  "speaker": "kaltsit",
+                  "speaker": "priestess",
                   "lines": [
-                    "最後的建設清單已經整理完成。",
-                    "完成它，然後告訴我們這個地方的答案。"
-                  ]
+                    "最後一件建設元件還在東部回收區。帶回來，南口的菜圃就能收尾。",
+                    "做完來找我。我想聽你怎麼跟第一次到這裡的人介紹這個地方。"
+                  ],
+                  "speaker_name_zh": "普瑞賽斯"
                 },
                 {
                   "id": "story_5_2_5_runtime",

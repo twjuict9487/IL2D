@@ -302,5 +302,374 @@
     "tileset_ref": "ritc_marking_corner",
     "rotation": 270,
     "zh_comment": "旋轉測試 270 度"
+  },
+  "40": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "grass",
+    "zh_comment": "New RITC 荒草",
+    "draw_scale": 1
+  },
+  "41": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "grass_fern",
+    "zh_comment": "New RITC 蕨草",
+    "draw_scale": 1
+  },
+  "42": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "mud",
+    "zh_comment": "New RITC 泥路",
+    "draw_scale": 1
+  },
+  "43": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "road",
+    "zh_comment": "New RITC 碎石路",
+    "draw_scale": 1
+  },
+  "44": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "ruined_planks",
+    "zh_comment": "New RITC 腐朽木板",
+    "draw_scale": 1
+  },
+  "45": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "planks",
+    "zh_comment": "New RITC 修補木板",
+    "draw_scale": 1
+  },
+  "46": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "stone",
+    "zh_comment": "New RITC 夯實碎石地",
+    "draw_scale": 1
+  },
+  "47": {
+    "walkable": true,
+    "base": "01",
+    "zh_comment": "New RITC 野花",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "flowers",
+    "draw_scale": 1
+  },
+  "48": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_EW",
+    "zh_comment": "New RITC 橫牆",
+    "draw_scale": 1
+  },
+  "49": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_NS",
+    "zh_comment": "New RITC 直牆",
+    "draw_scale": 1
+  },
+  "50": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_ES",
+    "zh_comment": "New RITC 東南轉角",
+    "draw_scale": 1
+  },
+  "51": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_WS",
+    "zh_comment": "New RITC 西南轉角",
+    "draw_scale": 1
+  },
+  "52": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_EN",
+    "zh_comment": "New RITC 東北轉角",
+    "draw_scale": 1
+  },
+  "53": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_WN",
+    "zh_comment": "New RITC 西北轉角",
+    "draw_scale": 1
+  },
+  "54": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_E",
+    "zh_comment": "New RITC 東向端頭",
+    "draw_scale": 1
+  },
+  "55": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_W",
+    "zh_comment": "New RITC 西向端頭",
+    "draw_scale": 1
+  },
+  "56": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_N",
+    "zh_comment": "New RITC 北向端頭",
+    "draw_scale": 1
+  },
+  "57": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_S",
+    "zh_comment": "New RITC 南向端頭",
+    "draw_scale": 1
+  },
+  "58": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "wall_NONE",
+    "zh_comment": "New RITC 獨立木樁",
+    "draw_scale": 1
+  },
+  "59": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "door_N",
+    "zh_comment": "New RITC N 向門框",
+    "draw_scale": 1
+  },
+  "60": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "door_E",
+    "zh_comment": "New RITC E 向門框",
+    "draw_scale": 1
+  },
+  "61": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "door_S",
+    "zh_comment": "New RITC S 向門框",
+    "draw_scale": 1
+  },
+  "62": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "door_W",
+    "zh_comment": "New RITC W 向門框",
+    "draw_scale": 1
+  },
+  "63": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "palisade",
+    "zh_comment": "New RITC 南側木柵",
+    "draw_scale": 1
+  },
+  "64": {
+    "walkable": true,
+    "on_step": "portal",
+    "base": "03",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "portal",
+    "zh_comment": "New RITC 南入口",
+    "draw_scale": 1
+  },
+  "65": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "lantern",
+    "zh_comment": "New RITC 提燈",
+    "draw_scale": 1
+  },
+  "66": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "hearth_floor",
+    "zh_comment": "New RITC 營火石基",
+    "draw_scale": 1
+  },
+  "67": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "plaza_edge",
+    "zh_comment": "New RITC 廣場石緣",
+    "draw_scale": 1
+  },
+  "68": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "mat",
+    "zh_comment": "New RITC 編織地墊",
+    "draw_scale": 1
+  },
+  "69": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "trail_edge",
+    "zh_comment": "New RITC 修復道路邊緣",
+    "draw_scale": 1
+  },
+  "70": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "threshold",
+    "zh_comment": "New RITC 閘門踏板",
+    "draw_scale": 1
+  },
+  "71": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "crate",
+    "zh_comment": "New RITC 儲藏木箱",
+    "draw_scale": 1
+  },
+  "72": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "shelf",
+    "zh_comment": "New RITC 儲藏木架",
+    "draw_scale": 1
+  },
+  "73": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "table",
+    "zh_comment": "New RITC 公共作業桌",
+    "draw_scale": 1
+  },
+  "74": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "well",
+    "zh_comment": "New RITC 公共水井",
+    "draw_scale": 1
+  },
+  "75": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "workbench",
+    "zh_comment": "New RITC 木工台",
+    "draw_scale": 1
+  },
+  "76": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "tools",
+    "zh_comment": "New RITC 工具架",
+    "draw_scale": 1
+  },
+  "77": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "medicine",
+    "zh_comment": "New RITC 藥品架",
+    "draw_scale": 1
+  },
+  "78": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "radio",
+    "zh_comment": "New RITC 通訊設備",
+    "draw_scale": 1
+  },
+  "79": {
+    "walkable": false,
+    "base": "02",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "battery",
+    "zh_comment": "New RITC 電力設備",
+    "draw_scale": 1
+  },
+  "80": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "cot",
+    "zh_comment": "New RITC 草編床鋪",
+    "draw_scale": 1
+  },
+  "81": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "broken_cot",
+    "zh_comment": "New RITC 廢床架",
+    "draw_scale": 1
+  },
+  "82": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "rubble",
+    "zh_comment": "New RITC 散落木料",
+    "draw_scale": 1
+  },
+  "83": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "broken_fence_EW",
+    "zh_comment": "New RITC 橫向倒塌木柵",
+    "draw_scale": 1
+  },
+  "84": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "broken_fence_NS",
+    "zh_comment": "New RITC 直向倒塌木柵",
+    "draw_scale": 1
+  },
+  "85": {
+    "walkable": true,
+    "base": "01",
+    "tileset_json": "new_ritc_tileset.json",
+    "tileset_ref": "vegetable_bed",
+    "zh_comment": "New RITC 菜圃",
+    "draw_scale": 1
   }
 }

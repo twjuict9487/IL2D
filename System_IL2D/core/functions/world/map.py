@@ -149,8 +149,12 @@ def _normalize_campfires(raw_campfires):
 
 
 class GameMap:
-    def __init__(self, mapfile):
+    def __init__(self, mapfile, completed_story_missions=()):
         data = load_json(mapfile)
+        if data.get("settlement", {}).get("progression_file"):
+            from .settlement import apply_progression
+
+            apply_progression(mapfile, data, completed_story_missions)
         self.name = os.path.basename(mapfile)
         (
             self.grid,
@@ -169,6 +173,9 @@ class GameMap:
         self.mob_spawn_classes = data.get("mob_spawn_classes", None)
         self.mob_spawn_rank = data.get("mob_spawn_rank", None)
         self.npc_layout = _normalize_npc_layout(data.get("npc_layout", {}))
+        self.settlement_stage = data.get("settlement_stage", 0)
+        self.roofs = data.get("roofs", [])
+        self.ambient_spawn_bounds = data.get("ambient_spawn_bounds")
         self.mob_limit = data.get("mob_limit", 4)
         self.spawn_interval = data.get("spawn_interval")
         self.chase_transition = data.get("chase_transition")

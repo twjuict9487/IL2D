@@ -3700,6 +3700,29 @@ def _draw_chase_progress(game, screen):
     screen.blit(panel, ((screen.get_width() - panel_w) // 2, 12))
 
 
+def _draw_settlement_roofs(game, screen, cam_px, cam_py, tile_w, tile_h):
+    roofs = getattr(game.map, "roofs", ())
+    if not roofs:
+        return
+    from ..world.settlement import contains, roof_tile
+
+    viewport = screen.get_rect()
+    size = (math.ceil(tile_w), math.ceil(tile_h))
+    for roof in roofs:
+        bounds = roof["bounds"]
+        if contains(bounds, game.player.x, game.player.y):
+            continue
+        left, top, right, bottom = bounds
+        for y in range(top, bottom + 1):
+            for x in range(left, right + 1):
+                pos = (round(x * tile_w - cam_px), round(y * tile_h - cam_py))
+                if not viewport.colliderect(pygame.Rect(pos, size)):
+                    continue
+                sprite = _c("new_ritc_roofs.json", roof_tile(bounds, x, y), size)
+                if sprite is not None:
+                    screen.blit(sprite, pos)
+
+
 def draw(game, screen):
     screen.fill((0, 0, 0))
     chase = getattr(game, "chase_controller", None)
@@ -4051,6 +4074,7 @@ def draw(game, screen):
                 cx = base_x - col * (star_size + gap) + star_size // 2
                 cy = base_y - row * (star_size + gap) + star_size // 2
                 _o(screen, cx, cy, star_size // 2, (248, 222, 90), (255, 245, 180))
+    _draw_settlement_roofs(game, screen, cam_px, cam_py, tile_w, tile_h)
     if chase and chase.is_chase_map(game):
         _draw_chase_transition(game, screen, cam_px, cam_py, tile_w, tile_h)
     _h(game, screen, cam_px, cam_py, tile_w, tile_h)

@@ -309,11 +309,11 @@ class StoryManager:
         pending = state.get("pending_dialogue")
         if not isinstance(pending, dict):
             return False
-        speaker = str(pending.get("speaker", "") or "").strip().lower()
-        if speaker and speaker != str(npc_id or "").strip().lower():
-            return False
         scene = self.book.get("scenes_by_id", {}).get(pending.get("scene_id"))
         if not isinstance(scene, dict) or scene.get("type") != "dialogue":
+            return False
+        speaker = str(scene.get("speaker", "") or "").strip().lower()
+        if speaker and speaker != str(npc_id or "").strip().lower():
             return False
         state["pending_dialogue"] = None
         return story_scenes.play_dialogue_scene(game, scene)
@@ -359,6 +359,8 @@ class StoryManager:
         newly_completed = story_mission_id not in state["completed_story_missions"]
         if newly_completed:
             state["completed_story_missions"].append(story_mission_id)
+            if story_mission_id.startswith("story_5_") and hasattr(game, "refresh_new_ritc"):
+                game.refresh_new_ritc()
         for unlock_id in story_mission.get("unlocks", []) or []:
             self._unlock_id(state, unlock_id)
         line = self.book.get("lines_by_id", {}).get(story_mission.get("_line_id"))
@@ -409,6 +411,10 @@ class StoryManager:
         current_scene = scenes[scene_index]
         if current_scene.get("type") != "mission":
             return None
+        if story_mission.get("_stage_id") == "stage_5":
+            intro = next((scene for scene in scenes if scene.get("type") == "dialogue"), {})
+            if intro.get("speaker") != str(npc_id or "").strip().lower():
+                return None
         next_scene = scenes[scene_index + 1] if scene_index + 1 < len(scenes) else {}
         if next_scene.get("type") == "dialogue":
             speaker = str(next_scene.get("speaker", "") or "").strip().lower()
